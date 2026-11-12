@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/mississippi-business-report-readiness.schema.json",
+  "title": "Mississippi Business Reports private intake readiness report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "package_id", "format", "selection_sha256", "extraction_version", "readiness_status", "inputs", "gates", "review_pin_sha256", "extraction", "warnings", "claims"],
+  "properties": {
+    "schema_version": {"const": "mississippi-business-report-readiness@1.0.0"},
+    "package_id": {"$ref": "mississippi-business-report-intake-selection.schema.json#/$defs/packageId"},
+    "format": {"enum": ["xlsx", "xls", "csv"]},
+    "selection_sha256": {"$ref": "#/$defs/sha256"},
+    "extraction_version": {"const": "mississippi-business-report-extraction@1.0.0"},
+    "readiness_status": {"enum": ["blocked", "operator-attested-awaiting-independent-review", "ready-for-normalization-review"]},
+    "inputs": {"$ref": "mississippi-business-report-intake-selection.schema.json#/$defs/inputs"},
+    "gates": {
+      "type": "object", "additionalProperties": false, "required": ["original_workbook", "source_evidence", "rights_evidence", "extraction", "csv_companion", "independent_review"],
+      "properties": {
+        "original_workbook": {"enum": ["supplied-xlsx", "supported-original-workbook-required"]},
+        "source_evidence": {"enum": ["missing", "operator-attested"]},
+        "rights_evidence": {"enum": ["missing", "operator-attested", "scope-insufficient"]},
+        "extraction": {"enum": ["unsupported-format", "rejected", "empty-export", "matched"]},
+        "csv_companion": {"enum": ["not-evaluated", "not-supplied", "matched", "mismatch", "rejected"]},
+        "independent_review": {"enum": ["matched", "missing"]}
+      }
+    },
+    "review_pin_sha256": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/sha256"}]},
+    "extraction": {
+      "type": ["object", "null"], "additionalProperties": false,
+      "required": ["rows_observed", "registry_status_present", "principal_address_present", "zip5_present", "zip4_present", "ordered_projection_sha256"],
+      "properties": {
+        "rows_observed": {"$ref": "#/$defs/count"}, "registry_status_present": {"$ref": "#/$defs/count"}, "principal_address_present": {"$ref": "#/$defs/count"},
+        "zip5_present": {"$ref": "#/$defs/count"}, "zip4_present": {"$ref": "#/$defs/count"}, "ordered_projection_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "warnings": {"type": "array", "maxItems": 1, "items": {"const": "Export contains exactly 300,000 rows, the published ceiling; truncation is possible and statewide completeness remains false."}},
+    "claims": {"const": {
+      "network_requests": 0, "acquisition_performed": false, "account_action_performed": false, "purchase_performed": false,
+      "publisher_contact_performed": false, "source_authenticity_verified": false, "retention_rights_verified": false,
+      "derived_use_rights_verified": false, "statewide_complete": false, "current_operation_verified": false,
+      "physical_site_verified": false, "geocodes_claimed": false, "public_export_authorized": false,
+      "national_admission_performed": false, "admission_eligible": false, "production_enrollment": false,
+      "current_pointer_changed": false, "rows_published": 0, "row_bearing_snapshot_retained": false
+    }}
+  },
+  "$defs": {
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "count": {"type": "integer", "minimum": 0, "maximum": 300000}
+  }
+}

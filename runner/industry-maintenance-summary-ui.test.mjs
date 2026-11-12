@@ -7,16 +7,16 @@ const source=await readFile(new URL("../app/workspace-views.tsx",import.meta.url
 test("industry summary keeps operational maintenance intent separate from historical reporting evidence",()=>{
   assert.match(source,/Industry Status/);
   assert.match(source,/Operational maintenance segments/);
-  assert.match(source,/Operational segment IDs are shown separately from retained source dimensions and reporting\/map categories/);
+  assert.match(source,/nine operational segments regardless of selection/);
   assert.match(source,/governed crosswalk below relates compatible retained source dimensions to the nine operational segments/);
-  assert.match(source,/historical evidence below remains visible and unchanged/);
-  assert.match(source,/Manual-only and unauthorized sources retain their own gates/);
-  assert.match(source,/of jurisdictions \(/);
-  assert.match(source,/have any retained source-access evidence\. This is not business completeness or a business count/);
+  assert.match(source,/saved selection sets defaults for collection and refresh planning/);
+  assert.match(source,/share of the 50 states and D\.C\. with retained evidence/);
+  assert.match(source,/have retained source evidence/);
+  assert.match(source,/Source counts may overlap and use different units/);
   assert.match(source,/Retained evidence status:/);
-  assert.match(source,/Temporal status:/);
+  assert.match(source,/Temporal status<\/th>/);
   assert.match(source,/State evidence details for/);
-  assert.match(source,/source-access ledger stays separate from the governed exact-ZIP crosswalk below/);
+  assert.match(source,/exact-ZIP crosswalk below reports a different measure/);
   assert.match(source,/Retained source-dimension status/);
   assert.match(source,/Source vintage \/ temporal status/);
   assert.match(source,/Unknown, absent, or outside denominator/);
@@ -30,6 +30,6 @@ test("industry summary keeps operational maintenance intent separate from histor
   assert.match(source,/A topology-verified residual artifact is retained separately for each of the 56 Census state equivalents/);
   assert.match(source,/It remains nonblocking optional context and does not infer a ZIP, population, park, tribal\/Native, private-land, or business status/);
   assert.match(source,/\{industries \? \(\s*<>\s*<GovernedIndustryStatus state=\{state\} \/>\s*<h3>Industry connectivity<\/h3>/);
-  assert.match(source,/function GovernedIndustryStatus\(\{state\}:\{state:string\}\).*<OperationalMaintenanceIntent\/><NationalStatusPanel state=\{state\}\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
+  assert.match(source,/function GovernedIndustryStatus\(\{state\}:\{state:string\}\).*<OperationalMaintenanceIntent state=\{state\}\/><NationalStatusPanel state=\{state\}\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/><GovernedCoverageStates\/><AdjacentExactZipEvidenceCatalog\/><ExactZipIndustryNationalSummary \/>/);
   assert.equal(source.match(/<ExactZipIndustryNationalSummary \/>/g)?.length,1,"national governed matrix must render once, in Industry Summary");
 });

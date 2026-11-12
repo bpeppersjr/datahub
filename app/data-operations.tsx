@@ -218,11 +218,11 @@ export default function DataOperations() {
       <p className="operations-note">This operation performs no acquisition, purchase, or account action. Durable status, errors, cancellation, and restart-persistent history appear in shared Operation history below. Terminal receipts and private evidence remain retained locally for governed inspection; they are not offered as downloadable artifacts.</p>
     </section>
     <section aria-labelledby="mississippi-business-report-title" className="operations-builder">
-      <h3 id="mississippi-business-report-title">Process a Mississippi Business Report package</h3>
-      <p className="operations-note">Zero-network replay of one operator-supplied local package containing the original workbook, strict derived JSONL, and selection envelope. Co*Tive retains an operation-owned snapshot and independently replays it. Output remains local-review-only and makes no statewide-completeness, current-operation, geocode, physical-site, public-export, pointer, or national-admission claim.</p>
+      <h3 id="mississippi-business-report-title">Check Mississippi Business Report intake</h3>
+      <p className="operations-note">Check an operator-supplied package with a hash-bound publisher XLSX workbook and source and rights evidence. The app validates the workbook locally and records readiness gates. A separate app-governed review pin is required before normalization review.</p>
       <label>Package directory under data/imports <input aria-label="Mississippi Business Report package" value={mississippiBusinessPackage} disabled={busy} placeholder="data/imports/mississippi-business-report/packages/package-id" onChange={event=>setMississippiBusinessPackage(event.target.value)}/></label>
-      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/mississippi-business-report\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(mississippiBusinessPackage)||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ms-business-report',{package:mississippiBusinessPackage})))}>Start offline Mississippi package operation</button>
-      <p className="operations-note">The public report’s 300,000-row ceiling remains a truncation warning, never evidence of statewide completeness. Private receipts and releases stay inside datahub and are not download artifacts.</p>
+      <button type="button" className="primary-button" disabled={!catalog||!/^data\/imports\/mississippi-business-report\/packages\/[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(mississippiBusinessPackage)||mississippiBusinessPackage.endsWith('.')||locked||busy||!!connectionError} onClick={()=>void act(async()=>remember(await post<Operation>('/ms-business-report',{package:mississippiBusinessPackage})))}>Check offline intake readiness</button>
+      <p className="operations-note">Private reports contain gate results and aggregate counts. This check leaves Mississippi coverage open, and a 300,000-row export carries a possible-truncation warning.</p>
     </section>
     <section aria-labelledby="kentucky-business-entity-title" className="operations-builder">
       <h3 id="kentucky-business-entity-title">Process a Kentucky Business Entity package</h3>
@@ -268,6 +268,11 @@ export default function DataOperations() {
         <small>{operation.id}</small>
         {operation.result?.sourceId && <p>{label(operation.result.sourceId)}</p>}
         {operationEvidence(operation) && <p className="operations-note">{operationEvidence(operation)}</p>}
+        {operation.kind === 'ms-business-report' && operation.result?.readinessStatus && <>
+          <p>Intake {label(operation.result.readinessStatus)}{typeof operation.result.rowsObserved === 'number' && ` · ${operation.result.rowsObserved.toLocaleString()} package rows inspected`}</p>
+          {operation.result.readinessGates && <ul className="operation-task-list">{Object.entries(operation.result.readinessGates).map(([gate, status]) => <li key={gate}><span>{label(gate)}</span><strong>{label(status)}</strong></li>)}</ul>}
+          {operation.result.warnings?.map(warning => <p key={warning} className="operations-note">{warning}</p>)}
+        </>}
         {operation.status === 'SUCCEEDED' && operation.result?.normalizationReady === true && typeof operation.result.normalizedPlaces === 'number' && <p>{operation.result.normalizedPlaces.toLocaleString()} normalized source places · not a unique-business count</p>}
         {typeof operation.result?.rowsWritten === 'number' && <p>{operation.result.rowsWritten.toLocaleString()} exported records · {label(operation.result.policyMode ?? '')}</p>}
         {typeof operation.result?.credentialRowsWritten === 'number' && <p>{operation.result.credentialRowsWritten.toLocaleString()} credential rows · local review only · separate from business totals</p>}

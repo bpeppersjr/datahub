@@ -322,19 +322,21 @@ type Matrix = {
     adjacent_evidence?: AdjacentEvidence[];
   };
 };
+type ShareComponent = {
+  dimension_id: string;
+  source_id: string;
+  coverage_release_id: string;
+  unit: string;
+  count: number;
+};
+type ShareCategory<T> = { category_id: string; components: T[] };
 type Shares = {
   available: boolean;
-  categories: Array<{ id: string; label: string }>;
-  national_category_counts: Record<string, number>;
-  national_category_percent_of_collected_evidence: Record<
-    string,
-    number | null
-  >;
+  source_component_totals?: ShareCategory<ShareComponent>[];
   states: Array<{
     postal_abbreviation: string;
     state_name: string;
-    category_counts: Record<string, number>;
-    percent_of_category_nationwide: Record<string, number | null>;
+    evidence_components?: ShareCategory<ShareComponent>[];
   }>;
 };
 type MaintenanceIntentView={industries:Array<{id:string;label:string}>;maintainedIndustries:string[];revision:number;semantics:string};
@@ -342,12 +344,79 @@ const operationalIndustryIds=['childcare','construction','financial-services','h
 const operationalStates=['AK','AL','AR','AZ','CA','CO','CT','DC','DE','FL','GA','HI','IA','ID','IL','IN','KS','KY','LA','MA','MD','ME','MI','MN','MO','MS','MT','NC','ND','NE','NH','NJ','NM','NV','NY','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VA','VT','WA','WI','WV','WY'] as const;
 const operationalAccessStatuses=['direct-state-publisher','local-publisher-substate-evidence','national-dataset-state-evidence','restricted-query-sample-evidence','unsupported-evidence-not-measured','unsupported-missing'] as const;
 const operationalTemporalStatuses=['missing-source-reference','no-positive-count-evidence','review-due','within-review-window'] as const;
-type OperationalSource={source_key:string;source_release_id:string|null;source_reference_at:string|null;review_due_date:string|null;evidence_scope:string;publisher_currency_basis:string|null;retained_observed_at:string|null};
+type OperationalSource={
+  source_key:string;
+  source_release_id:string|null;
+  source_reference_at:string|null;
+  review_due_date:string|null;
+  evidence_scope:string;
+  publisher_currency_basis:string|null;
+  retained_observed_at:string|null;
+  evidence_type:string;
+  temporal_status:typeof operationalTemporalStatuses[number];
+  record_count:number|null;
+  count_unit:string|null;
+  issuing_locality:string|null;
+};
 type OperationalState={state:string;access_status:string;temporal_status:string;source_keys:string[];sources:OperationalSource[]};
-type OperationalIndustryEvidence={schema_version:"state-access-industry-summary@1.4.0";report_sha256:string;jurisdictions:51;industry_cells:459;industries:Array<{id:string;jurisdictions:51;jurisdictions_with_retained_access_evidence:number;retained_access_evidence_percent:number;access_status_counts:Record<string,number>;temporal_status_counts:Record<string,number>;states:OperationalState[]}>;claims:{active_business_count:null;nationwide_industry_completeness:null;complete_geocodes:false;maintenance_selection_affects_evidence:false}};
+type OperationalIndustryEvidence={schema_version:"state-access-industry-summary@1.5.0";report_sha256:string;assessed_at:string;jurisdictions:51;industry_cells:459;industries:Array<{id:string;jurisdictions:51;jurisdictions_with_retained_access_evidence:number;retained_access_evidence_percent:number;access_status_counts:Record<string,number>;temporal_status_counts:Record<string,number>;states:OperationalState[]}>;claims:{active_business_count:null;nationwide_industry_completeness:null;complete_geocodes:false;maintenance_selection_affects_evidence:false}};
 function validMaintenanceIntent(input:unknown):input is MaintenanceIntentView{if(!exactKeys(input,['industries','maintainedIndustries','revision','semantics']))return false;const value=input as MaintenanceIntentView,ids=Array.isArray(value.industries)?value.industries.map(item=>item?.id).sort():[];return Array.isArray(value.industries)&&value.industries.every(item=>exactKeys(item,['id','label'])&&typeof item.id==='string'&&typeof item.label==='string')&&ids.length===9&&ids.every((id,index)=>id===operationalIndustryIds[index])&&Array.isArray(value.maintainedIndustries)&&new Set(value.maintainedIndustries).size===value.maintainedIndustries.length&&value.maintainedIndustries.every(id=>operationalIndustryIds.includes(id as typeof operationalIndustryIds[number]))&&Number.isSafeInteger(value.revision)&&value.revision>=0&&typeof value.semantics==='string';}
-export function validOperationalIndustryEvidence(input:unknown):input is OperationalIndustryEvidence{if(!exactKeys(input,['schema_version','report_sha256','jurisdictions','industry_cells','industries','claims']))return false;const value=input as OperationalIndustryEvidence,nonnegative=(item:unknown)=>Number.isSafeInteger(item)&&Number(item)>=0,percent=(item:unknown)=>typeof item==='number'&&Number.isFinite(item)&&item>=0&&item<=100;if(value.schema_version!=='state-access-industry-summary@1.4.0'||value.report_sha256!==stateAccessEnrollment.reportSha256||value.jurisdictions!==51||value.industry_cells!==459||!exactKeys(value.claims,['active_business_count','nationwide_industry_completeness','complete_geocodes','maintenance_selection_affects_evidence'])||!sameClosed(value.claims,{active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false})||!Array.isArray(value.industries)||value.industries.length!==9)return false;const ids=value.industries.map(row=>row?.id).sort();if(new Set(ids).size!==9||!ids.every((id,index)=>id===operationalIndustryIds[index]))return false;return value.industries.every(row=>{if(!exactKeys(row,['id','jurisdictions','access_status_counts','temporal_status_counts','states','jurisdictions_with_retained_access_evidence','retained_access_evidence_percent'])||row.jurisdictions!==51||!exactKeys(row.access_status_counts,[...operationalAccessStatuses])||!exactKeys(row.temporal_status_counts,[...operationalTemporalStatuses])||!Object.values(row.access_status_counts).every(nonnegative)||!Object.values(row.temporal_status_counts).every(nonnegative)||Object.values(row.access_status_counts).reduce((sum,item)=>sum+item,0)!==51||Object.values(row.temporal_status_counts).reduce((sum,item)=>sum+item,0)!==51||!Array.isArray(row.states)||row.states.length!==51||new Set(row.states.map(item=>item?.state)).size!==51||!operationalStates.every(state=>row.states.some(item=>item.state===state))||!nonnegative(row.jurisdictions_with_retained_access_evidence)||!percent(row.retained_access_evidence_percent))return false;const retained=row.access_status_counts['direct-state-publisher']+row.access_status_counts['local-publisher-substate-evidence']+row.access_status_counts['national-dataset-state-evidence'];if(row.jurisdictions_with_retained_access_evidence!==retained||row.retained_access_evidence_percent!==Number((retained/51*100).toFixed(1)))return false;const access=Object.fromEntries(operationalAccessStatuses.map(status=>[status,0])),temporal=Object.fromEntries(operationalTemporalStatuses.map(status=>[status,0]));for(const state of row.states){if(!exactKeys(state,['state','access_status','temporal_status','source_keys','sources'])||!operationalStates.includes(state.state as typeof operationalStates[number])||!operationalAccessStatuses.includes(state.access_status as typeof operationalAccessStatuses[number])||!operationalTemporalStatuses.includes(state.temporal_status as typeof operationalTemporalStatuses[number])||!Array.isArray(state.source_keys)||state.source_keys.some(key=>typeof key!=='string')||new Set(state.source_keys).size!==state.source_keys.length||!Array.isArray(state.sources))return false;access[state.access_status]+=1;temporal[state.temporal_status]+=1;const sourceKeys=new Set<string>();for(const source of state.sources){if(!exactKeys(source,['source_key','source_release_id','source_reference_at','review_due_date','evidence_scope','publisher_currency_basis','retained_observed_at'])||typeof source.source_key!=='string'||!source.source_key||source.source_release_id!==null&&typeof source.source_release_id!=='string'||source.source_reference_at!==null&&typeof source.source_reference_at!=='string'||source.review_due_date!==null&&typeof source.review_due_date!=='string'||typeof source.evidence_scope!=='string'||source.publisher_currency_basis!==null&&typeof source.publisher_currency_basis!=='string'||source.retained_observed_at!==null&&typeof source.retained_observed_at!=='string')return false;sourceKeys.add(source.source_key);}if(sourceKeys.size!==state.source_keys.length||!state.source_keys.every(key=>sourceKeys.has(key)))return false;}return sameClosed(access,row.access_status_counts)&&sameClosed(temporal,row.temporal_status_counts);});}
-export function OperationalMaintenanceIntent(){
+export function validOperationalIndustryEvidence(input:unknown):input is OperationalIndustryEvidence {
+  if (!exactKeys(input, ['schema_version','report_sha256','assessed_at','jurisdictions','industry_cells','industries','claims'])) return false;
+  const value = input as OperationalIndustryEvidence;
+  if (
+    value.schema_version !== 'state-access-industry-summary@1.5.0' ||
+    value.report_sha256 !== stateAccessEnrollment.reportSha256 ||
+    typeof value.assessed_at !== 'string' || !Number.isFinite(Date.parse(value.assessed_at)) ||
+    new Date(value.assessed_at).toISOString() !== value.assessed_at ||
+    value.jurisdictions !== 51 || value.industry_cells !== 459 ||
+    !sameClosed(value.claims, {active_business_count:null,nationwide_industry_completeness:null,complete_geocodes:false,maintenance_selection_affects_evidence:false}) ||
+    !Array.isArray(value.industries) || value.industries.length !== operationalIndustryIds.length
+  ) return false;
+  const ids = new Set(value.industries.map(row => row?.id));
+  if (!operationalIndustryIds.every(id => ids.has(id))) return false;
+
+  return value.industries.every(row => {
+    if (
+      !exactKeys(row, ['id','jurisdictions','access_status_counts','temporal_status_counts','states','jurisdictions_with_retained_access_evidence','retained_access_evidence_percent']) ||
+      row.jurisdictions !== 51 || !Array.isArray(row.states) || row.states.length !== operationalStates.length
+    ) return false;
+    const states = new Set(row.states.map(state => state?.state));
+    if (!operationalStates.every(code => states.has(code))) return false;
+    const access = Object.fromEntries(operationalAccessStatuses.map(status => [status, 0]));
+    const temporal = Object.fromEntries(operationalTemporalStatuses.map(status => [status, 0]));
+    for (const state of row.states) {
+      if (
+        !exactKeys(state, ['state','access_status','temporal_status','source_keys','sources']) ||
+        !operationalAccessStatuses.includes(state.access_status as typeof operationalAccessStatuses[number]) ||
+        !operationalTemporalStatuses.includes(state.temporal_status as typeof operationalTemporalStatuses[number]) ||
+        !Array.isArray(state.source_keys) || new Set(state.source_keys).size !== state.source_keys.length ||
+        !Array.isArray(state.sources) || !state.sources.every(validOperationalSource)
+      ) return false;
+      access[state.access_status] += 1;
+      temporal[state.temporal_status] += 1;
+      const sourceKeys = new Set(state.sources.map(source => source.source_key));
+      if (sourceKeys.size !== state.source_keys.length || !state.source_keys.every(key => sourceKeys.has(key))) return false;
+    }
+    const retained = access['direct-state-publisher'] + access['local-publisher-substate-evidence'] + access['national-dataset-state-evidence'];
+    return sameClosed(access, row.access_status_counts) && sameClosed(temporal, row.temporal_status_counts) &&
+      row.jurisdictions_with_retained_access_evidence === retained &&
+      row.retained_access_evidence_percent === Number((retained / row.jurisdictions * 100).toFixed(1));
+  });
+}
+
+function validOperationalSource(source: OperationalSource) {
+  if (!exactKeys(source, ['source_key','source_release_id','source_reference_at','review_due_date','evidence_scope','publisher_currency_basis','retained_observed_at','evidence_type','temporal_status','record_count','count_unit','issuing_locality'])) return false;
+  const nullableText = (item: unknown) => item === null || (typeof item === 'string' && item.length > 0);
+  return typeof source.source_key === 'string' && source.source_key.length > 0 &&
+    typeof source.evidence_scope === 'string' && typeof source.evidence_type === 'string' && source.evidence_type.length > 0 &&
+    operationalTemporalStatuses.includes(source.temporal_status) &&
+    [source.source_release_id, source.source_reference_at, source.review_due_date, source.publisher_currency_basis, source.retained_observed_at, source.issuing_locality].every(nullableText) &&
+    (source.record_count === null ? source.count_unit === null :
+      Number.isSafeInteger(source.record_count) && source.record_count >= 0 && typeof source.count_unit === 'string' && source.count_unit.length > 0);
+}
+
+export function OperationalMaintenanceIntent({state = ''}: {state?: string} = {}){
   const[view,setView]=useState<MaintenanceIntentView|null>(null),[evidence,setEvidence]=useState<OperationalIndustryEvidence|null>(null),[intentError,setIntentError]=useState(false),[evidenceError,setEvidenceError]=useState(false);
   useEffect(() => {
     const controller = new AbortController();
@@ -369,11 +438,13 @@ export function OperationalMaintenanceIntent(){
   const industries = view?.industries ?? operationalIndustryIds.map(id => ({id,label:id.replaceAll('-', ' ')}));
   return <section className="industry-summary" aria-label="Operational industry maintenance intent">
     <h4>Operational maintenance segments</h4>
-    <p>Operational segment IDs are shown separately from retained source dimensions and reporting/map categories. Selection controls planning defaults only; historical evidence below remains visible and unchanged. Choose maintained industries in the Administration tab.</p>
+    <p>Choose maintained industries in Administration. The saved selection sets defaults for collection and refresh planning. This section reports state evidence for those nine operational segments regardless of selection.</p>
+    {evidence && <p>State source-access assessment as of {evidence.assessed_at.slice(0, 10)}. Coverage here is the share of the 50 states and D.C. with retained evidence from a state, local, or national source. Restricted query samples are listed separately. Source counts may overlap and use different units.</p>}
     {intentError ? <p role="status">Maintenance intent is unavailable. No selection is inferred; reporting evidence remains visible.</p>
       : !view ? <p role="status">Loading local maintenance intent…</p> : null}
     <div className="maintenance-status-list">{industries.map(item => {
       const status = evidence?.industries.find(row => row.id === item.id);
+      const stateRows = status?.states.filter(row => !state || row.state === state) ?? [];
       return <div key={item.id}>
         <strong>{item.label}</strong><code>{item.id}</code>
         <span className={view?.maintainedIndustries.includes(item.id) ? "status-succeeded" : "scope-note"}>
@@ -382,26 +453,29 @@ export function OperationalMaintenanceIntent(){
         </span>
         {status ? <>
           <strong>{status.jurisdictions_with_retained_access_evidence > 0 ? "Evidence retained" : "Awaiting source evidence"}</strong>
-          <small><strong>{status.retained_access_evidence_percent.toFixed(1)}%</strong> of jurisdictions ({status.jurisdictions_with_retained_access_evidence}/51) have any retained source-access evidence. This is not business completeness or a business count.</small>
+          <small><strong>{status.jurisdictions_with_retained_access_evidence} of {status.jurisdictions} jurisdictions</strong> have retained source evidence ({status.retained_access_evidence_percent.toFixed(1)}%).</small>
           <small>Review summary: {status.temporal_status_counts['within-review-window']} within review window · {status.temporal_status_counts['review-due']} review due · {status.temporal_status_counts['missing-source-reference']} missing source reference · {status.temporal_status_counts['no-positive-count-evidence']} without positive count evidence.</small>
           <small>Retained evidence status: {operationalAccessStatuses.map(key => `${key.replaceAll('-', ' ')}: ${status.access_status_counts[key]}`).join(' · ')}</small>
-          <small>Temporal status: {operationalTemporalStatuses.map(key => `${key.replaceAll('-', ' ')}: ${status.temporal_status_counts[key]}`).join(' · ')}</small>
-          <details><summary>State evidence details for {item.label}</summary>
+          <details><summary>State evidence details for {item.label}{state ? ` · ${state}` : ''}</summary>
             <div className="representation-table" role="region" aria-label={`${item.label} state evidence details`} tabIndex={0}>
-              <table><thead><tr><th scope="col">State</th><th scope="col">Access status</th><th scope="col">Temporal status</th><th scope="col">Retained source provenance</th></tr></thead>
-                <tbody>{status.states.map(state => <tr key={state.state}>
-                  <th scope="row">{state.state}</th><td>{state.access_status.replaceAll('-', ' ')}</td><td>{state.temporal_status.replaceAll('-', ' ')}</td>
-                  <td>{state.sources.length ? state.sources.map(source => <span key={`${source.source_key}:${source.source_release_id ?? 'unresolved'}`}>
-                    <code>{source.source_key}</code><small>release {source.source_release_id ?? 'unresolved'} · publisher reference {source.source_reference_at ?? 'unmeasured'} · publisher currency {source.publisher_currency_basis?.replaceAll('-', ' ') ?? 'unmeasured'} · retained observation {source.retained_observed_at ?? 'unmeasured'} · review due {source.review_due_date ?? 'unmeasured'} · {source.evidence_scope.replaceAll('-', ' ')}</small>
-                  </span>) : <span>Unknown — no retained temporal source key</span>}</td>
+              <table><thead><tr><th scope="col">State</th><th scope="col">Access status</th><th scope="col">Temporal status</th><th scope="col">Retained sources and counts</th></tr></thead>
+                <tbody>{stateRows.map(row => <tr key={row.state}>
+                  <th scope="row">{row.state}</th><td>{row.access_status.replaceAll('-', ' ')}</td><td>{row.temporal_status.replaceAll('-', ' ')}</td>
+                  <td>{row.sources.length ? row.sources.map(source => <div key={JSON.stringify(source)}>
+                    <code>{source.source_key}</code>
+                    <strong>{source.record_count === null ? 'Count unavailable' : `${count(source.record_count)} · ${source.count_unit?.replaceAll('-', ' ')}`}</strong>
+                    <small>{source.issuing_locality ? `${source.issuing_locality} · ` : ''}{source.evidence_type === 'retained-state-query-sample-count' ? 'Restricted query sample · ' : ''}{source.temporal_status.replaceAll('-', ' ')}</small>
+                    <small>release {source.source_release_id ?? 'unresolved'} · publisher reference {source.source_reference_at ?? 'unmeasured'} · publisher currency {source.publisher_currency_basis?.replaceAll('-', ' ') ?? 'unmeasured'} · retained observation {source.retained_observed_at ?? 'unmeasured'} · review due {source.review_due_date ?? 'unmeasured'} · {source.evidence_scope.replaceAll('-', ' ')}</small>
+                  </div>) : <span>Unknown — no retained temporal source key</span>}</td>
                 </tr>)}</tbody>
               </table>
+              {stateRows.length === 0 && <p role="status">No retained industry assessment for the selected jurisdiction.</p>}
             </div>
           </details>
         </> : <small>{evidenceError ? 'Retained state evidence is unavailable or incompatible; unknown is preserved and no zero is inferred.' : 'Loading retained state evidence…'}</small>}
       </div>;
     })}</div>
-    <p className="operations-note">Manual-only and unauthorized sources retain their own gates. Maintenance intent does not imply authorization or completeness. This source-access ledger stays separate from the governed exact-ZIP crosswalk below.</p>
+    <p className="operations-note">These counts describe the retained releases. Business counts and present-day operations are unverified. The exact-ZIP crosswalk below reports a different measure.</p>
   </section>;
 }
 type TemporalMatrix = {
@@ -1893,9 +1967,9 @@ export function CoverageWorkspace({
       ? "All expected datasets"
       : categoryLabel(category),
     national = view?.available ? summarizeAvailability(rows) : null,
-    industryState = shares?.states.find(
-      (row) => row.postal_abbreviation === state,
-    );
+    industryState = shares?.states.find(row => row.postal_abbreviation === state),
+    nationalComponents = shares?.source_component_totals?.find(row => row.category_id === category)?.components ?? [],
+    stateComponents = industryState?.evidence_components?.find(row => row.category_id === category)?.components ?? [];
   useEffect(() => {
     if (category !== "general-business" || !state || !selected?.broad_layer_gap)
       return;
@@ -2005,8 +2079,8 @@ export function CoverageWorkspace({
           : "Overview compares retained dataset evidence with the governed datasets expected for each reporting industry and jurisdiction. This is an evidence-availability ratio, not an estimate of all businesses, geocode completeness, or an authoritative USPS ZIP denominator. This is not all-business or GDP completeness. Unknown cells remain unknown; measured zero and not applicable stay distinct."}
       </p>
       {industries && <p className="industry-evidence-boundary"><strong>Industry status reports evidence actually retained.</strong> It does not require an all-business denominator, complete geocoding, or nationwide industry completeness. Missing and unmeasured evidence remains unknown rather than zero.</p>}
-      {!industries && <p className="industry-evidence-boundary"><strong>Unresolved geography never blocks this map.</strong> Private and unique ZIPs, zero-population delivery areas, parks, tribal lands, private property, and other space without a governed Census ZCTA remain visible through the surrounding state geography and are reported as unresolved—not silently assigned, counted as missing businesses, or converted to zero. Select a state to inspect each retained unresolved component as a state/cardinal reference area that stays distinct from ZIP and Census boundaries. Park, tribal and private-land classifications remain unresolved where no governed overlay is retained.</p>}
-      {!industries && <NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} />}
+      {!industries && <p className="industry-evidence-boundary"><strong>Unresolved geography never blocks this map.</strong> Private or unique ZIPs can have no corresponding Census ZCTA or population estimate. The state base map includes parks, protected public lands, tribal lands, private property, and other areas outside the ZCTA layer. Select a state to view retained areas outside ZCTAs by state and compass direction. Park, tribal, and private-property classifications require separate source evidence.</p>}
+      {!industries && <details className="supporting-evidence"><summary>Optional completeness assessment</summary><NationalObjectiveReadinessCard value={objectiveReadiness} unavailable={objectiveReadinessError} /></details>}
       {!industries && mapMode === "availability" && <StateExactZipEvidencePanel state={state} />}
       <div className="workspace-filters">
         {!industries && <label>Map mode <select aria-label="State map mode" value={mapMode} onChange={event=>setMapMode(event.target.value==="exact-zip-evidence"?"exact-zip-evidence":"availability")}><option value="availability">Dataset availability</option><option value="exact-zip-evidence">Exact-ZIP source evidence</option></select></label>}
@@ -2035,7 +2109,7 @@ export function CoverageWorkspace({
             onChange={(event) => chooseState(event.target.value)}
           >
             <option value="">All states / choose a state</option>
-            {rows.map((row) => (
+            {(rows.length || !industries ? rows : operationalStates.map(code => ({code, name: code}))).map((row) => (
               <option key={row.code} value={row.code}>
                 {row.name}
               </option>
@@ -2091,82 +2165,32 @@ export function CoverageWorkspace({
           {shares?.available && (
             <section className="industry-summary" aria-label="Industry summary">
               <h3>Industry summary</h3>
-              <div className="coverage-national-metrics">
-                <article>
-                  <span>National evidence rows</span>
-                  <strong>
-                    {count(shares.national_category_counts[category])}
-                  </strong>
-                  <small>
-                    {percent(
-                      shares.national_category_percent_of_collected_evidence[
-                        category
-                      ],
-                    )}{" "}
-                    of collected category evidence
-                  </small>
-                </article>
-                <article>
-                  <span>{state || "Selected state"} evidence rows</span>
-                  <strong>
-                    {count(industryState?.category_counts[category])}
-                  </strong>
-                  <small>
-                    {percent(
-                      industryState?.percent_of_category_nationwide[category],
-                    )}{" "}
-                    of this category nationwide
-                  </small>
-                </article>
-              </div>
-              <details>
-                <summary>All national and state evidence shares</summary>
-                <div className="representation-table">
+              <p>Each percentage divides the selected state’s retained count by the nationwide retained count for the same source, release, and unit. These are shares of available evidence across the 50 states and D.C. Counts can overlap across sources.</p>
+              {nationalComponents.length ? (
+                <div className="representation-table" role="region" aria-label="Retained source counts and state shares" tabIndex={0}>
                   <table>
-                    <caption>
-                      Source categories overlap; these rows are not additive
-                      businesses or GDP weights
-                    </caption>
-                    <thead>
-                      <tr>
-                        <th>Source category</th>
-                        <th>National rows</th>
-                        <th>Share of retained evidence</th>
-                        <th>{state || "Selected state"} rows</th>
-                        <th>State share nationwide</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {shares.categories.map((row) => (
-                        <tr key={row.id}>
-                          <th>{row.label}</th>
-                          <td>
-                            {count(shares.national_category_counts[row.id])}
-                          </td>
-                          <td>
-                            {percent(
-                              shares
-                                .national_category_percent_of_collected_evidence[
-                                row.id
-                              ],
-                            )}
-                          </td>
-                          <td>
-                            {count(industryState?.category_counts[row.id])}
-                          </td>
-                          <td>
-                            {percent(
-                              industryState?.percent_of_category_nationwide[
-                                row.id
-                              ],
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                    <caption>{selectedCategoryLabel} · retained map evidence</caption>
+                    <thead><tr>
+                      <th scope="col">Source and count unit</th>
+                      <th scope="col">Nationwide retained count</th>
+                      {state && <><th scope="col">{industryState?.state_name ?? state} retained count</th><th scope="col">Share of the same retained source nationwide</th></>}
+                    </tr></thead>
+                    <tbody>{nationalComponents.map(component => {
+                      const selected = stateComponents.find(row =>
+                        row.dimension_id === component.dimension_id && row.source_id === component.source_id &&
+                        row.coverage_release_id === component.coverage_release_id && row.unit === component.unit);
+                      const comparable = selected && Number.isSafeInteger(selected.count) &&
+                        selected.count >= 0 && selected.count <= component.count;
+                      const share = comparable && component.count > 0 ? selected.count / component.count * 100 : null;
+                      return <tr key={component.dimension_id}>
+                        <th scope="row">{sourceLabel(component.dimension_id)}<small>{component.source_id} · {component.unit.replaceAll("_", " ")}</small></th>
+                        <td>{count(component.count)}</td>
+                        {state && <><td>{count(comparable ? selected.count : null)}</td><td>{percent(share)}</td></>}
+                      </tr>;
+                    })}</tbody>
                   </table>
                 </div>
-              </details>
+              ) : <p>No comparable map source counts are available for {selectedCategoryLabel}.</p>}
             </section>
           )}
         </>
@@ -6102,7 +6126,7 @@ export function EpaOperationalIndustryStatus({state}:{state:string}) {
     </>}
   </section>;
 }
-function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports maintenance intent and retained evidence without estimating the number or completeness of all U.S. businesses. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent/><NationalStatusPanel state={state}/><OperationalIndustryCrosswalkStatus state={state}/><EpaOperationalIndustryStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
+function GovernedIndustryStatus({state}:{state:string}){return <section className="industry-summary" aria-label="Governed Industry Status"><h3>Industry Status</h3><p>This view reports retained source counts and the states where evidence is available. The governed crosswalk below relates compatible retained source dimensions to the nine operational segments while preserving each source&apos;s distinct row unit, provenance, and status. Unavailable or unresolved evidence remains unknown rather than zero.</p><OperationalMaintenanceIntent state={state}/><NationalStatusPanel state={state}/><OperationalIndustryCrosswalkStatus state={state}/><EpaOperationalIndustryStatus state={state}/><GovernedCoverageStates/><AdjacentExactZipEvidenceCatalog/><ExactZipIndustryNationalSummary /></section>}
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   const [result, setResult] = useState<{
       zip: string;

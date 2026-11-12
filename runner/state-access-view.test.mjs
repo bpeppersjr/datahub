@@ -159,7 +159,8 @@ test("state-access enrollment rejects a hard-linked report", async (t) => {
 });
 test("industry summary conserves exact operational 51 by 9 cells and false completeness claims", async () => {
   const view = await stateAccessIndustrySummary();
-  assert.equal(view.schema_version, "state-access-industry-summary@1.4.0");
+  assert.equal(view.schema_version, "state-access-industry-summary@1.5.0");
+  assert.equal(view.assessed_at, "2026-11-11T21:58:29.882Z");
   assert.match(view.report_sha256, /^[a-f0-9]{64}$/);
   assert.equal(view.jurisdictions, 51);
   assert.equal(view.industry_cells, 459);
@@ -200,7 +201,7 @@ test("industry summary conserves exact operational 51 by 9 cells and false compl
         state.sources.every(
           (source) =>
             Object.keys(source).sort().join(",") ===
-            "evidence_scope,publisher_currency_basis,retained_observed_at,review_due_date,source_key,source_reference_at,source_release_id",
+            "count_unit,evidence_scope,evidence_type,issuing_locality,publisher_currency_basis,record_count,retained_observed_at,review_due_date,source_key,source_reference_at,source_release_id,temporal_status",
         ),
       );
     }
@@ -210,6 +211,8 @@ test("industry summary conserves exact operational 51 by 9 cells and false compl
     .states.find((row) => row.state === "MN");
   assert.equal(mnConstruction.access_status, "direct-state-publisher");
   assert.equal(mnConstruction.temporal_status, "missing-source-reference");
+  assert.equal(mnConstruction.sources[0].record_count, 10899);
+  assert.equal(mnConstruction.sources[0].count_unit, "publisher-business-credential-row");
   assert.deepEqual(mnConstruction.source_keys, [
     "mn-construction-credential-reporting",
   ]);
@@ -230,6 +233,8 @@ test("industry summary conserves exact operational 51 by 9 cells and false compl
     .find((row) => row.id === "childcare")
     .states.find((row) => row.state === "MA");
   assert.equal(maChildcare.temporal_status, "missing-source-reference");
+  assert.equal(maChildcare.sources[0].record_count, 3007);
+  assert.equal(maChildcare.sources[0].count_unit, "retained-reporting-row");
   assert.equal(maChildcare.sources[0].source_reference_at, null);
   assert.equal(
     maChildcare.sources[0].publisher_currency_basis,
@@ -239,6 +244,13 @@ test("industry summary conserves exact operational 51 by 9 cells and false compl
     maChildcare.sources[0].retained_observed_at,
     "2026-09-07T19:10:25.331Z",
   );
+  const sample = view.industries.find(row => row.id === "childcare").states.find(row => row.state === "NH");
+  assert.equal(sample.access_status, "restricted-query-sample-evidence");
+  assert.equal(sample.sources[0].record_count, 6);
+  assert.equal(sample.sources[0].evidence_type, "retained-state-query-sample-count");
+  const local = view.industries.find(row => row.id === "local-business-licenses").states.find(row => row.state === "CA");
+  assert.equal(local.sources[0].issuing_locality, "City of Los Angeles");
+  assert.equal(local.sources[0].record_count, 633232);
   assert.deepEqual(view.claims, {
     active_business_count: null,
     nationwide_industry_completeness: null,
@@ -258,6 +270,10 @@ test("industry summary rejects taxonomy and status drift even when enrollment ha
     (report) => {
       report.jurisdictions[0].industries[0].temporalStatus.status =
         "invented-temporal";
+    },
+    (report) => {
+      const source = report.jurisdictions[0].industries.flatMap(row => row.evidence).find(row => row.temporalEvidence);
+      source.recordCount = -1;
     },
   ]) {
     const root = await mkdtemp(path.join(os.tmpdir(), "state-access-summary-"));
@@ -290,7 +306,7 @@ test("industry summary rejects taxonomy and status drift even when enrollment ha
       JSON.parse(await readFile(file, "utf8"));
     await assert.rejects(
       stateAccessIndustrySummary({ root, configLoader }),
-      /taxonomy|cells|vocabulary/,
+      /taxonomy|cells|vocabulary|provenance/,
     );
   }
 });

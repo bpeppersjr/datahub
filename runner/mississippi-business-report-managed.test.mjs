@@ -4,21 +4,22 @@ import path from "node:path";
 import test from "node:test";
 import { APP_ROOT } from "./paths.mjs";
 import { createManagedOperations } from "./managed-operations.mjs";
+import { limitsOfAuthority } from "./mississippi-business-report-intake.mjs";
 
 const operationId="99111111-1111-4111-8111-111111111111";
 const packagePath="data/imports/mississippi-business-report/packages/managed-fixture";
-const workerDirectory=path.join(APP_ROOT,"data","imports","mississippi-business-report","operations","98111111-1111-4111-8111-111111111111");
+const workerDirectory=path.join(APP_ROOT,"data","imports","mississippi-business-report","operations",operationId);
 const receiptPath=path.join(workerDirectory,"receipt.json");
-const receipt={status:"SUCCEEDED",network_requests:0,acquisition_performed:false,purchase_performed:false,account_action_performed:false,source_pointer_changed:false,national_admission_performed:false,statewide_complete:false,current_operation_claim:false,geocode_claim:false,physical_site_claim:false,public_export_authorized:false,export_policy:"local-review-only",source:{record_count:2}};
+const receipt={schema_version:"mississippi-business-report-app@2.0.0",run_id:operationId,package_id:"managed-fixture",status:"SUCCEEDED",claims:limitsOfAuthority,source:{readiness_status:"operator-attested-awaiting-independent-review",gates:{independent_review:"missing"},rows_observed:2,warnings:[]}};
 
 test("Mississippi managed operation dispatches fixed private offline work and independently verifies it",async t=>{
   await rm(path.join(APP_ROOT,"data","managed-operations",operationId),{recursive:true,force:true});await mkdir(path.join(APP_ROOT,"data","managed-operations"),{recursive:true});
   let dispatched,verified;
   const managed=createManagedOperations({idFactory:()=>operationId,executor:async options=>{dispatched=options;return {code:0,stdout:JSON.stringify({operationDirectory:workerDirectory,receiptPath,receipt})};},mississippiBusinessAppVerifier:async(candidate,{signal})=>{verified={candidate,signal};return {receipt};}});
   t.after(async()=>{await managed.close();await rm(path.join(APP_ROOT,"data","managed-operations",operationId),{recursive:true,force:true});});
-  for(const input of [{},{package:packagePath,url:"https://example.com"},{package:"data/imports/mississippi-business-report/packages/bad package"},{package:"data/imports/mississippi-business-report/operations/x"}])await assert.rejects(managed.startMississippiBusinessReport(input),{statusCode:400});
+  for(const input of [{},{package:packagePath,url:"https://example.com"},{package:`${packagePath}.`},{package:"data/imports/mississippi-business-report/packages/bad package"},{package:"data/imports/mississippi-business-report/operations/x"}])await assert.rejects(managed.startMississippiBusinessReport(input),{statusCode:400});
   const started=await managed.startMississippiBusinessReport({package:packagePath});await managed.running.get(started.id)?.done;const final=await managed.get(started.id);
-  assert.equal(dispatched.script,"scripts/run-mississippi-business-report-app.mjs");assert.deepEqual(dispatched.args,["--package",packagePath]);assert.equal(final.status,"SUCCEEDED");assert.deepEqual(final.artifacts,[]);assert.equal(final.result.recordCount,2);assert.equal(final.result.independentReplayVerified,true);assert.equal(final.result.statewideComplete,false);assert.equal(final.result.publicExportAuthorized,false);assert.equal(verified.candidate,receiptPath);assert.ok(verified.signal instanceof AbortSignal);
+  assert.equal(dispatched.script,"scripts/run-mississippi-business-report-app.mjs");assert.deepEqual(dispatched.args,["--package",packagePath,"--operation-id",operationId]);assert.equal(final.status,"SUCCEEDED");assert.deepEqual(final.artifacts,[]);assert.equal(final.result.rowsObserved,2);assert.equal(final.result.rowsPublished,0);assert.equal(final.result.readinessStatus,"operator-attested-awaiting-independent-review");assert.equal(final.result.independentReplayVerified,true);assert.equal(final.result.statewideComplete,false);assert.equal(final.result.publicExportAuthorized,false);assert.equal(verified.candidate,receiptPath);assert.ok(verified.signal instanceof AbortSignal);
   const restored=createManagedOperations();t.after(()=>restored.close());await restored.ready;assert.equal((await restored.get(operationId)).status,"SUCCEEDED");
 });
 

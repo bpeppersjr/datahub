@@ -258,7 +258,7 @@ export class ManagedOperations {
   async startMississippiBusinessReport(input={}) {
     if(!input||Object.getPrototypeOf(input)!==Object.prototype||Reflect.ownKeys(input).length!==1||typeof Object.getOwnPropertyDescriptor(input,'package')?.value!=='string')throw invalid('Mississippi Business Report requires only package.');
     const selected=path.resolve(APP_ROOT,input.package),packages=path.join(APP_ROOT,'data','imports','mississippi-business-report','packages'),relative=path.relative(packages,selected);
-    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.dirname(selected)!==packages||!safeId(path.basename(selected))||path.basename(selected).length>64)throw invalid('Mississippi Business Report package must be a direct package directory.');
+    if(!relative||relative.startsWith('..')||path.isAbsolute(relative)||path.dirname(selected)!==packages||!safeId(path.basename(selected))||path.basename(selected).length>64||path.basename(selected).endsWith('.'))throw invalid('Mississippi Business Report package must be a direct package directory.');
     if(this.root!==path.join(APP_ROOT,'data/managed-operations'))throw invalid('Mississippi Business Report requires native operation storage.');
     await this.ready;await this.#refreshUnknown();this.#reserve();
     try{return await this.#start('ms-business-report',{sourceId:'mississippi-business-report',package:relativeToApp(selected)});}catch(error){this.reserved=false;throw error;}
@@ -582,7 +582,7 @@ export class ManagedOperations {
       else if(record.kind==='il-business-registry') {script='scripts/run-il-business-app.mjs';args=['--selection',record.details.selection];}
       else if(record.kind==='ut-business-list') {script='scripts/run-utah-business-list-app.mjs';args=['--selection',record.details.selection];}
       else if(record.kind==='ok-business-bulk') {script='scripts/run-ok-business-bulk-app.mjs';args=['--selection',record.details.selection];}
-      else if(record.kind==='ms-business-report') {script='scripts/run-mississippi-business-report-app.mjs';args=['--package',record.details.package];}
+      else if(record.kind==='ms-business-report') {script='scripts/run-mississippi-business-report-app.mjs';args=['--package',record.details.package,'--operation-id',record.id];}
       else if(record.kind==='ky-business-entity') {script='scripts/run-kentucky-business-entity-app.mjs';args=['--package',record.details.package];}
       else if (record.kind === "cohort-snapshot") { script = "scripts/build-retained-childcare-cohort-snapshot.mjs"; args = ["--output", path.join(directory, "output"), "--operation-id", record.id, ...(record.details.includeRetainedSamples ? ["--retained-samples", "true"] : [])]; }
       else if (record.kind === "source-prerequisite") {
@@ -685,8 +685,11 @@ export class ManagedOperations {
         if(!descriptor||Object.getPrototypeOf(descriptor)!==Object.prototype||!isDeepStrictEqual(Reflect.ownKeys(descriptor).sort(),['operationDirectory','receipt','receiptPath'])||typeof descriptor.receiptPath!=='string'||typeof descriptor.operationDirectory!=='string')throw Error('Mississippi Business Report descriptor rejected.');
         const verifier=this.mississippiBusinessAppVerifier??(await import('./mississippi-business-report-app.mjs')).verifyMississippiBusinessReportAppJob;
         const proof=await verifier(descriptor.receiptPath,{signal:controller.signal});
-        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,proof.receipt)||proof.receipt.status!=='SUCCEEDED'||proof.receipt.network_requests!==0||proof.receipt.acquisition_performed!==false||proof.receipt.purchase_performed!==false||proof.receipt.account_action_performed!==false||proof.receipt.source_pointer_changed!==false||proof.receipt.national_admission_performed!==false||proof.receipt.statewide_complete!==false||proof.receipt.current_operation_claim!==false||proof.receipt.geocode_claim!==false||proof.receipt.physical_site_claim!==false||proof.receipt.public_export_authorized!==false||proof.receipt.export_policy!=='local-review-only')throw Error('Mississippi Business Report replay disagreed.');
-        record.result={sourceId:'mississippi-business-report',recordCount:proof.receipt.source.record_count,receiptIntegrityVerified:true,independentReplayVerified:true,inspectionRequired:false,localReviewOnly:true,networkRequests:0,acquisitionPerformed:false,purchasePerformed:false,accountActionPerformed:false,currentPointerWritten:false,nationalAdmissionPerformed:false,statewideComplete:false,currentOperationClaim:false,geocodeClaim:false,physicalSiteClaim:false,publicExportAuthorized:false};record.artifacts=[];record.status='SUCCEEDED';
+        const { receipt } = proof;
+        const source = receipt.source;
+        const { limitsOfAuthority } = await import('./mississippi-business-report-intake.mjs');
+        if(path.dirname(descriptor.receiptPath)!==descriptor.operationDirectory||!isDeepStrictEqual(descriptor.receipt,receipt)||receipt.status!=='SUCCEEDED'||receipt.schema_version!=='mississippi-business-report-app@2.0.0'||receipt.run_id!==record.id||receipt.package_id!==path.basename(record.details.package)||!isDeepStrictEqual(receipt.claims,limitsOfAuthority)||!source)throw Error('Mississippi Business Report readiness replay disagreed.');
+        record.result={sourceId:'mississippi-business-report',readinessStatus:source.readiness_status,readinessGates:source.gates,rowsObserved:source.rows_observed,warnings:source.warnings,receiptIntegrityVerified:true,independentReplayVerified:true,inspectionRequired:source.readiness_status==='blocked',localReviewOnly:true,networkRequests:0,acquisitionPerformed:false,rowsPublished:0,currentPointerWritten:false,nationalAdmissionPerformed:false,statewideComplete:false,currentOperationClaim:false,publicExportAuthorized:false};record.artifacts=[];record.status='SUCCEEDED';
       }
       else if(record.kind==='ky-business-entity'){
         if(controller.signal.aborted||execution?.code!==0||typeof execution.stdout!=='string'||execution.stdout.length>65536)throw Error('Kentucky Business Entity did not complete cleanly.');

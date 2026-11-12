@@ -2226,17 +2226,18 @@ test("industries leads with summary and connectivity without redundant subnaviga
     url.includes("state-summary")
       ? {
           available: true,
-          categories: [{ id: "health-care", label: "Health care" }],
-          national_category_counts: { "health-care": 120 },
-          national_category_percent_of_collected_evidence: {
-            "health-care": 12.5,
-          },
+          source_component_totals: [{ category_id: "health-care", components: [
+            { dimension_id: "hospital_sites", source_id: "hospital-directory", coverage_release_id: "release-a", unit: "directory_rows", count: 120 },
+            { dimension_id: "nursing_home_sites", source_id: "nursing-home-directory", coverage_release_id: "release-a", unit: "directory_rows", count: 50 },
+          ] }],
           states: [
             {
               postal_abbreviation: "MD",
               state_name: "Maryland",
-              category_counts: { "health-care": 8 },
-              percent_of_category_nationwide: { "health-care": 6.7 },
+              evidence_components: [{ category_id: "health-care", components: [
+                { dimension_id: "hospital_sites", source_id: "hospital-directory", coverage_release_id: "release-a", unit: "directory_rows", count: 8 },
+                { dimension_id: "nursing_home_sites", source_id: "nursing-home-directory", coverage_release_id: "different-release", unit: "directory_rows", count: 5 },
+              ] }],
             },
           ],
         }
@@ -2298,8 +2299,10 @@ test("industries leads with summary and connectivity without redundant subnaviga
     }),
     value = text(tree);
   assert.match(value, /Industry summary/);
-  assert.match(value, /National evidence rows120/);
-  assert.match(value, /MD evidence rows8/);
+  assert.match(value, /Nationwide retained count/);
+  assert.match(value, /Maryland retained count/);
+  assert.match(value, /hospital-directory · directory rows12086.7%/);
+  assert.doesNotMatch(value, /10.0%/);
   assert.match(value, /Industry connectivity/);
   assert.match(value, /78.4%/);
   assert.match(value, /Missing \/ unknown/);
@@ -2851,7 +2854,35 @@ test("v3.0 exact ZIP view renders stale New York address evidence without site o
 
 test("v3.0 national summary renders 51 dimensions and rejects New York semantic drift",async()=>{const value=await readExactZipIndustrySummaryV30(),h=harness(async()=>value);assert.equal(h.render("validExactZipIndustrySummary",value),true);h.render("ExactZipIndustryNationalSummary");await flush();const rendered=text(h.render("ExactZipIndustryNationalSummary"));assert.match(rendered,/48,194 retained ZIP5 keys × 51 governed source dimensions = 2,457,894 evidence cells/);assert.match(rendered,/ny retail food license address evidence count/i);assert.match(rendered,/annual current-snapshot membership/i);for(const mutate of[v=>{v.temporal_qualification.dimension_counts.stale--},v=>{v.dimensions.at(-1).temporal_qualification.semantic_class="source-defined-current"},v=>{v.ny_retail_food_license_address_dispositions[0].site_occupancy_verified=true}]){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false)}h.close();});
 
-test("operational industry summary validates exact 9 by 51 state conservation and renders accessible drilldowns",async()=>{const evidence=await stateAccessIndustrySummary(),maintenance={industries:evidence.industries.map(row=>({id:row.id,label:row.id.replaceAll('-',' ')})),maintainedIndustries:['construction','health-care'],revision:4,semantics:'Maintenance intent only.'},h=harness(async url=>url.includes('/api/administration/')?maintenance:evidence);assert.equal(h.render('validOperationalIndustryEvidence',evidence),true);h.render('OperationalMaintenanceIntent');await flush();const tree=h.render('OperationalMaintenanceIntent'),value=text(tree);assert.equal(nodes(tree).filter(node=>node.type==='details').length,9);assert.equal(nodes(tree).filter(node=>node.type==='table').length,9);assert.equal(nodes(tree).filter(node=>node.type==='tr').length,9*52);assert.match(value,/State evidence details for construction/);assert.match(value,/Unknown — no retained temporal source key/);assert.match(value,/publisher currency unmeasured in retained source contract/);assert.match(value,/retained observation 2026-09-07T19:10:25.331Z/);assert.match(value,/source-access ledger stays separate from the governed exact-ZIP crosswalk below/);h.close();});
+test("operational industry summary conserves all state rows and shows comparable source details by state", async () => {
+  const evidence = await stateAccessIndustrySummary();
+  const maintenance = {
+    industries: evidence.industries.map(row => ({id:row.id,label:row.id.replaceAll('-', ' ')})),
+    maintainedIndustries: ['construction','health-care'], revision: 4, semantics: 'Maintenance intent only.',
+  };
+  const h = harness(async url => url.includes('/api/administration/') ? maintenance : evidence);
+  assert.equal(h.render('validOperationalIndustryEvidence', evidence), true);
+  h.render('OperationalMaintenanceIntent');
+  await flush();
+  const national = h.render('OperationalMaintenanceIntent');
+  assert.equal(nodes(national).filter(node => node.type === 'details').length, 9);
+  assert.equal(nodes(national).filter(node => node.type === 'tr').length, 9 * 52);
+  assert.match(text(national), /Unknown — no retained temporal source key/);
+  assert.match(text(national), /publisher currency unmeasured in retained source contract/);
+  assert.match(text(national), /retained observation 2026-09-07T19:10:25.331Z/);
+  assert.match(text(national), /State source-access assessment as of 2026-11-11/);
+  assert.match(text(national), /share of the 50 states and D\.C\. with retained evidence/);
+  const selected = h.render('OperationalMaintenanceIntent', {state:'NH'});
+  assert.equal(nodes(selected).filter(node => node.type === 'tr').length, 9 * 2);
+  assert.match(text(selected), /State evidence details for childcare · NH/);
+  assert.match(text(selected), /6 · publisher visible childcare search result/);
+  assert.match(text(selected), /Restricted query sample/);
+  assert.doesNotMatch(text(selected), /City of Los Angeles/);
+  const invalid = structuredClone(evidence);
+  invalid.industries.find(row => row.id === 'childcare').states.find(row => row.state === 'NH').sources[0].count_unit = null;
+  assert.equal(h.render('validOperationalIndustryEvidence', invalid), false);
+  h.close();
+});
 
 test("operational industry summary rejects malformed, duplicate, rebalanced, extra-key, pin and claim drift",async()=>{const value=await stateAccessIndustrySummary(),h=harness(()=>assert.fail());const malformed=[null,{...value,extra:true},{...value,report_sha256:'0'.repeat(64)},{...value,industries:value.industries.slice(1)},{...value,industries:value.industries.map((row,index)=>index===1?{...row,id:value.industries[0].id}:row)},{...value,industries:value.industries.map((row,index)=>index?row:{...row,states:row.states.map((state,stateIndex)=>stateIndex?state:{...state,access_status:state.access_status==='unsupported-missing'?'national-dataset-state-evidence':'unsupported-missing'})})},{...value,industries:value.industries.map((row,index)=>index?row:{...row,access_status_counts:{...row.access_status_counts,'unsupported-missing':row.access_status_counts['unsupported-missing']+1,'national-dataset-state-evidence':row.access_status_counts['national-dataset-state-evidence']-1}})},{...value,claims:{...value.claims,complete_geocodes:true}}];malformed.forEach((item,index)=>assert.equal(h.render('validOperationalIndustryEvidence',item),false,`malformed operational summary ${index}`));});
 

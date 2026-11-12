@@ -76,6 +76,11 @@ const TEMPORAL_STATUSES = new Set([
   "review-due",
   "within-review-window",
 ]);
+const DEFAULT_COUNT_UNITS = new Map([
+  ["published-state-profile-count", "retained-source-profile"],
+  ["published-direct-state-profile-count", "retained-source-profile"],
+  ["published-direct-state-reporting-count", "retained-reporting-row"],
+]);
 const hash = (value) => createHash("sha256").update(value).digest("hex");
 function check(value, message = "State-access evidence is unavailable.") {
   if (!value) throw Error(message);
@@ -263,6 +268,12 @@ export async function stateAccessIndustrySummary({
     ]),
     expected = Object.keys(industryConfig.industries).sort();
   check(
+    typeof report.generatedAt === "string" &&
+      Number.isFinite(Date.parse(report.generatedAt)) &&
+      new Date(report.generatedAt).toISOString() === report.generatedAt,
+    "State-access assessment timestamp is invalid.",
+  );
+  check(
     expected.length === 9,
     "State-access operational industry taxonomy is invalid.",
   );
@@ -312,9 +323,19 @@ export async function stateAccessIndustrySummary({
       for (const evidence of cell.evidence ?? []) {
         if (!evidence?.temporalEvidence) continue;
         const item = temporal(evidence.temporalEvidence);
+        const recordCount = evidence.recordCount ?? null;
+        const countUnit = evidence.rowUnit ?? DEFAULT_COUNT_UNITS.get(evidence.type) ?? null;
+        const locality = evidence.issuingLocality ?? null;
         check(
           typeof item.sourceKey === "string" &&
             item.sourceKey.length > 0 &&
+            typeof evidence.type === "string" && evidence.type.length > 0 &&
+            (recordCount === null ||
+              (Number.isSafeInteger(recordCount) && recordCount >= 0 &&
+                typeof countUnit === "string" && countUnit.length > 0)) &&
+            (countUnit === null || (typeof countUnit === "string" && countUnit.length > 0)) &&
+            (locality === null || (typeof locality === "string" && locality.length > 0)) &&
+            TEMPORAL_STATUSES.has(item.status) &&
             (item.sourceReleaseId === null ||
               typeof item.sourceReleaseId === "string") &&
             (item.sourceReferenceAt === null ||
@@ -330,28 +351,24 @@ export async function stateAccessIndustrySummary({
               typeof item.retainedSourceObservedAt === "string"),
           "State-access source provenance is invalid.",
         );
-        const publisherCurrencyBasis = item.publisherCurrencyBasis ?? null,
-          retainedObservedAt = item.retainedSourceObservedAt ?? null,
-          key = [
-            item.sourceKey,
-            item.sourceReleaseId,
-            item.sourceReferenceAt,
-            item.reviewDueDate,
-            item.evidenceScope,
-            publisherCurrencyBasis,
-            retainedObservedAt,
-          ].join("|");
+        const source = {
+          source_key: item.sourceKey,
+          source_release_id: item.sourceReleaseId,
+          source_reference_at: item.sourceReferenceAt,
+          review_due_date: item.reviewDueDate,
+          evidence_scope: item.evidenceScope,
+          publisher_currency_basis: item.publisherCurrencyBasis ?? null,
+          retained_observed_at: item.retainedSourceObservedAt ?? null,
+          evidence_type: evidence.type,
+          temporal_status: item.status,
+          record_count: recordCount,
+          count_unit: recordCount === null ? null : countUnit,
+          issuing_locality: locality,
+        };
+        const key = JSON.stringify(source);
         if (!sourceKeys.has(key)) {
           sourceKeys.add(key);
-          sources.push({
-            source_key: item.sourceKey,
-            source_release_id: item.sourceReleaseId,
-            source_reference_at: item.sourceReferenceAt,
-            review_due_date: item.reviewDueDate,
-            evidence_scope: item.evidenceScope,
-            publisher_currency_basis: publisherCurrencyBasis,
-            retained_observed_at: retainedObservedAt,
-          });
+          sources.push(source);
         }
       }
       sources.sort(
@@ -401,8 +418,9 @@ export async function stateAccessIndustrySummary({
     );
   }
   return {
-    schema_version: "state-access-industry-summary@1.4.0",
+    schema_version: "state-access-industry-summary@1.5.0",
     report_sha256: config.reportSha256,
+    assessed_at: report.generatedAt,
     jurisdictions: 51,
     industry_cells: 459,
     industries: [...rows.values()],

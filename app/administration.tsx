@@ -313,8 +313,9 @@ const temporalStatuses = [
 const reportSha =
   "3f51792383fafbe22f31b72cf06d5d1d2017fcb7b293ed93a24c6f208ad063dd";
 type IndustryEvidence = {
-  schema_version: "state-access-industry-summary@1.4.0";
+  schema_version: "state-access-industry-summary@1.5.0";
   report_sha256: string;
+  assessed_at: string;
   jurisdictions: 51;
   industry_cells: 459;
   industries: Array<{
@@ -337,6 +338,11 @@ type IndustryEvidence = {
         evidence_scope: string;
         publisher_currency_basis: string | null;
         retained_observed_at: string | null;
+        evidence_type: string;
+        temporal_status: (typeof temporalStatuses)[number];
+        record_count: number | null;
+        count_unit: string | null;
+        issuing_locality: string | null;
       }>;
     }>;
   }>;
@@ -945,6 +951,7 @@ export function validAdministrationIndustryEvidence(
     !exact(input, [
       "schema_version",
       "report_sha256",
+      "assessed_at",
       "jurisdictions",
       "industry_cells",
       "industries",
@@ -954,8 +961,10 @@ export function validAdministrationIndustryEvidence(
     return false;
   const v = input as IndustryEvidence;
   if (
-    v.schema_version !== "state-access-industry-summary@1.4.0" ||
+    v.schema_version !== "state-access-industry-summary@1.5.0" ||
     v.report_sha256 !== reportSha ||
+    !validDate(v.assessed_at) ||
+    new Date(v.assessed_at).toISOString() !== v.assessed_at ||
     v.jurisdictions !== 51 ||
     v.industry_cells !== 459 ||
     !same(v.claims, {
@@ -966,8 +975,7 @@ export function validAdministrationIndustryEvidence(
     }) ||
     !Array.isArray(v.industries) ||
     v.industries.length !== 9 ||
-    new Set(v.industries.map((x) => x.id)).size !== 9 ||
-    !industryIds.every((id) => v.industries.some((x) => x.id === id))
+    !industryIds.every((id) => v.industries.some((x) => x?.id === id))
   )
     return false;
   return v.industries.every((row) => {
@@ -986,8 +994,7 @@ export function validAdministrationIndustryEvidence(
       !exact(row.temporal_status_counts, [...temporalStatuses]) ||
       !Array.isArray(row.states) ||
       row.states.length !== 51 ||
-      new Set(row.states.map((x) => x.state)).size !== 51 ||
-      !states.every((state) => row.states.some((x) => x.state === state))
+      !states.every((state) => row.states.some((x) => x?.state === state))
     )
       return false;
     const access = Object.fromEntries(accessStatuses.map((x) => [x, 0])),
@@ -1026,6 +1033,11 @@ export function validAdministrationIndustryEvidence(
             "evidence_scope",
             "publisher_currency_basis",
             "retained_observed_at",
+            "evidence_type",
+            "temporal_status",
+            "record_count",
+            "count_unit",
+            "issuing_locality",
           ]) ||
           typeof source.source_key !== "string" ||
           !source.source_key ||
@@ -1039,7 +1051,13 @@ export function validAdministrationIndustryEvidence(
           (source.publisher_currency_basis !== null &&
             typeof source.publisher_currency_basis !== "string") ||
           (source.retained_observed_at !== null &&
-            typeof source.retained_observed_at !== "string")
+            typeof source.retained_observed_at !== "string") ||
+          typeof source.evidence_type !== "string" || !source.evidence_type ||
+          !temporalStatuses.includes(source.temporal_status) ||
+          (source.issuing_locality !== null && (typeof source.issuing_locality !== "string" || !source.issuing_locality)) ||
+          (source.record_count === null ? source.count_unit !== null :
+            !Number.isSafeInteger(source.record_count) || source.record_count < 0 ||
+            typeof source.count_unit !== "string" || !source.count_unit)
         )
           return false;
         keys.add(source.source_key);
@@ -1070,13 +1088,15 @@ export default function Administration() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [backlog, setBacklog] = useState<Backlog | null>(null);
+  const [backlogResult, setBacklog] = useState<Backlog | null>(null);
   const [evidence, setEvidence] = useState<IndustryEvidence | null>(null);
   const [evidenceError, setEvidenceError] = useState(false);
   const [caReadiness, setCaReadiness] = useState<CaReadiness | null>(null);
   const [acsReadiness, setAcsReadiness] = useState<AcsReadiness | null>(null);
   const [acsReadinessError, setAcsReadinessError] = useState(false);
-  const [execution, setExecution] = useState<MaintenanceExecutionStatus | null>(null);
+  const [executionResult, setExecution] = useState<MaintenanceExecutionStatus | null>(null);
+  const backlog = backlogResult?.maintenance_revision === view?.revision ? backlogResult : null;
+  const execution = executionResult?.maintenance_revision === view?.revision ? executionResult : null;
   const draftChanged =
     !!view &&
     [...selected].sort().join("|") !==
@@ -1226,34 +1246,59 @@ export default function Administration() {
           <span className="section-kicker">Local application settings</span>
           <h2>Administration</h2>
         </div>
-        <p>
-          Choose which industry programs Co*Tive should maintain and review
-          their current evidence status.
-        </p>
+        <p>Choose maintained industries and review source and refresh status.</p>
       </div>
-      <p className="scope-note">
-        Industry status starts with the governed evidence already retained:
-        source access by state, temporal review posture, and maintenance
-        selection. It does not require an all-business denominator, complete
-        geocodes, or complete nationwide industry coverage. This selection
-        records local maintenance intent only;{" "}
-        {
-          "it does not authorize acquisition, start downloads, prove coverage, or change production enrollment."
-        }
-      </p>
       {error && (
         <p role="alert">
           Administration settings are unavailable. No selection was inferred.
         </p>
       )}
       {!view && !error && <p role="status">Loading maintained industries…</p>}
+      {view && (
+        <section aria-labelledby="maintained-industries-heading">
+          <h3 id="maintained-industries-heading">Maintained industries</h3>
+          <p>The saved selection sets defaults for collection and refresh planning. Downloads and recurring schedules have their own controls.</p>
+          <div className="administration-actions">
+            <button type="button" disabled={saving} onClick={() => setSelected(view.industries.map(({ id }) => id))}>Select all</button>
+            <button type="button" disabled={saving} onClick={() => setSelected([])}>Select none</button>
+            <span>{selected.length} of {view.industries.length} selected</span>
+          </div>
+          <div className="maintenance-grid" role="group" aria-label="Industries selected for maintenance">
+            {view.industries.map((industry) => {
+              const checked = selected.includes(industry.id);
+              return (
+                <label key={industry.id} className={checked ? "maintained" : "not-maintained"}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={saving}
+                    onChange={() => setSelected((current) =>
+                      current.includes(industry.id)
+                        ? current.filter((id) => id !== industry.id)
+                        : [...current, industry.id],
+                    )}
+                  />
+                  <strong>{industry.label}</strong>
+                </label>
+              );
+            })}
+          </div>
+          <div className="administration-actions">
+            <button className="primary-button" type="button" disabled={saving || !draftChanged} onClick={save}>
+              {saving ? "Saving…" : "Save maintenance selection"}
+            </button>
+            <span>{draftChanged ? "Unsaved draft — persisted selection is unchanged" : "Displayed selection is persisted"}</span>
+          </div>
+        </section>
+      )}
+      {message && <p role="status">{message}</p>}
       <section className="industry-summary" aria-label="Industry evidence status overview">
         <h3>Industry evidence status</h3>
-        <p>Existing holdings are reportable even when maintenance settings, population, geocodes or nationwide coverage are incomplete. Percentages below describe jurisdictions with retained source evidence.</p>
+        <p>Coverage here is the share of the 50 states and D.C. with retained source evidence. The assessment uses available records even where population or geocodes are missing.</p>
         {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
           <table><thead><tr><th scope="col">Industry</th><th scope="col">Retained source evidence</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
             <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
-            <td>{row.jurisdictions_with_retained_access_evidence}/51 jurisdictions · {row.retained_access_evidence_percent.toFixed(1)}%</td>
+            <td>{row.jurisdictions_with_retained_access_evidence} of {row.jurisdictions} jurisdictions ({row.retained_access_evidence_percent.toFixed(1)}%)</td>
             <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
             <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
             <td>{view ? view.maintainedIndustries.includes(row.id) ? "Selected" : "Not selected" : "Settings unavailable — evidence still reportable"}</td>
@@ -1265,7 +1310,7 @@ export default function Administration() {
               <div>Latest collection: {status.latest_collection ? `${status.latest_collection.status} · ${status.latest_collection.operation_id}` : "none retained"}</div>
             </> : "Unknown — execution status unavailable"; })() : "Unknown — settings unavailable"}</td>
           </tr>)}</tbody></table>
-          <small>Retained state-access report SHA-256 {evidence.report_sha256}. Detailed state/source provenance is available in Industry Status.</small>
+          <small>Assessed {evidence.assessed_at.slice(0, 10)} · Retained state-access report SHA-256 {evidence.report_sha256}. For state and source counts, see Industry Summary.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
       </section>
       <section
@@ -1305,106 +1350,6 @@ export default function Administration() {
       </section>
       {view && (
         <>
-          <div className="administration-actions">
-            <button
-              type="button"
-              onClick={() => setSelected(view.industries.map(({ id }) => id))}
-            >
-              Select all
-            </button>
-            <button type="button" onClick={() => setSelected([])}>
-              Select none
-            </button>
-            <span>
-              {selected.length} of {view.industries.length} selected
-            </span>
-            <span>
-              {draftChanged
-                ? "Unsaved draft — persisted selection is unchanged"
-                : "Displayed selection is persisted"}
-            </span>
-          </div>
-          <div
-            className="maintenance-grid"
-            role="group"
-            aria-label="Industries selected for maintenance"
-          >
-            {view.industries.map((industry) => {
-              const checked = selected.includes(industry.id);
-              const status = evidence?.industries.find(
-                (row) => row.id === industry.id,
-              );
-              return (
-                <label
-                  key={industry.id}
-                  className={checked ? "maintained" : "not-maintained"}
-                >
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={() =>
-                      setSelected((current) =>
-                        checked
-                          ? current.filter((id) => id !== industry.id)
-                          : [...current, industry.id],
-                      )
-                    }
-                  />
-                  <span>
-                    <strong>{industry.label}</strong>
-                    <small>
-                      {checked
-                        ? "Enabled in draft maintenance selection"
-                        : "Not selected in draft maintenance selection"}
-                    </small>
-                    {status ? (
-                      <>
-                        <small>
-                          <strong>
-                            {status.retained_access_evidence_percent.toFixed(1)}
-                            %
-                          </strong>{" "}
-                          of jurisdictions (
-                          {status.jurisdictions_with_retained_access_evidence}
-                          /51) have retained source-access evidence; not
-                          business completeness.
-                        </small>
-                        <small>
-                          Temporal status:{" "}
-                          {temporalStatuses
-                            .map(
-                              (key) =>
-                                `${key.replaceAll("-", " ")}: ${status.temporal_status_counts[key]}`,
-                            )
-                            .join(" · ")}
-                        </small>
-                        <small>
-                          Authorization not represented by this ledger;
-                          maintenance selection grants none.
-                        </small>
-                        <small>
-                          Execution: {maintenanceExecutionStatusLabel(execution?.industries.find(row => row.id === industry.id))}.
-                        </small>
-                      </>
-                    ) : (
-                      <small>
-                        {evidenceError
-                          ? "Industry evidence unavailable; unknown is preserved and no zero is inferred."
-                          : "Verifying retained industry evidence…"}
-                      </small>
-                    )}
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-          <p className="operations-note">
-            <strong>Status interpretation:</strong> the displayed percentage is
-            the share of the 50 states and D.C. with retained source-access
-            evidence for that industry. Missing evidence remains missing; it is
-            not converted to zero and does not stop other industry or geography
-            views.
-          </p>
           {caReadiness && (
             <section
               className="maintenance-backlog"
@@ -1439,15 +1384,6 @@ export default function Administration() {
               </p>
             </section>
           )}
-          <button
-            className="primary-button"
-            type="button"
-            disabled={saving || !draftChanged}
-            onClick={save}
-          >
-            {saving ? "Saving…" : "Save maintenance selection"}
-          </button>
-          {message && <p role="status">{message}</p>}
           {backlog && (
             <section
               className="maintenance-backlog"

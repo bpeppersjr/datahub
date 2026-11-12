@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cotive.local/schemas/mississippi-business-report-intake-selection.schema.json",
+  "title": "Mississippi Business Reports governed intake selection",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "package_id", "observed_at", "source", "format", "sheet_name", "files"],
+  "properties": {
+    "schema_version": {"const": "mississippi-business-report-package@2.0.0"},
+    "package_id": {"$ref": "#/$defs/packageId"},
+    "observed_at": {"$ref": "#/$defs/clock"},
+    "source": {"$ref": "#/$defs/publisher"},
+    "format": {"enum": ["xlsx", "xls", "csv"]},
+    "sheet_name": {"type": ["string", "null"]},
+    "files": {"$ref": "#/$defs/inputs"}
+  },
+  "allOf": [
+    {"if": {"properties": {"format": {"const": "xlsx"}}}, "then": {"properties": {"sheet_name": {"type": "string", "minLength": 1, "maxLength": 31}, "files": {"properties": {"ORIGINAL": {"properties": {"path": {"const": "original.xlsx"}}}}}}}},
+    {"if": {"properties": {"format": {"const": "xls"}}}, "then": {"properties": {"sheet_name": {"const": null}, "files": {"properties": {"ORIGINAL": {"properties": {"path": {"const": "original.xls"}}}, "CSV_COMPANION": {"const": null}}}}}},
+    {"if": {"properties": {"format": {"const": "csv"}}}, "then": {"properties": {"sheet_name": {"const": null}, "files": {"properties": {"ORIGINAL": {"properties": {"path": {"const": "original.csv"}}}, "CSV_COMPANION": {"const": null}}}}}}
+  ],
+  "$defs": {
+    "packageId": {"type": "string", "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9._-]{0,62}[A-Za-z0-9_-])?$"},
+    "clock": {"type": "string", "format": "date-time", "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"},
+    "publisher": {"const": "https://corp.sos.ms.gov/corpreporting/Corp/BusinessSearch3"},
+    "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+    "file": {
+      "type": "object", "additionalProperties": false, "required": ["path", "bytes", "sha256"],
+      "properties": {"path": {"type": "string"}, "bytes": {"type": "integer", "minimum": 1, "maximum": 67108864}, "sha256": {"$ref": "#/$defs/sha256"}}
+    },
+    "inputs": {
+      "type": "object", "additionalProperties": false, "required": ["ORIGINAL", "CSV_COMPANION", "SOURCE_EVIDENCE", "RIGHTS_EVIDENCE"],
+      "properties": {
+        "ORIGINAL": {"$ref": "#/$defs/file", "properties": {"path": {"enum": ["original.xlsx", "original.xls", "original.csv"]}}},
+        "CSV_COMPANION": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/file", "properties": {"path": {"const": "export.csv"}}}]},
+        "SOURCE_EVIDENCE": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/file", "properties": {"path": {"const": "source-evidence.json"}, "bytes": {"maximum": 65536}}}]},
+        "RIGHTS_EVIDENCE": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/file", "properties": {"path": {"const": "rights-evidence.json"}, "bytes": {"maximum": 65536}}}]}
+      }
+    },
+    "sourceEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "publisher_url", "observed_at", "artifact_sha256", "method", "supporting_document_sha256"],
+      "properties": {
+        "schema_version": {"const": "mississippi-business-report-source-evidence@1.0.0"}, "publisher_url": {"$ref": "#/$defs/publisher"}, "observed_at": {"$ref": "#/$defs/clock"},
+        "artifact_sha256": {"$ref": "#/$defs/sha256"}, "method": {"const": "operator-observed-publisher-export"}, "supporting_document_sha256": {"$ref": "#/$defs/sha256"}
+      }
+    },
+    "rightsEvidence": {
+      "type": "object", "additionalProperties": false,
+      "required": ["schema_version", "publisher_url", "artifact_sha256", "basis", "supporting_document_sha256", "local_retention", "derived_use"],
+      "properties": {
+        "schema_version": {"const": "mississippi-business-report-rights-evidence@1.0.0"}, "publisher_url": {"$ref": "#/$defs/publisher"}, "artifact_sha256": {"$ref": "#/$defs/sha256"},
+        "basis": {"const": "publisher-written-permission"}, "supporting_document_sha256": {"$ref": "#/$defs/sha256"}, "local_retention": {"type": "boolean"}, "derived_use": {"type": "boolean"}
+      }
+    }
+  }
+}

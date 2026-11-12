@@ -26,20 +26,20 @@ export function mississippiBusinessReportWarnings(rowCount) {
   return rowCount === MS_BUSINESS_REPORT_MAX_ROWS ? ["Export contains exactly 300,000 rows, the published ceiling; truncation is possible and statewide completeness remains false."] : [];
 }
 
-function parsePostal(value) {
+export function parseMississippiBusinessReportPostalCode(value) {
   if (!value) return { zip5: null, zip4: null };
   const match = value.match(/^(\d{5})(?:-?(\d{4}))?$/);
   check(match, "Postal Code is not ZIP5 or ZIP5+4");
   return { zip5: match[1], zip4: match[2] ?? null };
 }
 
-function validateRow(row) {
+export function validateMississippiBusinessReportRow(row) {
   check(exact(row, MS_BUSINESS_REPORT_HEADERS), "published field roster drifted");
   for (const header of MS_BUSINESS_REPORT_HEADERS) check(clean(row[header]), `${header} contains an invalid value`);
   check(/^\d{6,7}$/.test(row["Business ID"]), "Business ID must be the published six- or seven-digit identifier");
   check(row["Business Name"].length > 0, "Business Name is required");
   check(row.State === "" || /^[A-Z]{2}$/.test(row.State), "State is invalid");
-  parsePostal(row["Postal Code"]);
+  parseMississippiBusinessReportPostalCode(row["Postal Code"]);
 }
 
 function parseJsonl(bytes, maximumRows, signal) {
@@ -51,7 +51,7 @@ function parseJsonl(bytes, maximumRows, signal) {
     signal?.throwIfAborted();
     check(line.length > 0 && Buffer.byteLength(line) <= 65_536, "records.jsonl has an invalid line");
     let row; try { row = JSON.parse(line); } catch { fail("records.jsonl contains invalid JSON"); }
-    validateRow(row); return row;
+    validateMississippiBusinessReportRow(row); return row;
   });
 }
 
@@ -66,10 +66,10 @@ async function fixedFile(filename, parent, maximumBytes) {
 }
 
 export function normalizeMississippiBusinessReportRow(row, context) {
-  validateRow(row);
+  validateMississippiBusinessReportRow(row);
   check(exact(context, ["package_id", "observed_at", "original_workbook_sha256", "derived_records_sha256", "transformation_version"]), "normalization context drifted");
   check(PACKAGE.test(context.package_id) && new Date(context.observed_at).toISOString() === context.observed_at && SHA.test(context.original_workbook_sha256) && SHA.test(context.derived_records_sha256) && clean(context.transformation_version, 128) && context.transformation_version, "normalization context is invalid");
-  const postal = parsePostal(row["Postal Code"]);
+  const postal = parseMississippiBusinessReportPostalCode(row["Postal Code"]);
   return {
     schema_version: MS_BUSINESS_REPORT_NORMALIZER_VERSION,
     source_record_id: sha256(Buffer.from(row["Business ID"])), jurisdiction: "MS",

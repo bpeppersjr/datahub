@@ -16,7 +16,23 @@ const execution=(view,changes={})=>({schema_version:'industry-maintenance-execut
 
 test('Administration summary validator enforces pin, exact 9x51 conservation, vocabularies and claims',async()=>{const h=moduleWith(),value=await stateAccessIndustrySummary();assert.equal(h.exports.validAdministrationIndustryEvidence(value),true);for(const mutate of [v=>{v.report_sha256='0'.repeat(64)},v=>{v.industry_cells=458},v=>{v.industries.pop()},v=>{v.industries[1].id=v.industries[0].id},v=>{v.industries[0].states.pop()},v=>{v.industries[0].states[0].access_status='invented'},v=>{v.industries[0].access_status_counts['unsupported-missing']++;v.industries[0].access_status_counts['unsupported-evidence-not-measured']--},v=>{v.claims.nationwide_industry_completeness=100},v=>{v.extra=true}]){const changed=structuredClone(value);mutate(changed);assert.equal(h.exports.validAdministrationIndustryEvidence(changed),false)}});
 
-test('Administration renders all nine validated status rows with draft and authorization boundaries',async()=>{const evidence=await stateAccessIndustrySummary(),view=settings(),backlog={schema_version:'state-access-maintenance-backlog@1.2.0',report_sha256:'3f51792383fafbe22f31b72cf06d5d1d2017fcb7b293ed93a24c6f208ad063dd',backlog_sha256:'a'.repeat(64),maintenance_revision:7,maintained_industries:['construction'],total_attention_cells:0,batch_limit:10,next_batch:[],remaining_after_batch:0,claims:{acquisition_authorized:false,dispatch_performed:false,production_change:false,business_completeness:null}},h=moduleWith({request:async url=>url.includes('state-access-industry-summary')?evidence:url.includes('industry-backlog')?backlog:view});await h.mount();let tree=h.render(),rendered=text(tree);assert.equal(nodes(tree).filter(node=>node.type==='input'&&node.props?.type==='checkbox').length,9);assert.match(rendered,/Displayed selection is persisted/);assert.match(rendered,/Authorization not represented by this ledger; maintenance selection grants none/);assert.match(rendered,/of jurisdictions \(/);assert.match(rendered,/Temporal status:/);nodes(tree).find(node=>node.type==='input'&&node.props?.type==='checkbox'&&!node.props.checked).props.onChange();tree=h.render();assert.match(text(tree),/Unsaved draft — persisted selection is unchanged/)});
+test('Administration puts maintained industries and Save before the independent evidence table', async () => {
+  const evidence = await stateAccessIndustrySummary(), view = settings();
+  const h = moduleWith({request: async url => url.includes('state-access-industry-summary') ? evidence : view});
+  await h.mount();
+  let tree = h.render();
+  const inputs = nodes(tree).filter(node => node.type === 'input' && node.props?.type === 'checkbox');
+  const rendered = text(tree);
+  assert.equal(inputs.length, 9);
+  assert.ok(rendered.indexOf('Save maintenance selection') < rendered.indexOf('Industry evidence status'));
+  assert.match(rendered, /Displayed selection is persisted/);
+  assert.match(rendered, /saved selection sets defaults for collection and refresh planning/);
+  assert.match(rendered, /11 of 51 jurisdictions \(21\.6%\)/);
+  assert.match(rendered, /Assessed 2026-11-11/);
+  inputs.find(node => !node.props.checked).props.onChange();
+  tree = h.render();
+  assert.match(text(tree), /Unsaved draft — persisted selection is unchanged/);
+});
 
 test('Administration distinguishes selected intent from configured, enabled, running, and failed schedules',async()=>{const h=moduleWith(),base=schedule();assert.equal(h.exports.validMaintenanceSchedules([base]),true);for(const mutate of [v=>{v[0].industries=['invented']},v=>{v[0].nextDueAt='not-a-date'},v=>{v[0].extra=true}]){const changed=structuredClone([base]);mutate(changed);assert.equal(h.exports.validMaintenanceSchedules(changed),false)}assert.match(h.exports.maintenanceExecutionLabel('construction',true,[]),/Selected intent only · no schedule configured/);assert.equal(h.exports.maintenanceExecutionLabel('construction',false,[base]),'Not selected');assert.equal(h.exports.maintenanceExecutionLabel('construction',true,[base]),'Schedule configured but disabled');assert.match(h.exports.maintenanceExecutionLabel('construction',true,[schedule({enabled:true,status:'READY',nextDueAt:'2026-11-12T20:00:00.000Z'})]),/Scheduled enabled · next due/);assert.match(h.exports.maintenanceExecutionLabel('construction',true,[schedule({status:'RUNNING',lastOccurrence:{operationId:'refresh-one',status:'RUNNING',dueAt:'2026-11-11T20:00:00.000Z'}})]),/Running · refresh-one/);assert.match(h.exports.maintenanceExecutionLabel('construction',true,[schedule({status:'PAUSED',lastOccurrence:{operationId:'refresh-two',status:'FAILED',dueAt:'2026-11-11T20:00:00.000Z'}})]),/Scheduled paused · latest failed/)});
 
