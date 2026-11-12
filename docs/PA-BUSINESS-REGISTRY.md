@@ -52,6 +52,16 @@ A complete unpublished staging run can be reverified and published without anoth
 node scripts/build-pa-business-registry.mjs --resume-staging-run <UUID>
 ```
 
+## Recurring source review
+
+The official Pennsylvania catalog, data policy, registry-status guidance, and anonymous API transport were reviewed again on 2026-11-12. The portal continues to offer its datasets free and without restriction, labels this dataset `Public Domain U.S. Government`, asks for attribution, disclaims quality and fitness warranties, disclaims endorsement of secondary analysis, and may discontinue content. Co*Tive displays those limitations and keeps the stronger source-specific warning that registry inclusion substantially overstates operating businesses.
+
+A zero-record transport preflight returned HTTP 200 for official metadata and HTTP 200 for an aggregate total/distinct-filing query. Metadata reported dataset `3urc-uaba`, the expected title, Department of State attribution, `rowsUpdatedAt=1793725840`, and the expected license; its 25,651 bytes hashed to `f152a7ee0c26c7513f9b21b7eaa47b6632e7c222c675ba39c177152473d8e56c`. The aggregate response contained only `records=2386129` and `distinct_filings=2386129`; its 53 bytes hashed to `fb6ef8abf9f12d61ade7b0b9e9dd954295f0939e881fb7186b8e1991c8f68582`. No organization rows were requested or retained by this review.
+
+The live aggregate exceeds the retained 2,360,829-row release by 25,300 rows. That difference establishes refresh value only; it is not net business creation, current operation, a closure count, or completeness.
+
+Authorization `pa-business-registry-production-20261112-01` permits Co*Tive—not Codex—to run the full snapshot, independently verify its immutable release, and change only this source's pointer after verification. It binds the exact builder, verifier, connector, policy, and dataset bytes; any change invalidates dispatch. It does not authorize officer or agent fields, infer premises, or upgrade Pennsylvania's overinclusive registration cohort into an active-business denominator.
+
 ## Validated live release
 
 The independently verified release `pa-business-registry-20260903-011928723Z-b4cbfaf4` is bound to source release `pa-business-registry-2026-09-02-5aea113d98c4bfb7` and pins the source refresh at `2026-09-02T13:36:39.000Z`. It preserves and publishes 2,360,829 selected-field source rows as distinct organizations, with no duplicate filing-number groups or collapsed rows, and records 2,102,830 eligible reported U.S. business addresses. Of 2,241,410 source-geocoded addresses, 2,319 reported as Pennsylvania addresses fall outside the deliberately broad state bounds and remain flagged. The 20 verified artifacts total 433,431,904 bytes. No physical site or establishment is inferred. ZIP5 remains separate from ZIP+4, current USPS validity remains unverified, and portal coordinates remain source assertions rather than independently validated premise geocodes.

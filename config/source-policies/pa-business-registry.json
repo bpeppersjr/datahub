@@ -1,6 +1,6 @@
 {
   "policy_id": "pa-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Pennsylvania Department of State",
   "ownership": "Official public active business-registration records published through the Commonwealth of Pennsylvania Open Data Portal",
   "source_home": "https://data.pa.gov/stories/s/Story-Registered-Businesses-in-PA-Current-by-Count/y547-53sn/",
@@ -35,10 +35,12 @@
     "registered_agents_and_other_people": "excluded"
   },
   "attribution": "Source: Pennsylvania Department of State, Registered Businesses in PA Current by County, via data.pa.gov.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Pennsylvania open data is offered free and without restriction on an as-is basis. The Commonwealth makes no warranty about quality, content, accuracy, timeliness, completeness, or fitness, assumes no liability for reliance on the data, may discontinue availability, and does not necessarily endorse analyses made from it.",
   "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
   "redistribution": "Approved normalized fields may be redistributed with Pennsylvania Department of State attribution, source refresh timestamp, source checksum, provenance, statutory-overcount warning, field exclusions, and status/address limitations retained; the selected-field raw snapshot remains internal.",
   "contains_personal_data": true,
   "personal_data_handling": "Organization names and reported business addresses can identify individuals or residences. The connector uses the distinct-business view and deliberately excludes governor/principal-officer roles and officer names from the underlying repeated-row dataset, retains the selected source snapshot internally, and prohibits treating the remaining address as a public storefront or verified operating site.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-31"
+  "reviewed_at": "2026-11-12"
 }
