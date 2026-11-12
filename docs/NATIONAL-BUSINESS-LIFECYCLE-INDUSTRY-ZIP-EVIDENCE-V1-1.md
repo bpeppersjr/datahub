@@ -15,3 +15,9 @@ node --test runner/national-business-lifecycle-industry-zip-evidence-v1-1.test.m
 ```
 
 No network request, acquisition, pointer write or production enrollment occurs. ZIP+4 remains separate and no USPS denominator is inferred.
+
+## Protected runtime API
+
+The selected v1.1 runtime hard-pins the registration, release manifest, summary, all 100 ZIP-prefix partitions, and the exact EPA manifest and dense ZIP artifact lineage. `GET /api/business-map/lifecycle-industry-zip-summary` reads only the compact summary. `GET /api/business-map/lifecycle-industry-zip?zip=00501` decompresses only the selected two-digit partition and returns a governed positive row, governed zero-profile row, or outside-cohort result.
+
+The runtime reports `source_membership_count`, the deduplicated `mapped_source_record_union_count`, the disjoint `unresolved_source_record_count`, and the intentionally nonadditive `industry_assignment_count` separately. EPA multisegment and partially-unmapped counts are overlapping annotations, not extra memberships. All reads are bounded, stable and link-rejecting; schema, lifecycle, review, union, assignment and EPA refinement drift fails closed.
