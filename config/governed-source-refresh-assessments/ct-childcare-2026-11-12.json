@@ -1,0 +1,34 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "ct-childcare-2026-11-12",
+  "source_id": "ct-childcare",
+  "dataset_id": "ct-childcare-active-center-candidates",
+  "observed_at": "2026-11-12",
+  "controls": {"metadata_requests": 1, "aggregate_requests": 2, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0},
+  "observation": {
+    "metadata_sha256": "ac8a52a4eab0fd714ff3cec87b45d8c75cc6b6690c3578dd1ecb2c7aa300f1f7",
+    "aggregate_sha256": "d3af9e83bd0d07298b297942b43db85cf582f8539a6b678461f5ec7a5841855e",
+    "aggregate_records": 1375,
+    "aggregate_label": "current publisher rows with Child Care Center and ACTIVE credential status",
+    "distinct_source_keys": 1375,
+    "distinct_credentials": 1368,
+    "reported_address_rows": 1374,
+    "reported_zip_rows": 1375,
+    "catalog_rows_updated_at": "2026-11-12T09:15:47.000Z",
+    "catalog_license": "Public Domain",
+    "paired_aggregate_results_equal": true,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "active_credential_is_current_operation": false,
+    "reported_address_is_verified_operating_site": false,
+    "complete_all_connecticut_childcare_businesses": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://data.ct.gov/Education/Child-Care-Youth-Camp-Licensing-Program-Data/h8mr-dn95/about_data",
+    "https://data.ct.gov/api/views/h8mr-dn95.json"
+  ],
+  "next_action": "Use only the authorization-bound serial Co*Tive app. Recheck official metadata and paired aggregates before and after selected-field acquisition; exclude contact and person fields before retention; independently verify immutable acquired and normalized releases before exposing a governed current pointer."
+}

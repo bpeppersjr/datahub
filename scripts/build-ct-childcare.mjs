@@ -2,21 +2,22 @@
 import path from 'node:path';
 import { APP_ROOT, assertInsideApp } from '../runner/paths.mjs';
 import { createCliCancellation } from '../runner/cli-cancellation.mjs';
-import { runCtChildcareAppJob, verifyCtChildcareAppJob } from '../runner/ct-childcare-app.mjs';
+import { publishCtChildcareCurrentPointer, runCtChildcareAppJob, verifyCtChildcare } from '../runner/ct-childcare.mjs';
 
 const cancellation=createCliCancellation();
 try {
   const args=process.argv.slice(2), values=new Map();
-  if(args.length===1&&args[0]==='--help') process.stdout.write('Usage: node scripts/build-ct-childcare.mjs [--output <datahub folder>] [--acquired <absolute retained manifest>]\nRuns standalone CT childcare collection, or offline retained-input reuse. No AI session required.\n');
+  if(args.length===1&&args[0]==='--help') process.stdout.write('Usage: node scripts/build-ct-childcare.mjs [--output <datahub folder>] [--acquired <absolute retained manifest>]\nRuns standalone CT childcare collection or offline retained-input reuse, verifies the immutable receipt, and publishes the governed current pointer. No AI session required.\n');
   else {
     for(let i=0;i<args.length;i+=2){const key=args[i],value=args[i+1];if(!['--output','--acquired'].includes(key)||values.has(key)||!value||value.startsWith('--'))throw Error('Invalid arguments');values.set(key,value);}
     const acquiredManifestPath=values.get('--acquired');
     if(acquiredManifestPath!==undefined&&(!path.isAbsolute(acquiredManifestPath)||acquiredManifestPath!==path.resolve(acquiredManifestPath)))throw Error('Invalid retained path');
-    const outputRoot=values.has('--output')?assertInsideApp(path.resolve(APP_ROOT,values.get('--output'))):undefined;
+    const outputRoot=values.has('--output')?assertInsideApp(path.resolve(APP_ROOT,values.get('--output'))):path.join(APP_ROOT,'data/business-sources/ct-childcare-active-center-candidates');
     const result=await runCtChildcareAppJob({outputRoot,acquiredManifestPath,signal:cancellation.signal,industryRunId:process.env.INDUSTRY_SEGMENT_RUN_ID});
-    const verified=await verifyCtChildcareAppJob(result.receiptPath,{signal:cancellation.signal});
+    const verified=await verifyCtChildcare(result.receiptPath,{signal:cancellation.signal});
     if(JSON.stringify(verified.receipt)!==JSON.stringify(result.receipt))throw Error('Receipt changed');
-    process.stdout.write(JSON.stringify(verified)+'\n');
+    const publication=await publishCtChildcareCurrentPointer(outputRoot,verified,{signal:cancellation.signal});
+    process.stdout.write(JSON.stringify({...verified,publication})+'\n');
   }
 } catch(error) {
   let supplied;try{supplied=Object.getOwnPropertyDescriptor(error??{},'code')?.value;}catch{/* Do not expose injected error properties. */}

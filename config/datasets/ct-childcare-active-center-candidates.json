@@ -1,0 +1,14 @@
+{
+  "dataset_id": "ct-childcare-active-center-candidates",
+  "schema_version": "1.0.0",
+  "title": "Connecticut Active Child Care Center Source Candidates",
+  "status": "governed-refresh-authorized-no-current-release",
+  "description": "Privacy-scoped official Connecticut rows with literal ACTIVE Child Care Center credential status, retained as source candidates with temporal and identity limitations.",
+  "output": "data/business-sources/ct-childcare-active-center-candidates",
+  "connector": "config/connectors/ct-childcare.json",
+  "source_policy": "config/source-policies/ct-childcare.json",
+  "coverage_claim": "Official rows matching the fixed ACTIVE Child Care Center predicate at collection time; not a denominator of all childcare businesses and not independent proof of current operation.",
+  "identity_rule": "Preserve release-scoped source keys and credentials without cross-row or cross-source business merging.",
+  "geography_rule": "Retain reported ZIP as separate ZIP5 and ZIP4 when valid; missing or non-ZCTA ZIP evidence remains an explicit gap. No coordinates or business polygons are inferred.",
+  "current_verified_release": null
+}
