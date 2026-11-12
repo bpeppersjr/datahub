@@ -10,7 +10,9 @@ test("projection exposes seven retained cohorts and 44 unmeasured jurisdictions 
   const registration = JSON.parse(await readFile(path.join(APP_ROOT, "config/datasets/retained-childcare-zip-evidence.json"))), raw = await readFile(path.join(APP_ROOT, registration.retained_release.manifest)), manifest = JSON.parse(raw);
   const projection = deriveChildcareStateIndustryAvailabilityProjection(manifest, registration.retained_release.manifest_sha256);
   assert.equal(projection.jurisdictions.length, 51); assert.deepEqual(projection.jurisdictions.filter((row) => row.measurement_status !== "unmeasured").map((row) => row.code).sort(), ["CO", "CT", "IA", "MD", "PA", "UT", "VT"]); assert.equal(projection.jurisdictions.filter((row) => row.measurement_status === "unmeasured").length, 44);
-  assert.deepEqual(projection.totals, { retained_candidate_rows: 12206, zip_present_candidate_rows: 12205, missing_zip_candidate_rows: 0, invalid_zip_candidate_rows: 1 }); assert.equal(projection.claims.denominator, null); assert.equal(projection.claims.business_count, null); assert.equal(projection.claims.current_operating_count, null); assert.equal(projection.claims.production_enrollment, false);
+  assert.equal(projection.schema_version, "childcare-state-industry-availability-projection@1.1.0");
+  assert.deepEqual(projection.totals, { retained_candidate_rows: 12210, zip_present_candidate_rows: 12208, missing_zip_candidate_rows: 1, invalid_zip_candidate_rows: 1 }); assert.equal(projection.claims.denominator, null); assert.equal(projection.claims.business_count, null); assert.equal(projection.claims.current_operating_count, null); assert.equal(projection.claims.production_enrollment, false);
+  assert.equal(projection.jurisdictions.find((row) => row.code === "VT").missing_zip_candidate_rows, 1);
   assert.equal(projection.source.created_at, manifest.created_at); assert.deepEqual(projection.derivative_time_policy, { derivative_created_at: null, rule: "No derivative clock is invented; source.created_at is retained source metadata only." }); assert.equal("created_at" in projection, false);
 });
 

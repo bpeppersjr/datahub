@@ -20,17 +20,17 @@
     "production_enrollment": false
   },
   "retained_release": {
-    "release_id": "childcare-state-industry-availability-projection-db15ef4058400692898bda040f317057949323cb5fcaacd58d994eecc68c5322",
-    "manifest": "data/childcare-state-industry-availability-projection/releases/childcare-state-industry-availability-projection-db15ef4058400692898bda040f317057949323cb5fcaacd58d994eecc68c5322/manifest.json",
+    "release_id": "childcare-state-industry-availability-projection-ff8290992059647fbb97bef0129f5e010e45fef282746e23f15c8bbd0641413a",
+    "manifest": "data/childcare-state-industry-availability-projection/releases/childcare-state-industry-availability-projection-ff8290992059647fbb97bef0129f5e010e45fef282746e23f15c8bbd0641413a/manifest.json",
     "manifest_bytes": 1106,
-    "manifest_sha256": "d16a222a0a1aea770dc63f73c450bb00ad2321df12ec293a1289cb187503a58a",
-    "source_release_id": "retained-childcare-zip-evidence-6a696d16df9ccec8836e7bd38872feda3942293d9ff19ad5f528ac41a088fada",
-    "source_manifest_sha256": "6ca80e31d73f033a5e6945f54badf34c4ceb73b21e7e0ddbdae66a77d80ce48b",
+    "manifest_sha256": "bf27e1d6a98558631b14ed08b7f008311933641bcbba9f8ba87bc8da79d6784b",
+    "source_release_id": "retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b",
+    "source_manifest_sha256": "9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a",
     "measured_jurisdictions": 7,
     "unmeasured_jurisdictions": 44,
-    "retained_candidate_rows": 12206,
-    "zip_present_candidate_rows": 12205,
-    "missing_zip_candidate_rows": 0,
+    "retained_candidate_rows": 12210,
+    "zip_present_candidate_rows": 12208,
+    "missing_zip_candidate_rows": 1,
     "invalid_zip_candidate_rows": 1
   }
 }

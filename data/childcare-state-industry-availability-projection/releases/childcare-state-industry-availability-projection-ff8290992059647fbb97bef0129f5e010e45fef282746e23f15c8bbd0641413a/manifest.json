@@ -1,0 +1,26 @@
+{
+  "schema_version": "childcare-state-industry-availability-projection-manifest@1.1.0",
+  "dataset_id": "childcare-state-industry-availability-projection",
+  "release_id": "childcare-state-industry-availability-projection-ff8290992059647fbb97bef0129f5e010e45fef282746e23f15c8bbd0641413a",
+  "status": "immutable-local-derived-release",
+  "publication_mode": "pointer-free",
+  "source_release_id": "retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b",
+  "source_manifest_sha256": "9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a",
+  "measured_jurisdictions": 7,
+  "unmeasured_jurisdictions": 44,
+  "retained_candidate_rows": 12210,
+  "zip_present_candidate_rows": 12208,
+  "missing_zip_candidate_rows": 1,
+  "invalid_zip_candidate_rows": 1,
+  "network_requests": 0,
+  "acquisition_performed": false,
+  "current_pointer_written": false,
+  "production_enrollment": false,
+  "artifacts": [
+    {
+      "path": "projection.json",
+      "bytes": 19197,
+      "sha256": "ff8290992059647fbb97bef0129f5e010e45fef282746e23f15c8bbd0641413a"
+    }
+  ]
+}
