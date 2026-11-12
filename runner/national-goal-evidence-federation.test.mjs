@@ -46,7 +46,7 @@ test('retained federation has full independent replay, closed units and correct 
   const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),manifest=path.join(APP_ROOT,registration.retained_release.manifest);
   const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,registration.retained_release.manifest_sha256);
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
-  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:149,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
+  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:181,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
   assert.deepEqual(verified.temporal_assessment,summary.temporal_assessment);
   const temporal=summary.temporal_assessment, matrix=(await json(manifest)).inputs.matrix;

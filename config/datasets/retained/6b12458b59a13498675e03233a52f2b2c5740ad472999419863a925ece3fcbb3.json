@@ -1,0 +1,13 @@
+{
+  "dataset_id": "cms-nppes-organizations",
+  "schema_version": "1.0.0",
+  "title": "CMS NPPES Organization Providers and Practice Locations",
+  "status": "implemented",
+  "description": "Governed monthly organization-NPI source layer with primary and non-primary reported U.S. practice locations, healthcare taxonomies, other organization names, limited deactivated records, ZIP/ZCTA coverage, provenance, and export controls.",
+  "output": "data/business-sources/cms-nppes-organizations/current.json",
+  "connector": "config/connectors/cms-nppes-organizations.json",
+  "source_policy": "config/source-policies/cms-nppes-organizations.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "CMS organization health care providers and suppliers only; not all businesses and not independent proof of an open location.",
+  "documentation": "docs/CMS-NPPES-ORGANIZATIONS.md"
+}

@@ -1,0 +1,34 @@
+{
+  "policy_id": "cms-nppes-organizations",
+  "version": "1.0.0",
+  "publisher": "U.S. Centers for Medicare & Medicaid Services",
+  "ownership": "FOIA-disclosable National Plan and Provider Enumeration System health care provider data",
+  "source_home": "https://www.cms.gov/medicare/regulations-guidance/administrative-simplification/data-dissemination",
+  "download_page": "https://download.cms.gov/nppes/NPI_Files.html",
+  "source_access": "Public anonymous monthly V2 full-replacement archive; CMS states there is no charge to download the data.",
+  "allowed_use": ["download", "internal immutable source retention", "organization-provider normalization", "practice-location coverage analysis", "derived registry assertions", "public redistribution of allowed normalized active-organization fields with provenance"],
+  "prohibited_use": [
+    "representing NPI issuance or active enumeration as proof of licensure, credentialing, or an open business location",
+    "publishing active individual Entity Type 1 records in the combined business registry",
+    "publishing authorized-official personal fields, EIN, TIN, or unselected identifiers from the internal raw snapshot",
+    "publishing fields from deactivated records beyond NPI and deactivation date",
+    "inferring ownership solely from reported parent-organization name text"
+  ],
+  "field_export_policy": {
+    "active_organization_normalization": "public",
+    "deactivated_npi": "public",
+    "deactivation_date": "public",
+    "raw_source_snapshot": "internal",
+    "active_individual_records": "excluded",
+    "authorized_official_fields": "excluded",
+    "ein_tin": "excluded",
+    "endpoint_records": "excluded"
+  },
+  "attribution": "Source: CMS National Plan and Provider Enumeration System (NPPES) Data Dissemination V2.",
+  "retention": "Indefinite for the internal immutable public-source snapshot and allowed normalized records unless an approved retention rule applies.",
+  "redistribution": "Allowed for selected FOIA-disclosable active organization-provider fields with source release, observation time, transformation, status limitations, and policy retained. Deactivated records are limited to NPI and deactivation date.",
+  "raw_contains_personal_data": true,
+  "normalized_public_layer_contains_individual_provider_data": false,
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

@@ -1,0 +1,36 @@
+{
+  "policy_id": "fmcsa-company-census",
+  "version": "1.0.0",
+  "publisher": "United States Department of Transportation, Federal Motor Carrier Safety Administration",
+  "ownership": "Public FMCSA registration records published through the FMCSA Open Data Program and the U.S. Department of Transportation public data portal",
+  "source_home": "https://www.fmcsa.dot.gov/registration/fmcsa-data-dissemination-program",
+  "dataset_page": "https://data.transportation.gov/w/az4n-8mr2/m7rw-edbr",
+  "metadata_url": "https://data.transportation.gov/api/views/az4n-8mr2",
+  "source_api": "https://data.transportation.gov/resource/az4n-8mr2.csv",
+  "data_dictionary_asset": "https://data.transportation.gov/api/views/az4n-8mr2/files/05274d1b-8109-4409-a4ef-237e12f870c9",
+  "source_access": "Public anonymous read-only HTTPS metadata, Socrata resource API, and official data-dictionary attachment; no app token or API key is required for this bounded daily export.",
+  "allowed_use": ["official HTTPS metadata and minimized API acquisition", "local processing", "immutable internal retention of the selected source and dictionary", "source-specific active registration, principal-office site, and establishment normalization", "ZIP and ZCTA coverage analysis", "derived registry assertions", "redistribution of approved public regulatory business fields with FMCSA attribution, sensitivity warnings, provenance, and semantic limitations"],
+  "prohibited_use": [
+    "representing the Company Census as every U.S. business, every motor-carrier location, or a real-time file",
+    "generalizing FMCSA active registration status beyond the source definition",
+    "representing a principal-office address as a verified storefront, customer-accessible site, vehicle base, or independently deliverable address",
+    "inferring a legal organization, parent company, ownership, or cross-source merge from a USDOT record, legal name, DBA, BUSINESS_ORG_ID, docket, or shared address alone",
+    "publishing officer names, phone, cell, fax, email, D&B number, mailing address, or unrelated crash, inspection, review, safety-rating, or operational metrics through this layer",
+    "using the dataset for personal profiling, harassment, or exposing a home-based proprietor beyond the source-bounded public regulatory purpose",
+    "bypassing source access controls, rate limits, alerts, or terms"
+  ],
+  "field_export_policy": {
+    "retained_selected_source_csv_and_dictionary": "internal",
+    "usdot_docket_legal_dba_name_principal_office_address_source_classifications_and_source_status": "public-regulatory-record-with-sensitivity-and-scope-warnings",
+    "business_org_id_and_description": "public-but-review-only-and-incomplete; preserve only as optional source classification and never use alone to infer a canonical organization",
+    "phone_fax_cell_email_officers_duns_and_mailing_address": "excluded-before-acquisition",
+    "crash_review_inspection_safety_rating_and_unnecessary_operational_fields": "excluded-before-acquisition"
+  },
+  "attribution": "Source: U.S. Department of Transportation, Federal Motor Carrier Safety Administration Company Census File, obtained through the FMCSA Open Data Program and DOT public data portal.",
+  "retention": "Indefinite for immutable minimized source evidence and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved normalized public regulatory records may be redistributed with FMCSA attribution, source timestamp, source and dictionary checksums, exact filter, provenance, sensitivity warnings, and coverage limitations retained; the selected source CSV and dictionary remain internal artifacts.",
+  "contains_personal_data": true,
+  "personal_data_handling": "A registered entity can be an individual proprietor, a legal name may be a person's name, and the reported principal office may be home-based. Contact, officer, D&B, and mailing fields are excluded before acquisition; normalized records retain explicit sensitivity warnings and only the minimum business-registration and geography fields needed for the governed purpose.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

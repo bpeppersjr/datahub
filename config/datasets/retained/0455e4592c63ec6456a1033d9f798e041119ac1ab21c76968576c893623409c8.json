@@ -1,0 +1,18 @@
+{
+  "dataset_id": "usda-snap-retailers",
+  "schema_version": "1.0.0",
+  "title": "USDA SNAP Current Authorized Retailers",
+  "description": "Point-in-time source records and normalized site/establishment candidates for currently SNAP-authorized retailer locations.",
+  "producer_connector": "usda-snap-retailers",
+  "runtime_pointer": "data/business-sources/usda-snap/current.json",
+  "required_datasets": ["census-zbp-baseline", "us-census-geography"],
+  "normalized_artifacts": {
+    "retailers": "derived/retailers/prefix=<first-zip-digit>.jsonl.gz",
+    "zip_coverage": "derived/zip-coverage.jsonl",
+    "source_summary": "derived/source-summary.json",
+    "quarantine": "quarantine/records.jsonl.gz"
+  },
+  "status_semantics": "The source asserts SNAP authorization as of its source edit timestamp; it does not by itself prove the location is generally open at retrieval time.",
+  "documentation": "docs/USDA-SNAP-RETAILERS.md",
+  "source_policy": "config/source-policies/usda-snap-retailers.json"
+}

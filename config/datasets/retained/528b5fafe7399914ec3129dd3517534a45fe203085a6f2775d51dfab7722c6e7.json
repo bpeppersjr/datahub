@@ -1,0 +1,13 @@
+{
+  "dataset_id": "fmcsa-active-us-company-census",
+  "schema_version": "1.0.0",
+  "title": "FMCSA Active U.S. Company Census Principal Offices",
+  "status": "implemented",
+  "description": "Governed daily FMCSA Company Census layer for source-designated active U.S./territory registrations with deliverable principal-office addresses, USDOT and authority identifiers, classifications, ZIP/ZCTA context, provenance, privacy minimization, and explicit gaps.",
+  "output": "data/business-sources/fmcsa-active-us-company-census/current.json",
+  "connector": "config/connectors/fmcsa-company-census.json",
+  "source_policy": "config/source-policies/fmcsa-company-census.json",
+  "required_foundations": ["census-zbp-baseline", "us-census-geography"],
+  "coverage_claim": "FMCSA registrations with STATUS_CODE=A, PHY_COUNTRY=US, and an accepted reported principal-office address in a supported U.S. state or territory; not every business, carrier location, vehicle base, storefront, or proof of status outside FMCSA scope.",
+  "documentation": "docs/FMCSA-COMPANY-CENSUS.md"
+}

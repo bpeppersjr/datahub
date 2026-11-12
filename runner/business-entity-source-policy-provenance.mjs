@@ -18,10 +18,27 @@ const AS_OF = '2026-10-02T16:30:00.000Z';
 const REGISTRATION_SHA = '619e3768bd89717d228caeaf1821de9438cde5a8899a35da13bf064123704564';
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business-entity source-policy provenance contract rejected.') => { if (!value) throw new Error(message); };
+async function readVersionedJson(root, currentPath, expectedSha256, retainedDirectory, maximum, signal) {
+  const current = await readJson(root, currentPath, maximum, signal);
+  if (!expectedSha256 || current.sha256 === expectedSha256) return current;
+  const retainedPath = `${retainedDirectory}/${expectedSha256}.json`;
+  const retained = await readJson(root, retainedPath, maximum, signal);
+  check(retained.sha256 === expectedSha256, `retained input hash for ${currentPath}`);
+  return retained;
+}
 const hash = value => createHash('sha256').update(value).digest('hex');
 const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === 'object'
   ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
 const stable = value => JSON.stringify(canonical(value));
+function firstDifference(actual, expected, prefix = '') {
+  if (stable(actual) === stable(expected)) return null;
+  if (!actual || !expected || typeof actual !== 'object' || typeof expected !== 'object' || Array.isArray(actual) !== Array.isArray(expected)) return prefix || '<root>';
+  for (const key of new Set([...Object.keys(actual), ...Object.keys(expected)])) {
+    const difference = firstDifference(actual[key], expected[key], prefix ? `${prefix}.${key}` : key);
+    if (difference) return difference;
+  }
+  return prefix || '<root>';
+}
 const safeRelative = value => typeof value === 'string' && value.length > 0 && !path.isAbsolute(value) && !value.includes('\\')
   && value.split('/').every(part => part && part !== '.' && part !== '..');
 
@@ -87,7 +104,7 @@ function expectedPolicySemantics(policy, source) {
   };
 }
 
-async function readInputs(root, signal) {
+async function readInputs(root, signal, historicalRows = null) {
   root = path.resolve(root);
   const [registryRegistrationRead, taxonomyRead, lifecycleRegistrationRead, lifecycleManifestRead] = await Promise.all([
     readJson(root, 'config/datasets/national-business-registry.json', 2_000_000, signal),
@@ -117,6 +134,7 @@ async function readInputs(root, signal) {
   const dependencies = registryManifest.dependencies.filter(dep => Object.values(SOURCES).some(source => source.dataset_id === dep.dataset_id));
   check(dependencies.length === 15 && new Set(dependencies.map(dep => dep.dataset_id)).size === 15);
   const rows = [];
+  const historicalBySource = historicalRows ? new Map(historicalRows.map(row => [row.source_id, row])) : null;
   for (const [source_id, source] of Object.entries(SOURCES).sort(([a], [b]) => a.localeCompare(b))) {
     signal?.throwIfAborted();
     const tax = taxonomy.sources.find(row => row.source_id === source_id), semantic = temporalBySource.get(source_id);
@@ -124,10 +142,11 @@ async function readInputs(root, signal) {
     check(tax && semantic && count === source.profile_count && tax.source_key === semantic.source_key && tax.source_release_id === semantic.source_release_id
       && tax.policy_sha256 === semantic.policy_sha256 && semantic.policy_path && tax.lifecycle_evidence && !tax.unknown_status_behavior,
     `closed taxonomy row for ${source_id}`);
-    const registrationRead = await readJson(root, source.registration_path, 2_000_000, signal), registration = registrationRead.value;
+    const historical = historicalBySource?.get(source_id) ?? null;
+    const registrationRead = await readVersionedJson(root, source.registration_path, historical?.dataset_registration_sha256, 'config/datasets/retained', 2_000_000, signal), registration = registrationRead.value;
     const runtimeRegistrationPath = source.runtime_registration_path ?? source.registration_path;
     const runtimeRegistrationRead = runtimeRegistrationPath === source.registration_path
-      ? registrationRead : await readJson(root, runtimeRegistrationPath, 2_000_000, signal);
+      ? registrationRead : await readVersionedJson(root, runtimeRegistrationPath, historical?.runtime_dataset_registration_sha256, 'config/datasets/retained', 2_000_000, signal);
     const runtimeRegistration = runtimeRegistrationRead.value;
     check(registration.dataset_id === source.dataset_id && runtimeRegistration.dataset_id === source.dataset_id
       && runtimeRegistration.source_policy === semantic.policy_path, `dataset registration identity for ${source_id}`);
@@ -145,7 +164,7 @@ async function readInputs(root, signal) {
     const sourceManifestRead = await readJson(root, manifestPath, 8_000_000, signal), sourceManifest = sourceManifestRead.value;
     check(sourceManifestRead.sha256 === dependency.manifest_sha256 && sourceManifest.dataset_id === source.dataset_id && sourceManifest.release_id === dependency.release_id
       && sourceManifest.source_release_id === tax.source_release_id, `selected source manifest for ${source_id}`);
-    const policyRead = await readJson(root, semantic.policy_path, 256_000, signal), policy = policyRead.value;
+    const policyRead = await readVersionedJson(root, semantic.policy_path, semantic.policy_sha256, 'config/source-policies/retained', 256_000, signal), policy = policyRead.value;
     check(policyRead.sha256 === semantic.policy_sha256 && policy.policy_id === source.policy_id && policy.version === '1.0.0'
       && runtimeRegistration.source_policy === semantic.policy_path, `raw policy identity/hash for ${source_id}`);
     const embeddedField = ['policy', 'privacy_and_export_controls', 'export_policy'].find(key => Object.hasOwn(sourceManifest, key));
@@ -241,11 +260,16 @@ export async function readBusinessEntitySourcePolicyProvenance({ root = APP_ROOT
     && Number.isSafeInteger(artifact.bytes) && artifact.bytes > 0 && SHA.test(artifact.sha256));
   const artifactRead = await readJson(root, `${path.posix.dirname(pin.manifest_path)}/${artifact.path}`, 2_000_000, signal);
   check(artifactRead.sha256 === artifact.sha256 && artifactRead.bytes.length === artifact.bytes && artifactRead.sha256 === pin.artifact_sha256);
-  const input = await readInputs(root, signal), expectedManifest = manifestFor(input, artifact);
-  check(stable(manifest) === stable(expectedManifest) && stable(pin.release_id) === stable(expectedManifest.release_id)
-    && stable(artifactRead.value) === stable({ schema_version: `${DATASET}-rows@1.0.0`, rows: input.rows })
-    && stable(manifest.bindings) === stable(input.bindings) && stable(manifest.summary) === stable(input.summary),
-  'source policy provenance lineage/replay');
+  const input = await readInputs(root, signal, artifactRead.value.rows), expectedManifest = manifestFor(input, artifact);
+  check(stable(manifest) === stable(expectedManifest), 'source policy provenance manifest replay');
+  check(stable(pin.release_id) === stable(expectedManifest.release_id), 'source policy provenance release identity replay');
+  check(artifactRead.value?.schema_version === `${DATASET}-rows@1.0.0` && Array.isArray(artifactRead.value.rows) && artifactRead.value.rows.length === input.rows.length, 'source policy provenance row inventory replay');
+  for (let index = 0; index < input.rows.length; index += 1) {
+    const difference = firstDifference(artifactRead.value.rows[index], input.rows[index]);
+    check(!difference, `source policy provenance row replay for ${input.rows[index].source_id} at ${difference}`);
+  }
+  check(stable(manifest.bindings) === stable(input.bindings), 'source policy provenance binding replay');
+  check(stable(manifest.summary) === stable(input.summary), 'source policy provenance summary replay');
   return { available: true, release_id: manifest.release_id, registration_sha256: registrationRead.sha256,
     manifest_sha256: manifestRead.sha256, artifact_sha256: artifact.sha256, record_count: artifact.record_count,
     registry_release_id: REGISTRY_ID, registry_manifest_sha256: REGISTRY_SHA, lifecycle_release_id: LIFECYCLE_ID,

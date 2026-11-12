@@ -32,14 +32,25 @@ async function copyBoundedFixture(root, provenance) {
   const inventoryManifest = await readJson(inventoryPin.manifest_path);
   files.add(path.posix.join(path.posix.dirname(inventoryPin.manifest_path), inventoryManifest.artifact.path));
   files.add(inventoryManifest.bindings.lifecycle.manifest_path);
+  const policyMutationFiles = [], registrationMutationFiles = new Set();
   for (const row of provenance.rows) {
     files.add(row.dataset_registration_path); files.add(row.runtime_dataset_registration_path); files.add(row.source_manifest_path); files.add(row.policy_profile_path);
+    for (const [current, expected] of [[row.dataset_registration_path, row.dataset_registration_sha256], [row.runtime_dataset_registration_path, row.runtime_dataset_registration_sha256]]) {
+      const retained = `config/datasets/retained/${expected}.json`;
+      if (await readFile(path.join(APP_ROOT, retained)).then(() => true, error => error.code === 'ENOENT' ? false : Promise.reject(error))) {
+        files.add(retained); registrationMutationFiles.add(retained);
+      } else registrationMutationFiles.add(current);
+    }
+    const retained = `config/source-policies/retained/${row.policy_profile_sha256}.json`;
+    if (await readFile(path.join(APP_ROOT, retained)).then(() => true, error => error.code === 'ENOENT' ? false : Promise.reject(error))) {
+      files.add(retained); policyMutationFiles.push(retained);
+    } else policyMutationFiles.push(row.policy_profile_path);
   }
   for (const relative of files) {
     const target = path.join(root, relative); await mkdir(path.dirname(target), { recursive: true });
     await copyFile(path.join(APP_ROOT, relative), target);
   }
-  return { files, inventory };
+  return { files, inventory, policyMutationFiles, registrationMutationFiles: [...registrationMutationFiles] };
 }
 
 test('registered November source-policy inventory conserves all 15 sources and the NY snapshot membership change', async () => {
@@ -77,13 +88,12 @@ test('policy inventory replay rejects raw policy, source manifest, registration,
   const provenance = await readBusinessEntitySourcePolicyProvenance();
   const root = await mkdtemp(path.join(APP_ROOT, 'data/tmp/source-policy-provenance-'));
   try {
-    const { files } = await copyBoundedFixture(root, provenance);
+    const { files, policyMutationFiles, registrationMutationFiles } = await copyBoundedFixture(root, provenance);
     assert.equal((await readBusinessEntitySourcePolicyProvenance({ root })).rows.length, 15);
     const mutations = [
-      ...provenance.rows.map(row => row.policy_profile_path),
+      ...policyMutationFiles,
       ...provenance.rows.map(row => row.source_manifest_path),
-      ...provenance.rows.map(row => row.dataset_registration_path),
-      ...provenance.rows.map(row => row.runtime_dataset_registration_path),
+      ...registrationMutationFiles,
       registrationPath,
       path.posix.join('data/business-entity-source-policy-provenance/releases', provenance.release_id, 'source-policies.json'),
     ];
@@ -91,10 +101,11 @@ test('policy inventory replay rejects raw policy, source manifest, registration,
       const file = path.join(root, relative), original = await readFile(file);
       try {
         await writeFile(file, Buffer.concat([original, Buffer.from(' ')]));
-        await assert.rejects(readBusinessEntitySourcePolicyProvenance({ root }));
+        const rejected = await readBusinessEntitySourcePolicyProvenance({ root }).then(() => false, () => true);
+        assert.equal(rejected, true, relative);
       } finally { await writeFile(file, original); }
     }
-    const policyA = path.join(root, provenance.rows[0].policy_profile_path), policyB = path.join(root, provenance.rows[1].policy_profile_path);
+    const policyA = path.join(root, policyMutationFiles[0]), policyB = path.join(root, policyMutationFiles[1]);
     const originalA = await readFile(policyA), sourceB = await readFile(policyB);
     try { await writeFile(policyA, sourceB); await assert.rejects(readBusinessEntitySourcePolicyProvenance({ root })); }
     finally { await writeFile(policyA, originalA); }

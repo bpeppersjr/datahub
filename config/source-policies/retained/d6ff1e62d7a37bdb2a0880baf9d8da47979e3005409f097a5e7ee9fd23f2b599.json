@@ -1,0 +1,35 @@
+{
+  "policy_id": "ia-business-registry",
+  "version": "1.0.0",
+  "publisher": "Office of the Secretary of State, State of Iowa",
+  "ownership": "Official active business-entity public records published through the Iowa Data Hub",
+  "source_home": "https://data.iowa.gov/catalog/dataset/554",
+  "source_dataset": "https://idh-be.iowa.gov/api/v1/datasets/554/rows.csv",
+  "catalog_dataset_id": "554",
+  "catalog_license": "CC-BY-4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "source_access": "Public anonymous read-only HTTPS metadata, schema, and archive endpoints.",
+  "allowed_use": ["official HTTPS metadata, schema, and archive access", "local processing", "immutable internal source-archive retention", "business-only selected-field normalization", "home-office-address and ZIP coverage analysis", "derived registry assertions", "redistribution of approved normalized fields under CC BY 4.0 with attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing Active as independent proof of current operations, legality, solvency, public access, licensure, or an open storefront",
+    "representing a source-defined home office or its geocode as a verified current physical operating site",
+    "representing this state registry as every business operating in Iowa or the United States",
+    "exporting registered-agent names, addresses, or coordinates through normalized or national outputs",
+    "inferring an owner, employee, customer-facing location, or organization relationship from registered-agent or home-office data",
+    "merging registrations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "official_source_archive": "internal-personal-data-minimized",
+    "corp_number_legal_name_corporation_type_effective_date_and_home_office_fields": "public-under-cc-by-4.0-with-provenance-attribution-and-semantic-limitations",
+    "registered_agent_and_ra_fields": "excluded",
+    "home_office_name": "excluded-as-redundant-or-potentially-person-identifying",
+    "ho_location_wkt": "excluded-as-redundant-with-approved-latitude-and-longitude"
+  },
+  "attribution": "Source: Office of the Secretary of State, State of Iowa, Active Iowa Business Entities, via Iowa Data Hub, licensed CC BY 4.0.",
+  "retention": "Indefinite for immutable internal source archives and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved business-only normalized fields may be redistributed under CC BY 4.0 with attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the source archive remains internal because it contains registered-agent personal data.",
+  "contains_personal_data": true,
+  "personal_data_handling": "Business names and home-office addresses may identify individuals or residences. The connector excludes registered-agent name, address, ZIP, geocode, and location fields; excludes the source home-office name; and prohibits treating the remaining address as a public storefront or operating site.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-31"
+}

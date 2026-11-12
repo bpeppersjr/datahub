@@ -1,0 +1,33 @@
+{
+  "policy_id": "co-business-registry",
+  "version": "1.0.0",
+  "publisher": "Colorado Department of State (CDOS)",
+  "ownership": "Official public business-entity registration records published through the Colorado Information Marketplace",
+  "source_home": "https://data.colorado.gov/Business/Business-Entities-in-Colorado/4ykn-tg5h",
+  "source_dataset": "https://data.colorado.gov/resource/4ykn-tg5h.json",
+  "catalog_dataset_id": "4ykn-tg5h",
+  "catalog_license": "Public Domain",
+  "source_access": "Public anonymous read-only HTTPS Socrata API.",
+  "allowed_use": ["official HTTPS metadata and selected-field API queries", "local processing", "immutable internal selected-field source retention", "organization and principal-office-address normalization", "coverage analysis", "derived registry assertions", "redistribution of approved normalized public fields with source attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing Good Standing as independent proof of current operations, legality, reputation, solvency, public access, licensure, or an open storefront",
+    "representing Delinquent as proof that the entity has ceased to exist or ceased operating",
+    "representing a principal office address as a verified physical operating site",
+    "representing this state registry as every business operating in Colorado or the United States",
+    "exporting registered-agent names or addresses",
+    "merging organizations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "selected_source_snapshot": "internal",
+    "entity_id_entity_name_entity_status_entity_type_formation_jurisdiction_formation_date_and_principal_office_address": "public-with-provenance-and-semantic-limitations",
+    "principal_office_mailing_address": "excluded",
+    "registered_agent_names_and_addresses": "excluded"
+  },
+  "attribution": "Source: Colorado Department of State (CDOS), Business Entities in Colorado, via the Colorado Information Marketplace.",
+  "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
+  "redistribution": "Approved normalized fields may be redistributed with CDOS attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the selected-field raw snapshot remains internal.",
+  "contains_personal_data": false,
+  "personal_data_handling": "The connector excludes every registered-agent name and address plus the principal-office mailing address. Organization names and principal-office street addresses can incidentally identify a person or home because they are public registration fields.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}

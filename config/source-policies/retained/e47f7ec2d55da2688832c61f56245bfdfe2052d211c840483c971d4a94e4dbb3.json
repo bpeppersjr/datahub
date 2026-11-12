@@ -1,0 +1,32 @@
+{
+  "policy_id": "ncua-quarterly",
+  "version": "1.0.0",
+  "publisher": "National Credit Union Administration",
+  "ownership": "United States federal government public credit-union Call Report data",
+  "source_home": "https://ncua.gov/analysis/credit-union-corporate-call-report-data",
+  "quarterly_data": "https://ncua.gov/analysis/credit-union-corporate-call-report-data/quarterly-data",
+  "source_access": "Public anonymous read-only final quarterly bulk ZIP; no CUOnline web-service credential or API access is used.",
+  "allowed_use": ["download", "local processing", "immutable source retention", "institution and branch normalization", "coverage analysis", "derived registry assertions", "redistribution with attribution and semantic limitations"],
+  "prohibited_use": [
+    "representing a quarterly branch row as independent confirmation of public access, current hours, membership eligibility, or current service availability",
+    "representing NCUA coverage as all credit unions, all financial businesses, or all U.S. businesses",
+    "representing foreign branch records as U.S. locations",
+    "treating SiteId as globally unique without its credit-union charter scope",
+    "merging institutions or locations across sources without versioned evidence"
+  ],
+  "field_export_policy": {
+    "raw_source_archive": "internal",
+    "normalized_institution_location_and_trade_name_records": "public",
+    "attention_of_source_field": "excluded-from-normalization-and-public-registry",
+    "institution_and_location_identifiers": "public",
+    "reported_business_address_phone_hours_and_service_flags": "public",
+    "source_specific_status_and_dates": "public"
+  },
+  "attribution": "Source: National Credit Union Administration final quarterly Call Report data.",
+  "retention": "Indefinite for public immutable source and normalized records unless an approved retention rule applies.",
+  "redistribution": "Normalized public business records may be redistributed with NCUA attribution, source cycle, archive checksum, provenance, temporal scope, and coverage limitations retained; the retained raw archive is internal source material.",
+  "contains_personal_data": true,
+  "personal_data_handling": "The raw FOICU ATTENTION_OF field may contain a public business-contact name. It is retained only inside the internal immutable source archive and is not normalized or published to the registry.",
+  "contains_secrets": false,
+  "reviewed_at": "2026-08-30"
+}
