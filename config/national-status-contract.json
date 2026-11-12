@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-11-12T06:20:34.138Z",
+  "created_at": "2026-11-12T11:43:25.121Z",
   "artifact_sha256": {
-    "gap-ledger.json": "0d93c26b1825cb3493e63292daa2202e414787130480a23e7f0bd16ec0adeebf",
-    "national-summary.json": "a392eec85d23b8f957df77f7f2e3d828d348c3b3a4fda38299223a2ee035dd23",
-    "state-industry-status.jsonl": "52b920961bdf0f16eb3ffa084b95dbb724488fc2f30260ab481a0f2af5360974",
+    "gap-ledger.json": "7f13766617a3d0ea07622844555ef07e293b7653a838379365546e88709abe2f",
+    "national-summary.json": "a2b2d8af4cb9ae3f0ad10bc9eeb5ad72f08b0b9a1b75b1eb7f0bb19ff51fb59f",
+    "state-industry-status.jsonl": "0f4b31d8c94e1e82b61eea0f36c765b1d084bcdf60f1247e6ef1558a6e9786f2",
     "territories.json": "a35b10d006a6205c19993b1643cc99758f29e9803adfe67890c454260561186a",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
     "zip-status/prefix=01.jsonl.gz": "b68407063f415a025b01aa7732cefb5283cb8519e5ab8568074b2837611d8846",
@@ -136,9 +136,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-f7f4d81685c590f02749337c8ab42dfc03afa0ae552e758ba45ff405cdab0efb",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f7f4d81685c590f02749337c8ab42dfc03afa0ae552e758ba45ff405cdab0efb/manifest.json",
-  "manifest_sha256": "49ab7fb15713e8c071746660ab4525eda14d5aabcd0ea1183270d7f9a3af9a95",
+  "release_id": "national-goal-evidence-federation-4592028a3f398867b98b5ee751c0b48de2fd0542beb80299eda15b26e14ba8b8",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4592028a3f398867b98b5ee751c0b48de2fd0542beb80299eda15b26e14ba8b8/manifest.json",
+  "manifest_sha256": "437b5471f40295bf9a800305b56454a703ae6fe0f81b48252f34aa1b08759d63",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -502,9 +502,9 @@
       "2026-11-11T23:21:47.684Z": 2
     },
     "dimension_counts": {
-      "within-review-window": 30,
+      "within-review-window": 31,
       "stale": 0,
-      "unmeasured": 21,
+      "unmeasured": 20,
       "unmapped": 0
     },
     "semantic_dimension_counts": {
@@ -516,7 +516,7 @@
       "publisher-active-snapshot": 3,
       "unknown-source-status": 1
     },
-    "projection_sha256": "9c12275487f6935a57955325ef5b0795be01715d3296ff673f98165e4af8ffb6"
+    "projection_sha256": "00c98718d3dac7519f42ff27470b12cf3342be2b6ae05192d5b5f9f302ea551f"
   },
   "gaps": {
     "broad_business_missing_states": 40,
@@ -524,7 +524,7 @@
     "unmeasured_industry_access_cells": 2,
     "restricted_sample_industry_access_cells": 1,
     "stale_temporal_dimensions": 0,
-    "unmeasured_temporal_dimensions": 21
+    "unmeasured_temporal_dimensions": 20
   },
   "industry_dimensions": {
     "retail-consumer": [

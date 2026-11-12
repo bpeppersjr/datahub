@@ -65,9 +65,29 @@ export async function readExactZipIndustrySummaryV32(options = {}) {
       "outside-source-denominator": NEXT["outside-source-denominator"],
     }, positive_zip_percent: 3.1, measured_status_percent: 78.5,
     evidence_disposition_counts: { total_cells: TOTAL, joined }, temporal_qualification: temporal };
-  const dimensions = previous.dimensions.with(index, dimension).map((row) => row.id === PROFILE_ID
-    ? { ...row, temporal_qualification: { ...row.temporal_qualification, assessment_as_of: NY_SNAPSHOT_RETRIEVED_AT } }
-    : row);
+  const profileIndex = previous.dimensions.findIndex((row) => row.id === PROFILE_ID);
+  if (profileIndex < 0) throw new Error("Exact-ZIP v3.2 New York profile dimension is unavailable.");
+  const priorProfile = previous.dimensions[profileIndex], profileTemporal = {
+    ...priorProfile.temporal_qualification,
+    source_release_id: temporal.source_release_id,
+    review_qualification: "within-review-window",
+    source_reference_at: temporal.source_reference_at,
+    review_due_at: temporal.review_due_at,
+    assessment_as_of: NY_SNAPSHOT_RETRIEVED_AT,
+  };
+  const profileJoined = Object.entries(priorProfile.status_counts).map(([raw_status, count]) => {
+    const disposition = classify({ raw_status, semantic_class: "non-active-reporting", review_qualification: "within-review-window" });
+    return {
+      cell_status: raw_status,
+      lifecycle_status: disposition.lifecycle_status,
+      label: disposition.label,
+      current_operations_verified: false,
+      count,
+    };
+  });
+  const profile = { ...priorProfile, temporal_qualification: profileTemporal,
+    evidence_disposition_counts: { total_cells: TOTAL, joined: profileJoined } };
+  const dimensions = previous.dimensions.with(index, dimension).with(profileIndex, profile);
   const status_counts = { ...previous.status_counts,
     positive: previous.status_counts.positive - OLD.positive + NEXT.positive,
     "measured-zero": previous.status_counts["measured-zero"] - OLD["measured-zero"] + NEXT["measured-zero"] };
@@ -81,5 +101,5 @@ export async function readExactZipIndustrySummaryV32(options = {}) {
       by_cell_status: status_counts, by_lifecycle_status: lifecycle, joined: allJoined },
     ny_retail_food_license_address_dispositions: joined, dimensions,
     temporal_qualification: temporalProjection(dimensions),
-    verification_scope: "Bounded v3.2 replacement projection over the hash-pinned 51-dimension matrix. The New York retail-food address-evidence dimension now uses the verified 2026-10-14 publisher snapshot within its review window; all other dimensions and nonadditive, non-completeness, non-current-operation limitations are conserved. Full matrix replay performed by the registered v3.2 verifier, not this summary reader." };
+    verification_scope: "Bounded v3.2 replacement projection over the hash-pinned 51-dimension matrix. Both New York retail-food dimensions use the same verified 2026-10-14 publisher snapshot within its review window; their overlapping counts remain nonadditive and do not establish completeness or current operation. All other dimensions are conserved. Full matrix replay performed by the registered v3.2 verifier, not this summary reader." };
 }

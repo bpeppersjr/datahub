@@ -33,7 +33,7 @@ test("v3.2 selected-state operational industry view validates refreshed provenan
     v=>{v.provenance.summary_release_id="invented"},
     v=>{v.provenance.crosswalk_sha256="0".repeat(64)},
     v=>{retailDimension(v,"ny_retail_food_license_address_evidence_count").temporal_qualification.review_qualification="stale"},
-    v=>{retailDimension(v,"ny_retail_food_location_profiles").temporal_qualification.review_qualification="within-review-window"},
+    v=>{retailDimension(v,"ny_retail_food_location_profiles").temporal_qualification.review_qualification="unmeasured"},
   ]){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validOperationalIndustryCrosswalkView",invalid,"NY"),false);}
   h.close();
 });
@@ -43,7 +43,7 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
   assert.equal(h.render("validExactZipIndustrySummary",summary),true);
   assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
   const renderedSummary=text((h.render("ExactZipIndustryNationalSummary"),await flush(),h.render("ExactZipIndustryNationalSummary")));
-  assert.match(renderedSummary,/30 dimensions are within review window; 0 is stale; 21 are unmeasured/);
+  assert.match(renderedSummary,/31 dimensions are within review window; 0 is stale; 20 are unmeasured/);
   assert.match(renderedSummary,/2026-10-02 \(49 dimensions\).*2026-11-11 \(2 dimensions\)/);
   assert.match(renderedSummary,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
   for(const mutate of [v=>{v.temporal_qualification.schema_version="exact-zip-industry-temporal-qualification-v2-1-runtime-projection"},v=>{v.temporal_qualification.source_dimensions=42},v=>{v.temporal_qualification.projection_sha256="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
@@ -57,7 +57,7 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
     v=>{temporal(v,"ny_retail_food_license_address_evidence_count").current_operations_verified=true},
     v=>{temporal(v,"ny_retail_food_license_address_evidence_count").evidence_disposition.additive=true},
     v=>{temporal(v,"ny_retail_food_location_profiles").source_release_id="ny-retail-food-stores-2025-09-30-9dfbb0199594dab8"},
-    v=>{temporal(v,"ny_retail_food_location_profiles").review_qualification="within-review-window"},
+    v=>{temporal(v,"ny_retail_food_location_profiles").review_qualification="unmeasured"},
   ]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
   h.close();
 });

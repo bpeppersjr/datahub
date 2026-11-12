@@ -93,7 +93,7 @@
     },
     "summary_implementation": {
       "path": "runner/exact-zip-industry-summary-v3-2.mjs",
-      "sha256": "59e8b011bf6d201a429df454c830052ac1ae8274d0ea8ddac85eb5154c756d7c"
+      "sha256": "89a741c805bb716d3f152bb24292fa09d745a8b1c85eaeb8cf4b025314a94657"
     },
     "temporal_mapping": {
       "path": "runner/exact-zip-industry-temporal-mappings-v3-1.mjs",

@@ -4778,7 +4778,7 @@ const NY_RETAIL_FOOD_LOCATION_TEMPORAL = {
   assessment_as_of: "2026-10-02T16:30:00.000Z",
 } as const;
 const validV31MatrixRow=(value:unknown,zip:string)=>{if(value===null)return true;if(!exactObject(value)||value.zip5!==zip||!exactObject(value.cells))return false;return Object.keys(value.cells).length===51&&EXACT_ZIP_V30_SOURCES.every(source=>source in value.cells);};
-const validV31TemporalRows=(value:unknown)=>Array.isArray(value)&&value.length===51&&new Set(value.map(item=>exactObject(item)?item.dimension_id:null)).size===51&&Object.entries(EXACT_ZIP_V31_TEMPORAL_MAPPINGS).every(([id,key])=>{const item=value.find(candidate=>exactObject(candidate)&&candidate.dimension_id===id);return exactObject(item)&&item.source_key===key&&item.semantic_class==="non-active-reporting"&&item.review_qualification==="unmeasured"&&typeof item.source_release_id==="string"&&item.source_release_id.length>0&&item.current_operations_verified===false&&exactObject(item.evidence_disposition)&&item.evidence_disposition.lifecycle_status==="unmeasured"&&item.evidence_disposition.current_operations_verified===false;});
+const validV31TemporalRows=(value:unknown,refreshedNyProfile=false)=>Array.isArray(value)&&value.length===51&&new Set(value.map(item=>exactObject(item)?item.dimension_id:null)).size===51&&Object.entries(EXACT_ZIP_V31_TEMPORAL_MAPPINGS).every(([id,key])=>{if(refreshedNyProfile&&id==="ny_retail_food_location_profiles")return true;const item=value.find(candidate=>exactObject(candidate)&&candidate.dimension_id===id);return exactObject(item)&&item.source_key===key&&item.semantic_class==="non-active-reporting"&&item.review_qualification==="unmeasured"&&typeof item.source_release_id==="string"&&item.source_release_id.length>0&&item.current_operations_verified===false&&exactObject(item.evidence_disposition)&&item.evidence_disposition.lifecycle_status==="unmeasured"&&item.evidence_disposition.current_operations_verified===false;});
 function validNyRetailFoodLocationTemporal(rows: unknown): boolean {
   const profile = Array.isArray(rows)
     ? rows.find(row => exactObject(row) && row.dimension_id === "ny_retail_food_location_profiles")
@@ -4788,6 +4788,16 @@ function validNyRetailFoodLocationTemporal(rows: unknown): boolean {
     profile.current_operations_verified === false &&
     exactObject(profile.evidence_disposition) &&
     profile.evidence_disposition.lifecycle_status === "unmeasured" &&
+    profile.evidence_disposition.current_operations_verified === false;
+}
+function validRefreshedNyRetailFoodLocationTemporal(rows: unknown): boolean {
+  const profile = Array.isArray(rows)
+    ? rows.find(row => exactObject(row) && row.dimension_id === "ny_retail_food_location_profiles")
+    : null;
+  return exactObject(profile) && Object.entries(NY_RETAIL_FOOD_REFRESHED_SOURCE).every(([key,value])=>profile[key]===value) &&
+    profile.review_qualification === "within-review-window" && profile.semantic_class === "non-active-reporting" &&
+    profile.current_operations_verified === false && exactObject(profile.evidence_disposition) &&
+    ["non-active-reporting-positive","non-active-reporting-without-positive-evidence"].includes(String(profile.evidence_disposition.lifecycle_status)) &&
     profile.evidence_disposition.current_operations_verified === false;
 }
 const exactZipDisposition=(cell_status:string,semantic:string,review:string)=>{const lifecycle_status=review==="unmapped"&&semantic==="unmapped"?"unmapped":review==="unmeasured"?"unmeasured":review==="stale"?"stale":semantic==="source-defined-current"?(cell_status==="positive"?"source-defined-current-positive-within-review-window":"source-defined-current-without-positive-evidence"):(cell_status==="positive"?"non-active-reporting-positive":"non-active-reporting-without-positive-evidence");return{cell_status,lifecycle_status,label:`${cell_status.replaceAll("-"," ")} · ${lifecycle_status.replaceAll("-"," ")}`,current_operations_verified:false}};
@@ -4816,7 +4826,7 @@ export function validExactZipEvidence(
       value.status==="present"&&row!==null&&tq.zip5===zip&&
       value.full_matrix_replay_performed===false&&value.recursive_lineage_verified===true&&
       exactObject(tq.summary)&&tq.summary.unmapped_dimension_count===0&&
-      validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows)&&validNyRetailFoodLocationTemporal(tq.rows)&&
+      validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows,true)&&validRefreshedNyRetailFoodLocationTemporal(tq.rows)&&
       exactObject(q)&&Object.entries(NY_RETAIL_FOOD_REFRESHED_SOURCE).every(([key, expected])=>q[key]===expected)&&
       q.semantic_class==="non-active-reporting"&&q.review_qualification==="within-review-window"&&
       q.current_operations_verified===false&&q.continuous_operation_verified===false&&q.site_occupancy_verified===false&&
@@ -5838,7 +5848,8 @@ const EXACT_ZIP_V32_SUMMARY_CONTRACT = EXACT_ZIP_V31_SUMMARY_CONTRACT.map(row =>
       review_qualification:"within-review-window",assessment_as_of:EXACT_ZIP_V32_NY_ASSESSMENT}] as const;
   }
   if (row[0] === "ny_retail_food_location_profiles") {
-    return [row[0],row[1],{...row[2],assessment_as_of:EXACT_ZIP_V32_NY_ASSESSMENT}] as const;
+    return [row[0],row[1],{...row[2],...NY_RETAIL_FOOD_REFRESHED_SOURCE,
+      review_qualification:"within-review-window",assessment_as_of:EXACT_ZIP_V32_NY_ASSESSMENT}] as const;
   }
   return row;
 });

@@ -46,7 +46,7 @@ test('retained federation has full independent replay, closed units and correct 
   const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),manifest=path.join(APP_ROOT,registration.retained_release.manifest);
   const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,registration.retained_release.manifest_sha256);
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
-  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:149,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:21});
+  assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:149,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
   assert.deepEqual(verified.temporal_assessment,summary.temporal_assessment);
   const temporal=summary.temporal_assessment, matrix=(await json(manifest)).inputs.matrix;
@@ -54,7 +54,7 @@ test('retained federation has full independent replay, closed units and correct 
   assert.equal(temporal.matrix_release_id,matrix.release_id);
   assert.equal(temporal.matrix_manifest_sha256,matrix.sha256);
   assert.equal(temporal.source_dimensions,summary.dimension_order.length);
-  assert.equal(gaps.temporal.find(row=>row.dimension==='ny_retail_food_location_profiles').assessment_as_of,'2026-11-11T23:21:47.684Z');
+  assert.equal(gaps.temporal.some(row=>['ny_retail_food_location_profiles','ny_retail_food_license_address_evidence_count'].includes(row.dimension)),false);
   assert.equal(Object.entries(summary.geography_scope_counts).filter(([s])=>s.startsWith('state:')).reduce((n,[,v])=>n+v,0),33455);
   assert.equal(summary.geography_scope_counts['non-zcta-unassigned'],14402);assert.equal(summary.geography_scope_counts['multi-state-material'],184);assert.equal(summary.geography_scope_counts['zcta-overlay-unresolved'],3);assert.equal(summary.geography_scope_counts['explicit-placeholder'],1);
   assert.equal(territories.included_in_51_state_denominator,false);assert.deepEqual(territories.geography.map(row=>row.zip5_rows),[1,7,3,132,6]);
@@ -75,7 +75,7 @@ test('successor corrects temporal aggregate provenance while preserving its immu
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56');
   assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
   const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256]));
-  assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['gap-ledger.json','national-summary.json']));
+  assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['gap-ledger.json','national-summary.json','state-industry-status.jsonl']));
 });
 
 test('current verifier rejects legacy temporal lineage, dimension count and checksum',async t=>{

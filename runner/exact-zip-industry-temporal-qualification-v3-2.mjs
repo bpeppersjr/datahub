@@ -4,6 +4,7 @@ import { readExactZipIndustrySummaryV32 as summary } from "./exact-zip-industry-
 import { classifyExactZipEvidenceDispositionV24 as classify } from "./exact-zip-evidence-disposition-v2-4.mjs";
 
 const ID = "ny_retail_food_license_address_evidence_count";
+const PROFILE_ID = "ny_retail_food_location_profiles";
 const TOTAL = 48194;
 const countBy = (rows, key) => rows.reduce((result, row) => {
   result[row[key]] = (result[row[key]] ?? 0) + 1; return result;
@@ -38,7 +39,20 @@ export async function readExactZipIndustryEvidenceWithTemporalQualificationV32(o
     evidence_disposition: { ...classify({ raw_status: raw, semantic_class: "non-active-reporting", review_qualification: "within-review-window" }),
       continuous_operation_verified: false, site_occupancy_verified: false, public_access_verified: false },
   };
-  const rows = previous.temporal_qualification.rows.with(index, qualification);
+  const profileIndex = previous.temporal_qualification.rows.findIndex((row) => row.dimension_id === PROFILE_ID);
+  if (profileIndex < 0) throw new Error("Exact-ZIP v3.2 New York profile qualification is unavailable.");
+  const profileCell = current.row?.cells?.[PROFILE_ID], profileRaw = profileCell?.status ?? "outside-source-denominator";
+  const profileDisposition = classify({ raw_status: profileRaw, semantic_class: "non-active-reporting", review_qualification: "within-review-window" });
+  const profileQualification = { ...previous.temporal_qualification.rows[profileIndex],
+    source_release_id: qualification.source_release_id,
+    review_qualification: "within-review-window",
+    source_reference_at: qualification.source_reference_at,
+    review_due_at: qualification.review_due_at,
+    evidence_disposition: { cell_status: profileRaw,
+      lifecycle_status: profileDisposition.lifecycle_status, label: profileDisposition.label,
+      current_operations_verified: false },
+  };
+  const rows = previous.temporal_qualification.rows.with(index, qualification).with(profileIndex, profileQualification);
   const qualificationCounts = countBy(rows, "review_qualification"), semanticCounts = countBy(rows, "semantic_class");
   return { ...current, source_metadata: { ...previous.source_metadata,
     [ID]: { ...previous.source_metadata[ID], source_release_id: qualification.source_release_id,

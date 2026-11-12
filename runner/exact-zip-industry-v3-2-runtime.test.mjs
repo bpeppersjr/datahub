@@ -25,7 +25,7 @@ test("v3.2 summary conserves the 51-dimension matrix and refreshed New York coun
     "outside-source-denominator": 10358, "absent-from-retained-source-rows": 0, unavailable: 0 });
   assert.equal(dimension.temporal_qualification.review_qualification, "within-review-window");
   assert.deepEqual(value.temporal_qualification.dimension_counts,
-    { "within-review-window": 30, stale: 0, unmeasured: 21, unmapped: 0 });
+    { "within-review-window": 31, stale: 0, unmeasured: 20, unmapped: 0 });
   const { projection_sha256, ...projection } = value.temporal_qualification;
   assert.equal(projection.schema_version, "exact-zip-industry-temporal-summary-projection@3.2.0");
   assert.equal(projection.source_dimensions, value.dimensions.length);
@@ -37,7 +37,9 @@ test("v3.2 summary conserves the 51-dimension matrix and refreshed New York coun
   assert.equal(projection_sha256, createHash("sha256").update(JSON.stringify({ ...projection, dimensions })).digest("hex"));
   const profile = value.dimensions.find(row => row.id === "ny_retail_food_location_profiles");
   assert.equal(profile.temporal_qualification.source_release_id, dimension.temporal_qualification.source_release_id);
-  assert.equal(profile.temporal_qualification.review_qualification, "unmeasured");
+  assert.equal(profile.temporal_qualification.review_qualification, "within-review-window");
+  assert.equal(profile.temporal_qualification.source_reference_at, "2026-10-14T19:08:34.000Z");
+  assert.equal(profile.temporal_qualification.review_due_at, "2027-02-11T19:08:34.000Z");
   assert.equal(profile.temporal_qualification.assessment_as_of, "2026-11-11T23:21:47.684Z");
   assert.equal(dimension.temporal_qualification.assessment_as_of, profile.temporal_qualification.assessment_as_of);
   assert.equal(profile.status_counts.positive, 1498);
@@ -54,5 +56,8 @@ test("v3.2 temporal view preserves non-active reporting and refreshed provenance
   assert.equal(row.source_reference_at, "2026-10-14T19:08:34.000Z");
   assert.equal(row.review_due_at, "2027-02-11T19:08:34.000Z");
   assert.equal(row.evidence_disposition.additive, false);
+  const profile = value.temporal_qualification.rows.find((item) => item.dimension_id === "ny_retail_food_location_profiles");
+  assert.equal(profile.review_qualification, "within-review-window");
+  assert.equal(profile.evidence_disposition.lifecycle_status, "non-active-reporting-positive");
   assert.equal(value.temporal_qualification.provenance.matrix_release_id, value.release_id);
 });
