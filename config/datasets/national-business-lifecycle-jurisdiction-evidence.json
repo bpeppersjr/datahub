@@ -1,0 +1,43 @@
+{
+  "schema_version": "national-business-lifecycle-jurisdiction-evidence-registration@1.0.0",
+  "dataset_id": "national-business-lifecycle-jurisdiction-evidence",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-business-lifecycle-jurisdiction-evidence-65d0c4b1f2a6d10ea0c5b031dfc3251e1b87510a88d7c3efeacd8cc0dd37910b",
+    "manifest": "data/national-business-lifecycle-jurisdiction-evidence/releases/national-business-lifecycle-jurisdiction-evidence-65d0c4b1f2a6d10ea0c5b031dfc3251e1b87510a88d7c3efeacd8cc0dd37910b/manifest.json",
+    "manifest_sha256": "42adf92bfb9d9d3a6a9df8728d71c9a1938b787147212269d58c9d077b7499be",
+    "manifest_bytes": 3645,
+    "artifact_sha256": "40cbf61ddd0a860b7c70dc8defb3fcd8c1bdfe45fe073df4fe9e0b213de3dbd4",
+    "artifact_bytes": 295020,
+    "scope_rows": 60,
+    "zip5_rows": 48194,
+    "profile_membership_count": 8011213
+  },
+  "claims": {
+    "record_unit": "registry-location-profile-lifecycle-membership",
+    "governed_jurisdiction_disposition_reused": true,
+    "source_relative_lifecycle_evidence": true,
+    "non_numerator_sidecar": true,
+    "unique_business_count": null,
+    "active_business_count": null,
+    "current_operating_business_count": null,
+    "all_business_completeness": null,
+    "current_operation_verified": false,
+    "active_business_eligible": false,
+    "identity_resolution_applied": false,
+    "additive_across_sources": false,
+    "cross_source_additivity": false,
+    "authoritative_current_usps_zip_denominator": null,
+    "usps_zip_state_assignment": false,
+    "multi_state_evidence_allocated": false,
+    "fractional_allocation": false,
+    "zip4_joined": false,
+    "network_requests": 0,
+    "source_acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/NATIONAL-BUSINESS-LIFECYCLE-JURISDICTION-EVIDENCE.md"
+}

@@ -289,6 +289,8 @@
     "business-temporal-lifecycle:verify": "node scripts/verify-national-business-temporal-lifecycle-reconciliation.mjs",
     "business-lifecycle-zip:build": "node scripts/build-national-business-lifecycle-zip-evidence.mjs",
     "business-lifecycle-zip:verify": "node scripts/verify-national-business-lifecycle-zip-evidence.mjs",
+    "business-lifecycle-jurisdiction:build": "node scripts/build-national-business-lifecycle-jurisdiction-evidence.mjs",
+    "business-lifecycle-jurisdiction:verify": "node scripts/verify-national-business-lifecycle-jurisdiction-evidence.mjs",
     "business-source-status-posture:verify": "node scripts/verify-national-business-source-status-posture.mjs",
     "business-co-registration-status-posture:verify": "node scripts/verify-national-business-co-registration-status-posture.mjs",
     "postal-cutover:plan": "node scripts/cutover-normalized-us-postal-migration.mjs plan",

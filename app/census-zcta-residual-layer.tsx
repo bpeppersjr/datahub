@@ -57,6 +57,16 @@ export default function CensusZctaResidualLayer({ state }: { state: string }) {
   return <section className="supporting-evidence" aria-label="Census residual geography readiness">
     <strong>Residual geography readiness</strong>
     <p className="operations-note">The verified optional context release identifies area outside selected 2020 Census ZCTA polygons by state. Dedicated or private ZIPs may have no population record. Residual land may include parks, Native or tribal areas, private property, water, or other unpopulated space. A park match is unavailable in the retained overlays; classifications remain unresolved. This is not ZIP/postal geography, a Native/tribal or private-land classification, an unpopulated-area claim, a business gap, or ZIP completion. Missing population, ZIP geometry, business geocodes, and industry coverage do not block the map or status.</p>
+    <div className="representation-table" role="region" aria-label="Non-population and unresolved geography treatment" tabIndex={0}>
+      <table><thead><tr><th scope="col">Geography class</th><th scope="col">Map treatment</th></tr></thead><tbody>
+        <tr><th scope="row">Private, dedicated, unique, or PO-box ZIP</th><td>Kept as a postal-key class when source evidence supplies it. A missing Census ZCTA or population estimate is not a blocker and does not assign land geometry.</td></tr>
+        <tr><th scope="row">Zero-population Census ZCTA</th><td>Kept when the governed Census row explicitly reports zero. Zero population is not zero businesses and is not inferred from missing data.</td></tr>
+        <tr><th scope="row">Park or protected land</th><td>Shown as unresolved state area unless a governed park overlay supports the distinction. No park classification is presently inferred.</td></tr>
+        <tr><th scope="row">Native or tribal area</th><td>Shown as unresolved state area unless governed tribal geography supports the distinction. No tribal classification or ZIP assignment is presently inferred.</td></tr>
+        <tr><th scope="row">Private property, water, or other non-ZCTA space</th><td>Shown as unresolved state area. Property, population, and business status remain unknown.</td></tr>
+        <tr><th scope="row">Unresolved area</th><td>Grouped only by governed state and reference direction when retained geometry supports them; otherwise it remains unassigned. Direction is orientation, not postal or jurisdiction evidence.</td></tr>
+      </tbody></table>
+    </div>
     {current?.failed ? <p role="status">Residual context is unavailable or incompatible. The state/ZCTA map remains available.</p> : !view ? <p role="status">Checking residual geography readiness…</p> : !areas ? <p role="status">Verified for all 56 Census state equivalents. Select a state to inspect its uniquely labeled unresolved areas.</p> : <>
       <h4>{view.state?.state_name} unresolved areas</h4>
       <p>{areas.component_count.toLocaleString()} retained polygon components have state-scoped reference labels. Park, tribal, private-property, population and business status remain unresolved.</p>

@@ -25,6 +25,7 @@ config/schemas/national-epa-echo-operational-segment-evidence.schema.json text e
 config/source-policies/national-epa-echo-operational-segment-evidence.json text eol=lf
 data/national-goal-evidence-federation/releases/** -text
 data/national-business-lifecycle-zip-evidence/releases/** -text
+data/national-business-lifecycle-jurisdiction-evidence/releases/** -text
 data/retained-childcare-zip-evidence/releases/** -text
 config/national-goal-evidence-federation.json text eol=lf
 config/source-policies/retained/** text eol=lf
