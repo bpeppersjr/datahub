@@ -5,7 +5,7 @@ import { runnerJson } from "./runner-client";
 
 type Industry = { id: string; label: string };
 type CaReadiness = {
-  schema_version: "ca-childcare-status-readiness-view@1.3.0";
+  schema_version: "ca-childcare-status-readiness-view@1.4.0";
   state: "CA";
   industry: "childcare";
   status: "verified-aggregate-publisher-readiness-migration-hold";
@@ -23,6 +23,7 @@ type CaReadiness = {
     current_operation_verified: false;
   };
   migration: {current_distribution:"ArcGIS GeoService";arcgis_item_id:string;legacy_backend_still_listed:true;existing_app_backend:"legacy-ckan-datastore";arcgis_all_program_rows:number;arcgis_childcare_rows:number;arcgis_childcare_rows_with_zip:number;arcgis_family_child_care_homes_excluded:true;item_aggregate_scope_conflict:true;raw_status_code_meanings_verified:false;automatic_refresh_authorized:false;next_action:string};
+  family_home_source: {catalog_resource_id:string;catalog_link_delivery:"legacy-ckan-resource";backend_last_modified:string;publisher_file_date:"2025-05-25";arcgis_view_includes_family_homes:false;current_provider_row_source_identified:false;interpretation:string};
   source: {manifests:Record<"catalog"|"schema"|"status"|"geography"|"arcgis",{path:string;sha256:string}>};
   claims: {
     provider_rows_acquired: 0;
@@ -561,6 +562,7 @@ function validCaReadiness(input: unknown): input is CaReadiness {
       "publisher_open_status_candidate_rows",
       "temporal",
       "migration",
+      "family_home_source",
       "source",
       "claims",
       "semantics",
@@ -569,7 +571,7 @@ function validCaReadiness(input: unknown): input is CaReadiness {
     return false;
   const value = input as CaReadiness;
   if (
-    value.schema_version !== "ca-childcare-status-readiness-view@1.3.0" ||
+    value.schema_version !== "ca-childcare-status-readiness-view@1.4.0" ||
     value.state !== "CA" ||
     value.industry !== "childcare" ||
     value.status !== "verified-aggregate-publisher-readiness-migration-hold" ||
@@ -602,6 +604,7 @@ function validCaReadiness(input: unknown): input is CaReadiness {
     value.temporal.current_operation_verified !== false ||
     !exact(value.migration,["current_distribution","arcgis_item_id","legacy_backend_still_listed","existing_app_backend","arcgis_all_program_rows","arcgis_childcare_rows","arcgis_childcare_rows_with_zip","arcgis_family_child_care_homes_excluded","item_aggregate_scope_conflict","raw_status_code_meanings_verified","automatic_refresh_authorized","next_action"]) ||
     value.migration.current_distribution!=="ArcGIS GeoService" || value.migration.arcgis_item_id!=="db31b0884a074cff9260facb3f2ade45" || value.migration.legacy_backend_still_listed!==true || value.migration.existing_app_backend!=="legacy-ckan-datastore" || value.migration.arcgis_all_program_rows!==37897 || value.migration.arcgis_childcare_rows!==13265 || value.migration.arcgis_childcare_rows_with_zip!==13245 || value.migration.arcgis_family_child_care_homes_excluded!==true || value.migration.item_aggregate_scope_conflict!==true || value.migration.raw_status_code_meanings_verified!==false || value.migration.automatic_refresh_authorized!==false || !value.migration.next_action ||
+    !exact(value.family_home_source,["catalog_resource_id","catalog_link_delivery","backend_last_modified","publisher_file_date","arcgis_view_includes_family_homes","current_provider_row_source_identified","interpretation"]) || value.family_home_source.catalog_resource_id!=="4b5cc48d-03b1-4f42-a7d1-b9816903eb2b" || value.family_home_source.catalog_link_delivery!=="legacy-ckan-resource" || value.family_home_source.backend_last_modified!=="2025-05-27T23:42:21.908087" || value.family_home_source.publisher_file_date!=="2025-05-25" || value.family_home_source.arcgis_view_includes_family_homes!==false || value.family_home_source.current_provider_row_source_identified!==false || !value.family_home_source.interpretation ||
     !exact(value.source,["manifests"]) || !exact(value.source.manifests,["catalog","schema","status","geography","arcgis"]) || Object.values(value.source.manifests).some(item=>!exact(item,["path","sha256"])||!item.path.startsWith("data/business-sources/ca-childcare/")||!/^[a-f0-9]{64}$/.test(item.sha256)) ||
     !same(value.claims, {
       provider_rows_acquired: 0,
@@ -1396,6 +1399,9 @@ export default function Administration() {
               </p>
               <p className="operations-note">
                 ArcGIS aggregate scope: {caReadiness.migration.arcgis_childcare_rows.toLocaleString()} CHILD CARE rows of {caReadiness.migration.arcgis_all_program_rows.toLocaleString()} all-program rows; {caReadiness.migration.arcgis_childcare_rows_with_zip.toLocaleString()} carry a ZIP value. Family child-care homes are excluded, numeric status meanings are unresolved, and the item description conflicts with the aggregate program roster.
+              </p>
+              <p className="operations-note">
+                Family-home source: the catalog link still resolves to legacy CKAN resource <code>{caReadiness.family_home_source.catalog_resource_id}</code>, last modified {caReadiness.family_home_source.backend_last_modified} with publisher file date {caReadiness.family_home_source.publisher_file_date}. A newer catalog-page timestamp is not treated as newer provider data; no current family-home row source is identified.
               </p>
             </section>
           )}
