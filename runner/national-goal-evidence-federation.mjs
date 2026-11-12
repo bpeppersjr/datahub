@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { APP_ROOT } from './paths.mjs';
 import { echoReplay as r, STATE_DC_CODES } from './national-epa-echo-naics-zip-industry-evidence.mjs';
-import { readExactZipIndustrySummaryV32 } from './exact-zip-industry-summary-v3-2.mjs';
+import { readExactZipIndustrySummaryV33 } from './exact-zip-industry-summary-v3-3.mjs';
 import { projectOperationalIndustryEvidence } from './operational-industry-evidence-summary.mjs';
 import { verifyBusinessEntityGeographyRelationship } from './business-entity-geography-relationship.mjs';
 import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
@@ -36,22 +36,21 @@ async function load(root,configPath,signal) {
     inputs[name]={filename:r.contained(root,pin.path),proof,value};
   }
   const contractHashes={};for(const p of CONTRACTS)contractHashes[p]=(await r.secureBuffer(root,r.contained(root,p),200_000,signal)).sha256;
-  check(inputs.goal.value.schema_version==='national-goal-completion-matrix@1.3.0' && inputs.matrix.value.schema_version==='national-exact-zip-industry-evidence-matrix@3.2.0','required versions');
+  check(inputs.goal.value.schema_version==='national-goal-completion-matrix@1.3.0' && inputs.matrix.value.schema_version==='national-exact-zip-industry-evidence-matrix@3.3.0','required versions');
   check(inputs.disposition.value.bindings.matrix.release_id===inputs.matrix.value.release_id && inputs.disposition.value.bindings.matrix.manifest_sha256===inputs.matrix.proof.sha256,'disposition matrix pin');
-  check(config.inputs.summary_implementation.path==='runner/exact-zip-industry-summary-v3-2.mjs','v3.2 summary implementation path');
-  const summary=await readExactZipIndustrySummaryV32({root,signal});
-  check(summary.schema_version==='national-exact-zip-industry-summary-view@3.2.0' && summary.release_id===inputs.matrix.value.release_id && summary.manifest_sha256===inputs.matrix.proof.sha256 && summary.source_dimensions===51 && summary.zip5_rows===48194 && summary.industry_cells===2457894,'summary binding/conservation');
+  check(config.inputs.summary_implementation.path==='runner/exact-zip-industry-summary-v3-3.mjs','v3.3 summary implementation path');
+  const summary=await readExactZipIndustrySummaryV33({root,signal});
+  check(summary.schema_version==='national-exact-zip-industry-summary-view@3.3.0' && summary.release_id===inputs.matrix.value.release_id && summary.manifest_sha256===inputs.matrix.proof.sha256 && summary.source_dimensions===51 && summary.zip5_rows===48194 && summary.industry_cells===2457894,'summary binding/conservation');
   check(summary.dimensions.length===51 && new Set(summary.dimensions.map(d=>d.id)).size===51,'summary dimensions');
   const temporal=summary.temporal_qualification, matrix=inputs.matrix.value;
-  check(temporal.schema_version==='exact-zip-industry-temporal-summary-projection@3.2.0' &&
+  check(temporal.schema_version==='exact-zip-industry-temporal-summary-projection@3.3.0' &&
     temporal.matrix_release_id===matrix.release_id && temporal.matrix_manifest_sha256===inputs.matrix.proof.sha256 &&
     temporal.source_dimensions===matrix.summary.dimension_count && /^[a-f0-9]{64}$/.test(temporal.projection_sha256) &&
     [temporal.dimension_counts,temporal.semantic_dimension_counts,temporal.retained_assessment_dimension_counts]
-      .every(tally=>Object.values(tally).every(count)&&Object.values(tally).reduce((sum,n)=>sum+n,0)===51),'v3.2 temporal projection binding/conservation');
-  const snapshot=inputs.ny_retail_food_snapshot_manifest, snapshotBinding=matrix.bindings.ny_retail_food_license_snapshot;
-  check(snapshot.proof.sha256===snapshotBinding.manifest_sha256 && snapshot.value.release_id===snapshotBinding.release_id &&
-    snapshot.value.source_release_id===snapshotBinding.source_release_id &&
-    ['ny_retail_food_location_profiles',matrix.bindings.replaced_dimension].every(id=>{
+      .every(tally=>Object.values(tally).every(count)&&Object.values(tally).reduce((sum,n)=>sum+n,0)===51),'v3.3 temporal projection binding/conservation');
+  const snapshot=inputs.ny_retail_food_snapshot_manifest;
+  check(snapshot.proof.sha256===config.inputs.ny_retail_food_snapshot_manifest.sha256 && snapshot.value.release_id===config.inputs.ny_retail_food_snapshot_manifest.release_id &&
+    ['ny_retail_food_location_profiles','ny_retail_food_license_address_evidence_count'].every(id=>{
       const qualification=summary.dimensions.find(row=>row.id===id)?.temporal_qualification;
       return qualification?.source_release_id===snapshot.value.source_release_id &&
         qualification.source_reference_at===snapshot.value.source_rows_updated_at && qualification.assessment_as_of===snapshot.value.retrieved_at;
@@ -201,7 +200,7 @@ export async function verifyNationalGoalEvidenceFederation(manifestPath,options=
   const expectedInventory=sorted(['manifest.json','national-summary.json','state-industry-status.jsonl','gap-ledger.json','territories.json',...Array.from({length:100},(_,i)=>`zip-status/prefix=${String(i).padStart(2,'0')}.jsonl.gz`)]);
   check(r.equal(await inventory(directory),expectedInventory),'closed output inventory');
   const input=await load(root,options.configPath,options.signal);
-  check(r.equal(m.summary?.temporal_assessment,input.summary.temporal_qualification),'v3.2 temporal projection manifest pin');
+  check(r.equal(m.summary?.temporal_assessment,input.summary.temporal_qualification),'v3.3 temporal projection manifest pin');
   const replay=await fs.mkdtemp(path.join(path.dirname(directory),'.verify-'));
   try {
     const result=await derive(input,replay,options.signal),expected=manifestFor(input,result,m.created_at);check(r.equal(m,expected),'independent semantic reconstruction');

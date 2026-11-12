@@ -8,16 +8,16 @@
       "schema_version": "national-goal-completion-matrix@1.3.0"
     },
     "matrix": {
-      "path": "data/national-exact-zip-industry-evidence-matrix-v3-2/releases/national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629/manifest.json",
-      "sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",
-      "release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
-      "schema_version": "national-exact-zip-industry-evidence-matrix@3.2.0"
+      "path": "data/national-exact-zip-industry-evidence-matrix-v3-3/releases/national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13/manifest.json",
+      "sha256": "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad",
+      "release_id": "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13",
+      "schema_version": "national-exact-zip-industry-evidence-matrix@3.3.0"
     },
     "disposition": {
-      "path": "data/state-exact-zip-industry-evidence-disposition-v3-2/releases/state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4/manifest.json",
-      "sha256": "70f5d98ef96a96f9ac591bdff1d1ac1213edd0d3c8f890de8dd5db90048b95a5",
-      "release_id": "state-exact-zip-industry-evidence-disposition-ca1cd19b3392bc7bfe93bea9e896f541f25aa7093a45982b62cb9acd746863e4",
-      "schema_version": "state-exact-zip-industry-evidence-disposition@3.2.0"
+      "path": "data/state-exact-zip-industry-evidence-disposition-v3-3/releases/state-exact-zip-industry-evidence-disposition-60d8b416710c0916606a370b82fc8f0c1ef2134acedab29ec928528343f87617/manifest.json",
+      "sha256": "5e4f158779ffba9ca3bdee140da4fcd657c535b061b7300c53620413d0672920",
+      "release_id": "state-exact-zip-industry-evidence-disposition-60d8b416710c0916606a370b82fc8f0c1ef2134acedab29ec928528343f87617",
+      "schema_version": "state-exact-zip-industry-evidence-disposition@3.3.0"
     },
     "epa": {
       "path": "data/national-epa-echo-operational-segment-evidence/releases/national-epa-echo-operational-segment-evidence-220a9369300ff5f74e3958278ca60519e29b1c49759f27808174923284520461/manifest.json",
@@ -89,11 +89,11 @@
     },
     "operational_crosswalk": {
       "path": "config/exact-zip-operational-industry-crosswalk.json",
-      "sha256": "58f761e870e7a72684dbb38b882f7c2ee794bf235d0da2d8bedeff483225fec4"
+      "sha256": "114b34577108a3c0f07ade860d6771800f6111b2e3ed5d0966726dd970b59666"
     },
     "summary_implementation": {
-      "path": "runner/exact-zip-industry-summary-v3-2.mjs",
-      "sha256": "89a741c805bb716d3f152bb24292fa09d745a8b1c85eaeb8cf4b025314a94657"
+      "path": "runner/exact-zip-industry-summary-v3-3.mjs",
+      "sha256": "bda56d327f4ba8fca1d57420b942df8c33b5ae94c638e02f530213490b99e48b"
     },
     "temporal_mapping": {
       "path": "runner/exact-zip-industry-temporal-mappings-v3-1.mjs",

@@ -7,6 +7,8 @@ import { APP_ROOT } from './paths.mjs';
 import { DATASET, CLAIMS, federationGeographyScope, buildNationalGoalEvidenceFederation, verifyNationalGoalEvidenceFederation } from './national-goal-evidence-federation.mjs';
 
 const configPath=path.join(APP_ROOT,`config/${DATASET}.json`);
+const successorRelease='national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d';
+const successorManifest=path.join(APP_ROOT,`data/${DATASET}/releases/${successorRelease}/manifest.json`);
 const json=async p=>JSON.parse(await fs.readFile(p,'utf8'));
 async function fixture(t) {const root=await fs.mkdtemp(path.join(APP_ROOT,'data/tmp/goal-federation-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));return root;}
 
@@ -42,15 +44,15 @@ test('symlink input ancestry is rejected before evidence processing',async t=>{
   await assert.rejects(buildNationalGoalEvidenceFederation({root,configPath:file}),/symlink ancestry/);
 });
 
-test('retained federation has full independent replay, closed units and correct evidence gaps',async()=>{
-  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),manifest=path.join(APP_ROOT,registration.retained_release.manifest);
-  const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,registration.retained_release.manifest_sha256);
+test('v3.3 federation successor has full independent replay, closed units and correct evidence gaps',async()=>{
+  const manifest=successorManifest;
+  const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,'2d8f783d8a188143c8fa6e368e2497eeef1872fa540821d069f36d16acce0b78');
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
   assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:181,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
   assert.deepEqual(verified.temporal_assessment,summary.temporal_assessment);
   const temporal=summary.temporal_assessment, matrix=(await json(manifest)).inputs.matrix;
-  assert.equal(temporal.schema_version,'exact-zip-industry-temporal-summary-projection@3.2.0');
+  assert.equal(temporal.schema_version,'exact-zip-industry-temporal-summary-projection@3.3.0');
   assert.equal(temporal.matrix_release_id,matrix.release_id);
   assert.equal(temporal.matrix_manifest_sha256,matrix.sha256);
   assert.equal(temporal.source_dimensions,summary.dimension_order.length);
@@ -70,7 +72,7 @@ test('retained federation has full independent replay, closed units and correct 
 
 test('successor corrects temporal aggregate provenance while preserving its immutable predecessor',async()=>{
   const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf/manifest.json');
-  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),current=path.join(APP_ROOT,registration.retained_release.manifest);
+  const current=successorManifest;
   const oldBytes=await fs.readFile(prior),oldManifest=JSON.parse(oldBytes),newManifest=await json(current);
   assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56');
   assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
@@ -79,15 +81,14 @@ test('successor corrects temporal aggregate provenance while preserving its immu
 });
 
 test('current verifier rejects legacy temporal lineage, dimension count and checksum',async t=>{
-  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`));
-  const source=path.dirname(path.join(APP_ROOT,registration.retained_release.manifest)),root=await fixture(t);
-  const dir=path.join(root,registration.retained_release.release_id);await fs.cp(source,dir,{recursive:true});
+  const source=path.dirname(successorManifest),root=await fixture(t);
+  const dir=path.join(root,successorRelease);await fs.cp(source,dir,{recursive:true});
   const file=path.join(dir,'manifest.json'),manifest=await json(file);
   const legacy={release_id:'exact-zip-industry-temporal-qualification-v2-1-runtime-projection',manifest_sha256:'2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4'};
   for(const change of [value=>({...value,...legacy}),value=>({...value,source_dimensions:42}),value=>({...value,projection_sha256:legacy.manifest_sha256})]){
     const changed=structuredClone(manifest);changed.summary.temporal_assessment=change(changed.summary.temporal_assessment);
     await fs.writeFile(file,JSON.stringify(changed));
-    await assert.rejects(verifyNationalGoalEvidenceFederation(file),/v3\.2 temporal projection manifest pin/);
+    await assert.rejects(verifyNationalGoalEvidenceFederation(file),/v3\.3 temporal projection manifest pin/);
   }
 });
 
@@ -104,7 +105,7 @@ test('manifest claim tampering rejects before replay',async t=>{
 });
 
 test('artifact and repinned semantic/count tampering fail independent reconstruction',async t=>{
-  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),source=path.dirname(path.join(APP_ROOT,registration.retained_release.manifest)),root=await fixture(t),dir=path.join(root,registration.retained_release.release_id);await fs.cp(source,dir,{recursive:true});
+  const source=path.dirname(successorManifest),root=await fixture(t),dir=path.join(root,successorRelease);await fs.cp(source,dir,{recursive:true});
   const file=path.join(dir,'national-summary.json'),original=await fs.readFile(file),m=await json(path.join(dir,'manifest.json'));
   const summary=JSON.parse(original);summary.zip5_cohort_rows--;const changed=Buffer.from(JSON.stringify(summary)+'\n');await fs.writeFile(file,changed);
   await assert.rejects(verifyNationalGoalEvidenceFederation(path.join(dir,'manifest.json')),/artifact replay/);
