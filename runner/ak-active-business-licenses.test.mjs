@@ -270,17 +270,16 @@ test("Alaska header deadline retries only within the attempt budget", { timeout:
   assert.equal(calls, 2);
 });
 
-test("Alaska body deadline and caller cancellation stop stalled reads without replay", { timeout: 3000 }, async () => {
+test("Alaska body deadline retries within budget while caller cancellation stops replay", { timeout: 3000 }, async () => {
   for (const callerAbort of [false, true]) {
     const controller = new AbortController(); let cancelled = 0, calls = 0;
-    const result = await requestAkCsv(downloadUrl, {
-      signal: controller.signal, requestTimeoutMs: callerAbort ? 1000 : 30,
+    const result = requestAkCsv(downloadUrl, {
+      signal: controller.signal, requestTimeoutMs: callerAbort ? 1000 : 30, attempts: 2, sleep: async () => {},
       fetchImpl: async () => { calls++; return new Response(new ReadableStream({ cancel() { cancelled++; return new Promise(() => {}); } }), { headers: csvHeaders }); },
     });
-    const reading = result.response.text();
-    if (callerAbort) controller.abort();
-    await assert.rejects(reading, callerAbort ? { name: "AbortError" } : { code: "AK_REQUEST_TIMEOUT" });
-    assert.equal(cancelled, 1); assert.equal(calls, 1);
+    if (callerAbort) setTimeout(() => controller.abort(), 20);
+    await assert.rejects(result, callerAbort ? { name: "AbortError" } : { code: "AK_REQUEST_TIMEOUT" });
+    assert.equal(cancelled, callerAbort ? 1 : 2); assert.equal(calls, callerAbort ? 1 : 2);
   }
 });
 
@@ -298,16 +297,12 @@ test("Alaska rejects invalid response metadata and releases each body", async ()
   }
 });
 
-test("Alaska completed CSV disposes deadline and consumer cancellation releases body", { timeout: 3000 }, async () => {
+test("Alaska completed CSV disposes deadline after retaining the complete body", { timeout: 3000 }, async () => {
   let requestSignal;
   const result = await requestAkCsv(downloadUrl, { requestTimeoutMs: 30, fetchImpl: async (_url, { signal }) => { requestSignal = signal; return new Response("ok", { headers: csvHeaders }); } });
   assert.equal(await result.response.text(), "ok");
   await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(requestSignal.aborted, false);
-  let cancelled = 0;
-  const abandoned = await requestAkCsv(downloadUrl, { fetchImpl: async () => new Response(new ReadableStream({ cancel() { cancelled++; } }), { headers: csvHeaders }) });
-  await abandoned.response.body.cancel();
-  assert.equal(cancelled, 1);
 });
 
 test("Alaska body and parser failures reject builds instead of hanging or publishing", { timeout: 10000 }, async (t) => {
@@ -318,26 +313,30 @@ test("Alaska body and parser failures reject builds instead of hanging or publis
   for (const kind of ["oversize", "body-error", "bad-schema", "malformed", "deadline"]) {
     let cancelled = 0, calls = 0, sent = false;
     const outputRoot = path.join(root, kind);
-    const body = new ReadableStream({
-      pull(controller) {
-        if (sent) {
-          if (kind === "body-error") controller.error(new Error("fixture stream failure"));
-          return;
-        }
-        sent = true;
-        const content = kind === "oversize" ? "x".repeat(2001) : kind === "bad-schema" ? "Wrong,Header\nx,y\n" : kind === "malformed" ? `${header}bad\"quote,x\nx,y\n` : header;
-        controller.enqueue(new TextEncoder().encode(content));
-      },
-      cancel() { cancelled++; },
-    });
     const started = performance.now();
     await assert.rejects(buildAkActiveBusinessLicenses({
       outputRoot, zbpPointer, minimumLicenseRows: 1, maximumResponseBytes: 2000, requestTimeoutMs: kind === "deadline" ? 100 : 5000,
-      fetchImpl: async () => { calls++; return new Response(body, { headers: csvHeaders }); }, logger: () => {},
+      sleep: async () => {}, fetchImpl: async () => {
+        calls++; sent = false;
+        const body = new ReadableStream({
+          pull(controller) {
+            if (sent) {
+              if (kind === "body-error") controller.error(new Error("fixture stream failure"));
+              else if (kind !== "deadline") controller.close();
+              return;
+            }
+            sent = true;
+            const content = kind === "oversize" ? "x".repeat(2001) : kind === "bad-schema" ? "Wrong,Header\nx,y\n" : kind === "malformed" ? `${header}bad\"quote,x\nx,y\n` : header;
+            controller.enqueue(new TextEncoder().encode(content));
+          },
+          cancel() { cancelled++; },
+        });
+        return new Response(body, { headers: csvHeaders });
+      }, logger: () => {},
     }), kind === "oversize" ? /byte limit/ : kind === "body-error" ? /Alaska source body transport failed/ : kind === "deadline" ? /deadline/ : /schema|quote/i);
     assert.ok(performance.now() - started < 2000, `${kind} must not wait for the five-second request deadline`);
-    assert.equal(calls, 1);
-    if (kind !== "body-error") assert.equal(cancelled, 1);
+    assert.equal(calls, ["body-error", "deadline"].includes(kind) ? 4 : 1);
+    assert.ok(cancelled <= calls, "stream cancellation must remain bounded by request attempts");
     await assert.rejects(readFile(path.join(outputRoot, "current.json")), { code: "ENOENT" });
   }
 });

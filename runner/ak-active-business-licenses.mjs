@@ -430,13 +430,31 @@ export async function requestAkCsv(urlValue, {
       if (Number.isFinite(declaredBytes) && declaredBytes > maximumResponseBytes) throw new Error("Alaska source response exceeds the configured byte limit.");
       const dateHeader = response.headers.get("date");
       const observedAt = dateHeader ? isoInstant(dateHeader, "Alaska source Date header") : now().toISOString();
+      const responseHeaders = new Headers(response.headers);
       response = boundedCsvResponse(response, controller.signal, maximumResponseBytes, dispose, deadline);
-      return { response, observedAt, expectedFilename, maximumResponseBytes };
+      try {
+        // A publisher-side connection can terminate cleanly enough for fetch to
+        // return headers while still truncating the CSV body.  Do not expose a
+        // partial stream to the parser: retain the existing byte/deadline
+        // bounds, finish the complete transfer inside this request attempt,
+        // and only then hand an immutable response to downstream validation.
+        // This also lets the governed attempt budget retry a transport failure
+        // without ever combining bytes from separate publisher responses.
+        const bytes = new Uint8Array(await response.arrayBuffer());
+        return { response: new Response(bytes, { status: response.status, statusText: response.statusText, headers: responseHeaders }), observedAt, expectedFilename, maximumResponseBytes };
+      } catch (error) {
+        signal?.throwIfAborted?.();
+        const retryable = error?.code === "AK_REQUEST_TIMEOUT" || error?.message === "Alaska source body transport failed.";
+        if (!retryable || attempt + 1 >= attempts) throw error;
+        await akTransportRace(() => sleep(Math.min(500 * (2 ** attempt), 8_000), { signal }), signal).catch(() => { signal?.throwIfAborted(); throw new Error("Alaska retry wait failed."); });
+        continue;
+      }
     } catch (error) {
       dispose();
       void response.body?.cancel().catch(() => {});
       signal?.throwIfAborted();
       if (error.code === "AK_RETRY_DEFERRED") throw Object.assign(new Error("Alaska publisher requested a retry beyond the one-day wait budget; defer this acquisition."), { code: "AK_RETRY_DEFERRED" });
+      if (error.code === "AK_REQUEST_TIMEOUT" || error.message === "Alaska source body transport failed.") throw error;
       if (/^Alaska source (redirect rejected\.|response is not CSV\.|response filename is not (BusinessLicenseDownload|NaicsDownload)\.csv\.|response exceeds the configured byte limit\.|response body is missing\.|request failed with HTTP \d{3}\.)$/.test(error.message)) throw error;
       throw new Error("Alaska source response or retry wait failed.");
     }
