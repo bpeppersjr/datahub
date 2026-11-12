@@ -31,6 +31,17 @@ async function pinnedJson(root, relative, expectedSha) {
   return JSON.parse(bytes);
 }
 
+async function pinnedPolicyJson(root, relative, expectedSha) {
+  check(/^config\/source-policies\/[a-z0-9._-]+\.json$/.test(relative), `${relative} policy path invalid`);
+  check(/^[a-f0-9]{64}$/.test(expectedSha), `${relative} policy hash invalid`);
+  const absoluteRoot = path.resolve(root), current = path.resolve(absoluteRoot, relative);
+  check(current.startsWith(`${absoluteRoot}${path.sep}`), `${relative} escapes root`);
+  const currentBytes = await readFile(current);
+  if (sha(currentBytes) === expectedSha) return JSON.parse(currentBytes);
+  check(absoluteRoot === path.resolve(APP_ROOT), `${relative} hash drift`);
+  return pinnedJson(root, `config/source-policies/retained/${expectedSha}.json`, expectedSha);
+}
+
 export function reconcileStateBusinessSourceExactZipAdmission({ catalog, broadRegistration, broadManifest, upstreamManifest, matrixRegistration, matrixManifest }) {
   const ready = catalog.states.filter((row) => row.production_ready === true);
   check(sameSet(ready.map((row) => row.state_abbreviation), STATES), "production-ready catalog publisher set drift");
@@ -75,7 +86,7 @@ export async function auditStateBusinessSourceExactZipAdmission({ root = APP_ROO
   const matrixManifest = await pinnedJson(root, matrixRegistration.retained_release.manifest, PINS.matrixManifest);
   for (const source of Object.values(broadManifest.bindings.sources ?? {})) {
     await pinnedJson(root, source.normalized_manifest_path, source.normalized_manifest_sha256);
-    await pinnedJson(root, source.policy_path, source.policy_sha256);
+    await pinnedPolicyJson(root, source.policy_path, source.policy_sha256);
   }
   return reconcileStateBusinessSourceExactZipAdmission({ catalog: catalog ?? await loadStateBusinessSourceAssessmentCatalog(), broadRegistration, broadManifest, upstreamManifest, matrixRegistration, matrixManifest });
 }

@@ -56,6 +56,23 @@ function adoptionStage(work,signal,cleanupMs){
 
 const FINAL = new Set(["SUCCEEDED", "FAILED", "CANCELLED", "UNKNOWN"]);
 const PRIVATE_EVIDENCE = ["cohort-snapshot", "source-prerequisite", "source-acquisition", "source-normalization", "source-refresh", "source-adoption", "source-admission", "usps-city-state-admission", "dc-corporate-registration", "il-business-registry", "ut-business-list", "ok-business-bulk", "ms-business-report", "ky-business-entity"];
+const AK_REFRESH_SOURCE = "ak-active-business-licenses";
+const AK_REFRESH_MILESTONES = [
+  [/^Acquired [0-9,]+ Alaska active business licenses\.$/, "license-download-progress", "license download progress"],
+  [/^Acquired [0-9,]+ Alaska license NAICS rows\.$/, "naics-download-progress", "NAICS download progress"],
+  [/^Acquired Alaska license and NAICS source artifacts\.$/, "source-artifacts-acquired", "source artifacts acquired"],
+  [/^Normalizing Alaska license address evidence\.$/, "normalization-started", "normalization started"],
+  [/^Verifying Alaska staged release\.$/, "staged-verification-started", "staged verification started"],
+  [/^Publishing Alaska verified release\.$/, "publication-started", "publication started"],
+];
+const REFRESH_FAILURE_SUMMARIES = {
+  SOURCE_REFRESH_CHILD_LAUNCH_FAILED: "Source refresh worker did not report an exit. Check the local runner and inspect retained evidence before retrying.",
+  SOURCE_REFRESH_CHILD_FAILED: "Source refresh worker exited unsuccessfully. Check prerequisites, retained staging, and the current pointer before retrying.",
+  SOURCE_REFRESH_CHILD_CANCELLED: "Source refresh was cancelled. Inspect retained staging and the current pointer before retrying.",
+  SOURCE_REFRESH_PUBLICATION_INCOMPLETE: "The Alaska builder reported incomplete publication. Inspect the retained release and current pointer before retrying.",
+  SOURCE_REFRESH_VERIFICATION_FAILED: "Source refresh output could not be independently verified. Inspect the retained release and current pointer before retrying.",
+  SOURCE_REFRESH_RECEIPT_WRITE_FAILED: "Source refresh receipt could not be saved. Inspect retained evidence before retrying.",
+};
 const ME_ASC_PREREQUISITE_RESULT = Object.freeze({ sourceId: "me-asc-preflight", receiptIntegrityVerified: false, inspectionRequired: true, exportPolicy: "internal",
   collectionReady: false, acquisitionReady: false, conservationVerified: false, publicExportAuthorized: false,
   statewideCompletenessVerified: false, currentOperationsVerified: false });
@@ -99,14 +116,64 @@ function invalid(message) { return Object.assign(new Error(message), { statusCod
 function conflict(message) { return Object.assign(new Error(message), { code: "OPERATION_CONFLICT", statusCode: 409 }); }
 function validate(action) { try { return action(); } catch (error) { error.statusCode ??= 400; throw error; } }
 
-export function executeManagedChild({ script, args, signal, onSpawn, cancelGraceMs = EXPORT_CANCEL_GRACE_MS }) {
+function boundedChildLines(stream, maximumBytes) {
+  const bytes = Buffer.alloc(maximumBytes);
+  let length = 0;
+  stream.on("data", (chunk) => {
+    if (length === maximumBytes) return;
+    length += chunk.copy(bytes, length);
+  });
+  // An unterminated line may have been truncated at the byte limit.
+  return () => bytes.toString("utf8", 0, length).split(/\r?\n/).slice(0, -1);
+}
+
+function alaskaRefreshDiagnostic(stdout, stderr) {
+  let lastMilestone = null;
+  for (const line of stdout) {
+    const milestone = AK_REFRESH_MILESTONES.find(([pattern]) => pattern.test(line));
+    if (milestone) lastMilestone = milestone[1];
+  }
+  return {
+    lastMilestone,
+    publicationIncomplete: stderr.includes("Alaska publication did not finalize cleanly; a release or pointer may already exist. Preserve and inspect evidence before another build or resume."),
+    childReportedCancellation: stderr.includes("Alaska build cancelled; inspect retained run evidence before resuming."),
+  };
+}
+
+function reportSourceRefreshFailure(record, failureCode, execution) {
+  const diagnostic = record.details.sourceId === AK_REFRESH_SOURCE ? execution?.refreshDiagnostic : null;
+  const milestone = AK_REFRESH_MILESTONES.find(([, id]) => id === diagnostic?.lastMilestone);
+  const exitCode = execution?.code;
+  record.error = REFRESH_FAILURE_SUMMARIES[failureCode] + (milestone ? ` Last builder milestone: ${milestone[2]}.` : "");
+  record.result = {
+    sourceId: record.details.sourceId,
+    failureCode,
+    ...(Number.isInteger(exitCode) && exitCode > 0 && exitCode <= 255 ? { childExitCode: exitCode } : {}),
+    ...(milestone ? { lastBuilderMilestone: milestone[1] } : {}),
+    receiptIntegrityVerified: false,
+    inspectionRequired: true,
+  };
+}
+
+export function executeManagedChild({ kind, sourceId, script, args, signal, onSpawn, cancelGraceMs = EXPORT_CANCEL_GRACE_MS }) {
   if (![EXPORT_CANCEL_GRACE_MS, COLLECTION_SUPERVISOR_CANCEL_GRACE_MS].includes(cancelGraceMs)) throw new Error("Invalid managed cancellation grace period.");
   return new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [script, ...args], { cwd: APP_ROOT, shell: false, windowsHide: true, stdio: ["ignore", "pipe", "pipe", "ipc"] });
     onSpawn?.(child.pid);
     let output = ""; let force; let forcedTerminationRequested = false;
-    child.stdout.on("data", (chunk) => { if (output.length < 65_536) output += chunk.toString("utf8", 0, 65_536 - output.length); });
-    child.stderr.resume();
+    let stdoutLines, stderrLines;
+    if (kind === "source-refresh") {
+      if (sourceId === AK_REFRESH_SOURCE) {
+        stdoutLines = boundedChildLines(child.stdout, 8_192);
+        stderrLines = boundedChildLines(child.stderr, 4_096);
+      } else {
+        child.stdout.resume();
+        child.stderr.resume();
+      }
+    } else {
+      child.stdout.on("data", (chunk) => { if (output.length < 65_536) output += chunk.toString("utf8", 0, 65_536 - output.length); });
+      child.stderr.resume();
+    }
     const cancel = () => {
       if (force || child.exitCode !== null) return;
       if (child.connected) child.send({ type: "cancel" }, () => {}); else child.kill("SIGTERM");
@@ -114,7 +181,14 @@ export function executeManagedChild({ script, args, signal, onSpawn, cancelGrace
     };
     signal.addEventListener("abort", cancel, { once: true }); if (signal.aborted) cancel();
     child.once("error", reject);
-    child.once("close", (code, childSignal) => { clearTimeout(force); signal.removeEventListener("abort", cancel); resolve({ code: code ?? 1, signal: childSignal, forcedTerminationRequested, stdout: output }); });
+    child.once("close", (code, childSignal) => {
+      clearTimeout(force);
+      signal.removeEventListener("abort", cancel);
+      resolve({
+        code: code ?? 1, signal: childSignal, forcedTerminationRequested, stdout: output,
+        ...(stdoutLines && code !== 0 ? { refreshDiagnostic: alaskaRefreshDiagnostic(stdoutLines(), stderrLines()) } : {}),
+      });
+    });
   });
 }
 
@@ -545,7 +619,10 @@ export class ManagedOperations {
   #persist(record) {
     const snapshot = JSON.parse(JSON.stringify(record));
     // A failed transition must not poison the later terminal-receipt attempt.
-    const pending = (this.writes.get(record.id) ?? Promise.resolve()).catch(() => {}).then(() => this.receiptWriter(path.join(this.root, record.id, "receipt.json"), snapshot));
+    const pending = (this.writes.get(record.id) ?? Promise.resolve()).catch(() => {}).then(() => this.receiptWriter(path.join(this.root, record.id, "receipt.json"), snapshot)).catch((error) => {
+      if (record.kind === "source-refresh") throw new Error(REFRESH_FAILURE_SUMMARIES.SOURCE_REFRESH_RECEIPT_WRITE_FAILED);
+      throw error;
+    });
     this.writes.set(record.id, pending);
     return pending;
   }
@@ -569,12 +646,15 @@ export class ManagedOperations {
     this.reserved = false;
     const adoptionTimer=kind==='source-adoption'?setTimeout(()=>controller.abort(Error('Retained adoption deadline expired.')),this.adoptionTiming.deadlineMs):null;
     controller.done = this.#run(record, controller).catch((error) => {
-      record.status = "FAILED"; record.finishedAt = this.now(); record.error = `Unable to persist operation state: ${cleanError(error)}`;
+      record.status = "FAILED"; record.finishedAt = this.now();
+      if (kind === "source-refresh") reportSourceRefreshFailure(record, "SOURCE_REFRESH_RECEIPT_WRITE_FAILED");
+      else record.error = `Unable to persist operation state: ${cleanError(error)}`;
     }).finally(() => {clearTimeout(adoptionTimer);this.running.delete(id);});
     return publicOperation(record);
   }
   async #run(record, controller) {
     const directory = path.join(this.root, record.id);
+    let refreshExecution;
     try {
       record.status = "RUNNING"; record.startedAt = this.now(); record.owner = { supervisorPid: process.pid }; await this.#persist(record);
       controller.signal.throwIfAborted();
@@ -624,7 +704,7 @@ export class ManagedOperations {
       }
       else { script = "scripts/compose-flat-business-export.mjs"; args = [...record.details.args, "--output", relativeToApp(path.join(directory, "output"))]; if (!args.includes("--output-prefix")) args.push("--output-prefix", record.details.outputPrefix); }
       if (record.scheduling) args.push("--expected-plan-sha256", record.scheduling.expectedPlanHash);
-      const work = this.executor({ kind: record.kind, script, args, signal: controller.signal, cancelGraceMs: ['export','credential-export'].includes(record.kind) ? EXPORT_CANCEL_GRACE_MS : COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, onSpawn: (pid) => { if(record.owner)record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
+      const work = this.executor({ kind: record.kind, ...(record.kind === "source-refresh" ? { sourceId: record.details.sourceId } : {}), script, args, signal: controller.signal, cancelGraceMs: ['export','credential-export'].includes(record.kind) ? EXPORT_CANCEL_GRACE_MS : COLLECTION_SUPERVISOR_CANCEL_GRACE_MS, onSpawn: (pid) => { if(record.owner)record.owner.childPid = pid; void this.#persist(record).catch(() => controller.abort()); } });
       const execution = await (record.kind==='source-adoption'?adoptionStage(work,controller.signal,this.adoptionTiming.childCleanupMs):work);
       if(record.kind==='source-adoption') {
         if(controller.signal.aborted||execution?.code!==0)throw Error('Retained adoption child did not complete.');
@@ -637,6 +717,7 @@ export class ManagedOperations {
         record.artifacts=[];record.status='SUCCEEDED';
       }
       else if(record.kind==='source-refresh'){
+        refreshExecution = execution;
         if(controller.signal.aborted||execution?.code!==0)throw new Error('Governed source refresh did not complete cleanly.');
         const binding=await this.governedSourceValidator(record.details.sourceId);
         if(binding.status!=="AUTHORIZED"||binding.authorization?.authorization_id!==record.details.plan.authorization?.authorizationId)throw new Error('Governed source refresh authorization changed during execution.');
@@ -755,6 +836,15 @@ export class ManagedOperations {
       }
     } catch (error) {
       record.status = error.code==='CMS_ADOPTION_UNSETTLED' ? 'UNKNOWN' : controller.signal.aborted ? "CANCELLED" : "FAILED"; record.error = record.kind==='organization-zip-export' ? "Organization ZIP export did not finish verification; no artifact is downloadable." : PRIVATE_EVIDENCE.includes(record.kind) ? "Managed evidence failed verification; preserve operation outputs for inspection." : cleanError(error);
+      if (record.kind === "source-refresh") {
+        const diagnostic = record.details.sourceId === AK_REFRESH_SOURCE ? refreshExecution?.refreshDiagnostic : null;
+        let code = "SOURCE_REFRESH_CHILD_LAUNCH_FAILED";
+        if (refreshExecution?.code === 0) code = "SOURCE_REFRESH_VERIFICATION_FAILED";
+        else if (refreshExecution) code = "SOURCE_REFRESH_CHILD_FAILED";
+        if (controller.signal.aborted || diagnostic?.childReportedCancellation === true) code = "SOURCE_REFRESH_CHILD_CANCELLED";
+        if (diagnostic?.publicationIncomplete === true) code = "SOURCE_REFRESH_PUBLICATION_INCOMPLETE";
+        reportSourceRefreshFailure(record, code, refreshExecution);
+      }
       if (PRIVATE_EVIDENCE.includes(record.kind)) {
         record.result.inspectionRequired = true;
         if (controller.signal.aborted) record.result.cancellation = { requested: true, forcedTerminationRequested: null, outputState: "inspection-required" };
