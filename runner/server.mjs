@@ -139,6 +139,8 @@ import { readOperationalIndustryCensusStatus } from './operational-industry-cens
 import { operationalIndustryCensusStatusHttp } from './operational-industry-census-status-http.mjs';
 import { readRegistrySourceReconciliationStatus } from './registry-source-reconciliation-status.mjs';
 import { registrySourceReconciliationStatusHttp } from './registry-source-reconciliation-status-http.mjs';
+import { readFlFoodGisPreflightRegistration } from './fl-food-gis-preflight-registration.mjs';
+import { flFoodGisPreflightRegistrationHttp } from './fl-food-gis-preflight-registration-http.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
 const censusZbpIndustryView=createCensusZbpIndustryView();
@@ -836,6 +838,9 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/administration/registry-source-reconciliation-status'){
       await registrySourceReconciliationStatusHttp(request,response,url,readRegistrySourceReconciliationStatus,json);return;
+    }
+    if(url.pathname==='/api/administration/fl-retail-source-readiness'){
+      await flFoodGisPreflightRegistrationHttp(request,response,url,readFlFoodGisPreflightRegistration,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/census-zcta-residual'){
       if([...url.searchParams.keys()].some(key=>!['state','offset','direction'].includes(key))||['state','offset','direction'].some(key=>url.searchParams.getAll(key).length>1)||url.searchParams.has('offset')&&!/^(0|[1-9][0-9]{0,6})$/.test(url.searchParams.get('offset'))){json(response,400,{error:'Unsupported or repeated residual-layer option.'});return;}

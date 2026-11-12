@@ -34,6 +34,10 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(admin, /Unknown — execution status unavailable/);
   assert.match(server, /maintenanceExecutionStatusHttp/);
   assert.match(server, /maintenanceCollections/);
+  assert.match(admin, /Florida retail\/consumer source readiness/);
+  assert.match(admin, /Provider rows: not acquired/);
+  assert.match(admin, /not Florida retail-business coverage/);
+  assert.match(server, /\/api\/administration\/fl-retail-source-readiness/);
   assert.match(admin, /2020–2024 ACS ZCTA demographics/);
   assert.match(admin, /Plan verified · Network authorization pending/);
   assert.match(admin, /Private, unique, or PO-box ZIPs without a Census ZCTA/);
