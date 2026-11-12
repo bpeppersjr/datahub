@@ -9,7 +9,7 @@ const inputs = Object.freeze({
   policy: "config/source-policies/ny-business-registry.json",
   connector: "config/connectors/ny-business-registry.json",
   dataset: "config/datasets/ny-business-registry-active-entities.json",
-  assessment: "config/state-business-source-existing-assessments/ny-2026-09-22.json",
+  assessment: "config/state-business-source-existing-assessments/ny-2026-11-12.json",
 });
 
 const EXPECTED_RELEASE_ID = "ny-business-registry-20260903-005209518Z-d9e3551f";
@@ -45,9 +45,25 @@ export async function getNyBusinessRegistryRefreshReadiness() {
     || dataset.dataset_id !== "ny-business-registry-active-entities"
     || dataset.connector !== inputs.connector
     || dataset.source_policy !== inputs.policy
-    || assessment.assessment_id !== "ny-existing-governed-source-2026-09-22"
+    || assessment.schema_version !== "state-business-source-existing-assessment@1.0.0"
+    || assessment.assessment_id !== "ny-existing-governed-source-2026-11-12"
+    || assessment.observed_at !== "2026-11-12"
     || assessment.state?.abbreviation !== "NY"
-    || assessment.source?.dataset_id !== "n9v6-gdp6") throw new Error("Governed New York refresh inputs do not match the fixed source contract.");
+    || assessment.source?.dataset_id !== "n9v6-gdp6"
+    || assessment.source?.observed_catalog?.metadata_url !== "https://data.ny.gov/api/views/n9v6-gdp6"
+    || assessment.source?.observed_catalog?.metadata_http_status !== 200
+    || assessment.source?.observed_catalog?.metadata_bytes !== 62430
+    || assessment.source?.observed_catalog?.metadata_sha256 !== "142860af6b654b5bee36f5f446715dba5a883daa3714b406e5aac856aada8938"
+    || assessment.source?.observed_catalog?.rows_updated_at !== "2026-11-11T14:20:02.000Z"
+    || assessment.source?.observed_catalog?.publication_stage !== "published"
+    || assessment.source?.observed_catalog?.column_count !== 30
+    || assessment.source?.observed_catalog?.selected_schema_fingerprint !== "c214ce41a736bac829360fa5a29fea4777cd049616bae0f0624cc214506849df"
+    || assessment.source?.observed_aggregate?.query_scope !== "count-only-no-entity-rows"
+    || assessment.source?.observed_aggregate?.http_status !== 200
+    || assessment.source?.observed_aggregate?.response_bytes !== 49
+    || assessment.source?.observed_aggregate?.response_sha256 !== "a9a0a5597566b7cadf4ee2208554cbeeb4f26e0cb92bfc984c8d253988b75ab0"
+    || assessment.source?.observed_aggregate?.records !== 4315387
+    || assessment.source?.observed_aggregate?.distinct_dos_ids !== 4315387) throw new Error("Governed New York refresh inputs do not match the fixed source contract.");
 
   const authorization = assessment.authorization;
   if (!plainObject(authorization)

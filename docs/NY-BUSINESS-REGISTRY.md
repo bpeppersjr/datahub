@@ -51,6 +51,12 @@ Generated releases remain under `data/business-sources/ny-business-registry-acti
 
 ## Refresh readiness in Co*Tive Collector
 
-The Data Operations page provides a deterministic, read-only New York refresh preview. It revalidates the source policy, connector, assessment, actual `current.json` pointer, and retained manifest before producing a six-file hash-bound plan. Previewing creates no operation, allocation, receipt, network request, or pointer change.
+The Data Operations page provides a deterministic New York refresh preview. It revalidates the source policy, connector, assessment, actual `current.json` pointer, and retained manifest before producing a six-file hash-bound plan. Previewing creates no operation, allocation, receipt, network request, or pointer change.
 
-Fresh acquisition, autonomous acquisition, and production-pointer changes remain unauthorized. Start is disabled, and a direct start request returns `ACQUISITION_NOT_AUTHORIZED` before any executor or receipt writer can run. A future monthly snapshot must be compared as registration evidence without interpreting absence or row-count changes as proof of closure or current operation.
+The official dataset metadata, anonymous aggregate transport, and OPEN NY terms were reviewed again on 2026-11-12. The metadata returned HTTP 200 with 62,430 bytes, SHA-256 `142860af6b654b5bee36f5f446715dba5a883daa3714b406e5aac856aada8938`, and reports a published November 11 source update. All 30 catalog columns remain present and the governed 11-field fingerprint is unchanged at `c214ce41a736bac829360fa5a29fea4777cd049616bae0f0624cc214506849df`.
+
+A count-only SODA query returned HTTP 200 with 49 bytes, SHA-256 `a9a0a5597566b7cadf4ee2208554cbeeb4f26e0cb92bfc984c8d253988b75ab0`, reporting 4,315,387 records and the same number of distinct DOS IDs. No entity rows were requested or retained by this review. The 42,315-row increase over the retained release establishes refresh value only; it is not net business creation, operation, closure, ownership, or completeness.
+
+The current OPEN NY terms resource was updated September 30, 2026. It continues to permit lawful reuse without attribution, reposted license terms, share-alike, preapproval, or technical-restriction requirements. Co*Tive nevertheless preserves source attribution, provenance, source timestamps, field exclusions, and semantic limitations.
+
+Authorization `ny-business-registry-production-20261112-01` permits Co*Tive—not Codex—to acquire the selected monthly snapshot, independently verify its immutable release, and change only this source's pointer after verification. The receipt binds the exact builder, verifier, connector, policy, and dataset bytes. Snapshot differences remain registration evidence and cannot be interpreted as proof of closure, current operation, ownership, a physical site, or completeness.

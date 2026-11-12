@@ -249,8 +249,9 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(catalog.collectionSources.some(source => source.id === "or-business-registry"), false);
   for(const sourceId of ["co-business-registry","ct-business-registry","pa-business-registry"]){const source=catalog.governedSourceServices.find(service=>service.sourceId===sourceId);assert.equal(source.readinessStatus,"AUTHORIZED");assert.equal(source.dispatchAvailable,true);assert.equal(typeof source.sourceUseNotice,"string");}
   const newYorkRefresh = catalog.governedSourceServices.find(service => service.sourceId === "ny-business-registry");
-  assert.equal(newYorkRefresh.readinessStatus, "HOLD");
-  assert.equal(newYorkRefresh.dispatchAvailable, false);
+  assert.equal(newYorkRefresh.readinessStatus, "AUTHORIZED");
+  assert.equal(newYorkRefresh.dispatchAvailable, true);
+  assert.equal(typeof newYorkRefresh.sourceUseNotice, "string");
   assert.equal(newYorkRefresh.retainedRelease.organizationsPublished, 4273072);
   assert.equal(catalog.collectionSources.some(source => source.id === "ny-business-registry"), false);
 
@@ -276,9 +277,7 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(nyRefreshPlan.operationCreated, false);
   assert.equal(nyRefreshPlan.networkRequestCount, 0);
   assert.equal(nyRefreshPlan.allocationCount, 0);
-  const nyRefreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "ny-business-registry" } });
-  assert.equal(nyRefreshStartResponse.status, 409);
-  assert.match((await nyRefreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
+  assert.equal(nyRefreshPlan.status, "AUTHORIZED");
   assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
 
   const bad = await request(fixture.base, "/api/data-operations/exports", { method: "POST", body: { format: "xml" } });

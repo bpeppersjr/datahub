@@ -1,0 +1,64 @@
+{
+  "schema_version": "state-business-source-existing-assessment@1.0.0",
+  "assessment_id": "ny-existing-governed-source-2026-11-12",
+  "observed_at": "2026-11-12",
+  "state": { "abbreviation": "NY", "name": "New York" },
+  "decision": "existing-governed-source",
+  "controls": {
+    "official_primary_sources_only": true,
+    "metadata_requests": 1,
+    "aggregate_requests": 1,
+    "record_requests": 0,
+    "records_downloaded": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "source": {
+    "publisher": "New York State Department of State, Division of Corporations",
+    "dataset_id": "n9v6-gdp6",
+    "retained_release_id": "ny-business-registry-20260903-005209518Z-d9e3551f",
+    "observed_catalog": {
+      "metadata_url": "https://data.ny.gov/api/views/n9v6-gdp6",
+      "metadata_http_status": 200,
+      "metadata_bytes": 62430,
+      "metadata_sha256": "142860af6b654b5bee36f5f446715dba5a883daa3714b406e5aac856aada8938",
+      "rows_updated_at": "2026-11-11T14:20:02.000Z",
+      "publication_stage": "published",
+      "column_count": 30,
+      "selected_schema_fingerprint": "c214ce41a736bac829360fa5a29fea4777cd049616bae0f0624cc214506849df"
+    },
+    "observed_aggregate": {
+      "query_scope": "count-only-no-entity-rows",
+      "http_status": 200,
+      "response_bytes": 49,
+      "response_sha256": "a9a0a5597566b7cadf4ee2208554cbeeb4f26e0cb92bfc984c8d253988b75ab0",
+      "records": 4315387,
+      "distinct_dos_ids": 4315387
+    }
+  },
+  "access": {
+    "classification": "anonymous-api",
+    "summary": "Official published monthly OPEN NY metadata and SODA aggregate endpoints were anonymously accessible. No entity rows were requested."
+  },
+  "fields": "The governed 11-field selection remains schema-compatible. DOS process, CEO or chairman, registered-agent, and location-name fields remain excluded before acquisition.",
+  "status_semantics": "Dataset membership is the publisher's active-corporation extract as of its monthly update. It is not proof of current legal status, operation, licensure, solvency, public access, ownership, or an open storefront.",
+  "address_zip": "Reported location addresses can be absent, stale, administrative, residential, virtual, out-of-state, or foreign. ZIP5 and ZIP+4 remain separate; a location is not a verified operating premise.",
+  "temporal": "The retained source snapshot has 4,273,072 rows dated 2026-09-02. The current aggregate has 4,315,387 distinct DOS IDs dated 2026-11-11, a difference of 42,315. The difference establishes refresh value only and is not net creation, operation, closure, ownership, or completeness.",
+  "authorization": {
+    "retained_release_reuse_eligible": true,
+    "fresh_acquisition_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "production_pointer_change_authorized": false,
+    "active_business_claim_authorized": false
+  },
+  "citations": [
+    { "url": "https://data.ny.gov/api/views/n9v6-gdp6", "evidence": "Official metadata, publisher, publication state, source update, column contract, and cached row count." },
+    { "url": "https://data.ny.gov/resource/n9v6-gdp6.json?$select=count(*)%20as%20records,%20count(distinct%20dos_id)%20as%20distinct_ids", "evidence": "Official aggregate-only count and distinct-DOS-ID response; no entity rows." },
+    { "url": "https://data.ny.gov/dataset/OPEN-NY-Terms-Of-Use/77gx-ii52", "evidence": "Official OPEN NY terms resource updated September 30, 2026." }
+  ],
+  "unresolved_gates": [],
+  "strongest_next_action": "Use only the authorization-bound Co*Tive full-snapshot operation. Independently verify schema, identity conservation, content hashes, temporal metadata, and immutable release output before changing this source's pointer."
+}

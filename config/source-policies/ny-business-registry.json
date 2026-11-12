@@ -1,6 +1,6 @@
 {
   "policy_id": "ny-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "New York State Department of State, Division of Corporations",
   "ownership": "Official public active-corporation and other business-entity records published through OPEN-NY",
   "source_home": "https://data.ny.gov/Economic-Development/Active-Corporations-Beginning-1800/n9v6-gdp6",
@@ -27,10 +27,12 @@
     "location_name": "excluded-as-unnecessary-name-line"
   },
   "attribution": "Source: New York State Department of State, Division of Corporations, Active Corporations: Beginning 1800, via OPEN-NY.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "OPEN NY permits lawful reuse without attribution, share-alike, preapproval, or technical-restriction requirements; Co*Tive still preserves source attribution and provenance. Active-extract membership and reported locations remain publisher assertions and do not establish current legal status, operation, licensure, solvency, a verified physical site, ownership, or every business operating in New York.",
   "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule or OPEN-NY notice requires another treatment.",
   "redistribution": "Approved normalized fields may be redistributed under the OPEN-NY Terms of Use with source refresh timestamp, source checksum, provenance, field exclusions, and legal-status/address limitations retained; state marks, logos, and other protected presentation assets are not included.",
   "contains_personal_data": true,
   "personal_data_handling": "The connector never acquires or publishes service-of-process, CEO/chairman, registered-agent, or location-name fields. Entity names and reported location street addresses can incidentally identify an individual or residence, so they retain purpose and non-site limitations.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-31"
+  "reviewed_at": "2026-11-12"
 }

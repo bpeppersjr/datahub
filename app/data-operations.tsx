@@ -255,7 +255,7 @@ export default function DataOperations() {
     <CmsSnfPecosStatusCard status={catalog?.governedSourceServices?.find((source):source is CmsSnfPecosStatus=>source.sourceId==='cms-snf-pecos')}/>
     <IaBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is IaBusinessRegistryRefreshStatus=>source.sourceId==='ia-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
-    <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')}/>
+    <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     {catalog?.governedSourceServices?.filter((source):source is RetainedBusinessRefreshStatus=>['co-business-registry','ct-business-registry','de-business-licenses','fl-business-registry','pa-business-registry'].includes(source.sourceId)).map(status=><RetainedBusinessRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />

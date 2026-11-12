@@ -49,6 +49,22 @@
         "source_access_reviewed": true
       }
     },
+    "ny-business-registry": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "ny-business-registry-production-20261112-01",
+      "source_id": "ny-business-registry",
+      "approved_at": "2026-11-12T12:57:59.701Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "640ee129fd5caef5e1f4d9021e61850b186f6ba235f1dac4354ede2e601e0c44",
+      "permissions": {
+        "fresh_acquisition": true,
+        "autonomous_acquisition": true,
+        "production_pointer_change": true,
+        "terms_reviewed": true,
+        "source_access_reviewed": true
+      }
+    },
     "pa-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "pa-business-registry-production-20261112-01",

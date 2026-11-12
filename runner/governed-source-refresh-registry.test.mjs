@@ -24,7 +24,7 @@ test("ten governed refresh descriptors bind exact builders, verifiers, datasets,
   assert.deepEqual(GOVERNED_SOURCE_REFRESH_SOURCE_IDS,Object.keys(expected));
   for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){
     const binding=await validateGovernedSourceRefreshDescriptor(sourceId),[state,datasetId,verifierExport]=expected[sourceId];
-    const productionAuthorized=["co-business-registry","ct-business-registry","ia-business-registry","or-business-registry","pa-business-registry"].includes(sourceId);
+    const productionAuthorized=["co-business-registry","ct-business-registry","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry"].includes(sourceId);
     assert.deepEqual({state:binding.state,datasetId:binding.datasetId,verifierExport:binding.verifierExport,builder:binding.builder,verifier:binding.verifier,outputRoot:binding.outputRoot,connector:binding.connector,policy:binding.policy,dataset:binding.dataset,status:binding.status,dispatchAvailable:binding.dispatchAvailable},
       {state,datasetId,verifierExport,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,outputRoot:`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,status:productionAuthorized?"AUTHORIZED":"HOLD",dispatchAvailable:productionAuthorized});
     assert.equal(binding.evidence.length,5);assert.ok(binding.evidence.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)&&item.bytes>0));
@@ -72,7 +72,7 @@ test("governed refresh validation rejects escaping and linked paths",async t=>{
 test("unauthorized managed plans remain HOLD and allocate nothing before rejecting",async t=>{
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-managed-"));t.after(()=>rm(root,{recursive:true,force:true}));let executions=0,writes=0;
   const service=new ManagedOperations({root,executor:async()=>{executions++;},receiptWriter:async()=>{writes++;}});t.after(()=>service.close());await service.ready;const before=await readdir(root);
-  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const authorized=["co-business-registry","ct-business-registry","ia-business-registry","or-business-registry","pa-business-registry"].includes(sourceId),plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,authorized?"AUTHORIZED":"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
+  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const authorized=["co-business-registry","ct-business-registry","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry"].includes(sourceId),plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,authorized?"AUTHORIZED":"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
     if(!authorized)await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
   assert.deepEqual(await readdir(root),before);assert.equal(executions,0);assert.equal(writes,0);assert.deepEqual(await service.list(),[]);
 });
