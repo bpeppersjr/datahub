@@ -21,3 +21,13 @@ node --test runner/national-business-lifecycle-jurisdiction-evidence.test.mjs
 ```
 
 The builder performs no network acquisition, writes no runtime pointer, and performs no production enrollment. An existing content-addressed release is accepted only when its bytes are unchanged.
+
+## Protected runtime reads
+
+The read-only runtime verifies the exact registration, manifest and artifact pins before returning data. It rejects symlinks, changed files, extra schema fields, incomplete scope rosters and any national or per-scope conservation drift.
+
+- `GET /api/business-map/lifecycle-jurisdiction-summary` returns the national summary and the ordered 51 state/DC, five territory and four special-scope rosters.
+- `GET /api/business-map/lifecycle-jurisdiction-evidence?state=MN` returns one exact state/DC scope.
+- `GET /api/business-map/lifecycle-jurisdiction-evidence?scope=territory:72` returns one exact governed scope. The four special scope IDs are also accepted.
+
+The state and scope selectors are mutually exclusive. The API never derives a ZIP-to-state assignment, allocates multi-state evidence, or presents membership counts as unique businesses, completeness, or verified current operations.
