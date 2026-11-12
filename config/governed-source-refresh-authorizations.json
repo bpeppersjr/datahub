@@ -51,6 +51,16 @@
       "descriptor_evidence_sha256": "dfa1321ebcbdf600682e8e9f40661a610faa4885c31692bee117aae007fa7ac3",
       "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
     },
+    "irs-eo-bmf": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "irs-eo-bmf-production-20261112-01",
+      "source_id": "irs-eo-bmf",
+      "approved_at": "2026-11-12T14:00:31.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "6a0dd737b5145ea000bdda57cbf1107634f9c049d2e1462f19f327315da5c8b2",
+      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
+    },
     "co-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "co-business-registry-production-20261112-01",

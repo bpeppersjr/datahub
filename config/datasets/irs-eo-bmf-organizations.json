@@ -9,5 +9,16 @@
   "source_policy": "config/source-policies/irs-eo-bmf.json",
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "Organizations present in the current cumulative IRS EO BMF extract with a supported U.S. state or territory and a valid reported filing address; not every nonprofit, business, or physical operating location.",
+  "current_verified_release": {
+    "release_id": "irs-eo-bmf-20260903-003447217Z-565da6cd",
+    "source_release_id": "irs-eo-bmf-2026-08-11-d272cdb9c6c4afef",
+    "source_posting_date": "2026-08-11",
+    "source_records": 1957340,
+    "accepted_current_exempt_organizations": 1955841,
+    "excluded_outside_supported_us_scope": 1498,
+    "quarantined_records": 1,
+    "source_zip_codes": 36950,
+    "complete_all_tax_exempt_organizations": false
+  },
   "documentation": "docs/IRS-EO-BMF.md"
 }

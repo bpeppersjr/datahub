@@ -145,6 +145,9 @@ test("discovers the posting date, claimed count, and four exact regional files",
   assert.equal(result.recordCount, 1_957_340);
   assert.deepEqual(result.regions.map((region) => region.name), ["eo1.csv", "eo2.csv", "eo3.csv", "eo4.csv"]);
   assert.throws(() => discoverIrsEoBmf(discoveryHtml(1).replace("eo4.csv", "eo5.csv")), /four required regional CSVs/);
+  const numeric = discoveryHtml(1_975_975).replace("Aug. 11, 2026", "10/13/2026");
+  assert.deepEqual({ sourcePostingDate: discoverIrsEoBmf(numeric).sourcePostingDate, recordCount: discoverIrsEoBmf(numeric).recordCount }, { sourcePostingDate: "2026-10-13", recordCount: 1_975_975 });
+  assert.throws(() => discoverIrsEoBmf(numeric.replace("10/13/2026", "02/30/2026")), /posting date/);
 });
 
 test("normalizes an IRS exempt organization without inferring a physical site or exporting personal and financial fields", () => {

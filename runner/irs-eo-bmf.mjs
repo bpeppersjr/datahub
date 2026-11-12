@@ -219,7 +219,15 @@ function decodeHtmlText(html) {
 }
 
 function postingDate(value) {
-  const match = String(value).match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2}),\s+(\d{4})$/i);
+  const text = String(value).trim();
+  const numeric = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (numeric) {
+    const month = Number(numeric[1]), day = Number(numeric[2]), year = Number(numeric[3]);
+    const instant = new Date(Date.UTC(year, month - 1, day));
+    if (month < 1 || month > 12 || day < 1 || day > 31 || instant.getUTCFullYear() !== year || instant.getUTCMonth() !== month - 1 || instant.getUTCDate() !== day) return null;
+    return `${numeric[3]}-${numeric[1].padStart(2, "0")}-${numeric[2].padStart(2, "0")}`;
+  }
+  const match = text.match(/^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\.?\s+(\d{1,2}),\s+(\d{4})$/i);
   if (!match) return null;
   const months = new Map([
     ["jan", "01"], ["feb", "02"], ["mar", "03"], ["apr", "04"], ["may", "05"], ["jun", "06"],
@@ -241,7 +249,7 @@ function assertAllowedUrl(urlValue, type) {
 
 export function discoverIrsEoBmf(html, pageUrl = IRS_EO_BMF_PAGE_URL) {
   const plain = decodeHtmlText(html);
-  const dateMatch = plain.match(/Updated data posting date:\s*([A-Z][a-z]{2}\.? ?\s*\d{1,2},\s*\d{4})/i);
+  const dateMatch = plain.match(/Updated data posting date:\s*((?:[A-Z][a-z]{2}\.?\s*\d{1,2},\s*\d{4})|(?:\d{1,2}\/\d{1,2}\/\d{4}))/i);
   const sourcePostingDate = dateMatch ? postingDate(dateMatch[1].replace(/\s+/g, " ").trim()) : null;
   if (!sourcePostingDate) throw new Error("IRS EO BMF source posting date was not discovered.");
   const countMatch = plain.match(/Record count:\s*([\d,]+)/i);
