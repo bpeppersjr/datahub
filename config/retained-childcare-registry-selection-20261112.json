@@ -1,0 +1,12 @@
+{
+  "schema_version": "retained-childcare-registry-input@1.0.0",
+  "enrollments": {
+    "PA": "2ea81dacdaceee7413ba5deff8f704f30dcbd4eabc812f2726344c54051d61e1",
+    "CT": "5c1f956279f44bddf66a881eb45ec1797151c3c35ec2006be91e9596bd0bef3a",
+    "MD": "29686de7c7fcaff50baab5557be9fef9e376b2cf9a660b213b14bff6cba23307",
+    "VT": "a7d8f0b26d97c2305d3fe9611ad295069a14d5350b0824a842ac22b2908ecb3f",
+    "CO": "e75bd884320f9d70aef804868abcd9cfeea050f5a62a5f1bb3b593cc6f0cd597",
+    "UT": "2ee6eee689c603a2a016fa26e25948400dfb2feb6e4d120a3540b3c13e68d785",
+    "IA": "0786c71df45fb9e38310358cf167d69af77f6325d79b83b5b7acc2d40607cdce"
+  }
+}

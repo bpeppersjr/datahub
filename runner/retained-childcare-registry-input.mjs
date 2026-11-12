@@ -71,10 +71,12 @@ export async function loadRetainedChildcareRegistryInput(selectionPath,{signal}=
   const records=[],bindings=[],configurationPins=[];
   for(let index=0;index<RETAINED_CHILDCARE_STATES.length;index++){
     signal?.throwIfAborted();const state=RETAINED_CHILDCARE_STATES[index];
-    const enrollment=await loaders[index]({signal});
+    const enrollmentName=`${state.toLowerCase()}-childcare-reporting-enrollment.json`,candidates=[path.join(APP_ROOT,'config','current',enrollmentName),path.join(APP_ROOT,'config',enrollmentName)];
+    let configPath=null,config=null,cm=null;
+    for(const candidate of candidates){const meter={};try{const value=await readJson(candidate,10000,signal,meter);if(meter.sha256===selection.enrollments[state]){check(configPath===null);configPath=candidate;config=value;cm=meter;}}catch(error){if(error.code!=='ENOENT')throw error;}}
+    check(configPath&&config&&cm);
+    const enrollment=await loaders[index]({signal,...(['PA','VT'].includes(state)?{enrollmentPath:configPath}:{})});
     check(enrollment.status==='available'&&enrollment.enrollmentSha256===selection.enrollments[state]);
-    const configPath=path.join(APP_ROOT,`config/${state.toLowerCase()}-childcare-reporting-enrollment.json`),cm={};
-    const config=await readJson(configPath,10000,signal,cm);check(cm.sha256===selection.enrollments[state]);
     const receiptPath=path.resolve(APP_ROOT,config.app_receipt_path),rm={};
     const receipt=await readJson(receiptPath,100000,signal,rm);check(rm.sha256===config.app_receipt_sha256&&rm.sha256===enrollment.summary.provenance.app_receipt_sha256);
     const manifestPath=receipt.normalized.manifest_path,mm={};

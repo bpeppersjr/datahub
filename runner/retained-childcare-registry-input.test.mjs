@@ -45,17 +45,17 @@ test('unextended historical registry refuses a candidate artifact or candidate c
 });
 test('native retained cohorts replay and every internal registry candidate reconciles without national publication',
   {skip:process.env.DATAHUB_TEST_RETAINED_COHORTS!=='1',timeout:600000},async()=>{
-    const input=await loadRetainedChildcareRegistryInput(path.join(APP_ROOT,'config/retained-childcare-registry-selection.json'));
-    assert.equal(input.records.length,12206);assert.equal(input.summary.with_zip4,1213);
-    assert.equal(input.summary.by_reported_state.find(row=>row.state===null).candidate_rows,1979);
+    const input=await loadRetainedChildcareRegistryInput(path.join(APP_ROOT,'config/retained-childcare-registry-selection-20261112.json'));
+    assert.equal(input.records.length,12234);assert.equal(input.summary.with_zip4,1213);
+    assert.equal(input.summary.by_reported_state.find(row=>row.state===null).candidate_rows,1983);
     const base=path.join(APP_ROOT,'data/tmp');await mkdir(base,{recursive:true});const directory=await mkdtemp(path.join(base,'retained-registry-test-'));
     try{
       const relative='reporting/retained-childcare/candidates.jsonl',file=path.join(directory,relative);await mkdir(path.dirname(file),{recursive:true});
       const bytes=Buffer.from(input.records.map(row=>JSON.stringify(row)+'\n').join(''));await writeFile(file,bytes,{flag:'wx'});
-      const manifest={dataset_id:'national-business-registry',release_id:'test-retained-registry',retained_childcare_reporting:retainedChildcareRegistryDeclaration(input),coverage:{source_records:10,source_records_including_retained_childcare:12216,retained_childcare_candidate_rows:12206},
+      const manifest={dataset_id:'national-business-registry',release_id:'test-retained-registry',retained_childcare_reporting:retainedChildcareRegistryDeclaration(input),coverage:{source_records:10,source_records_including_retained_childcare:10+input.records.length,retained_childcare_candidate_rows:input.records.length},
         dependencies:input.bindings.map(b=>({dataset_id:b.dataset_id,release_id:b.release_id,manifest_sha256:b.manifest_sha256})),
-        artifacts:[{artifact_type:RETAINED_CHILDCARE_CANDIDATE_TYPE,path:relative,record_count:12206,export_policy:'internal',bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}]};
-      const verified=await verifyRetainedChildcareRegistryExtension(manifest,directory);assert.equal(verified.records.length,12206);
+        artifacts:[{artifact_type:RETAINED_CHILDCARE_CANDIDATE_TYPE,path:relative,record_count:input.records.length,export_policy:'internal',bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')}]};
+      const verified=await verifyRetainedChildcareRegistryExtension(manifest,directory);assert.equal(verified.records.length,input.records.length);
       const registryFile=path.join(directory,'manifest.json'),registryBytes=Buffer.from(JSON.stringify(manifest));await writeFile(registryFile,registryBytes,{flag:'wx'});
       const views={national:[{scope:'registry-union'},{scope:'50-states-and-dc'}],states:['PA','CT','MD','VT','CO','UT','IA'].map(postal_abbreviation=>({postal_abbreviation})),zips:[{zip_code:'50001'}],counties:[{}]};
       const declaration=applyRetainedChildcareCoverage(input,views),coverageArtifacts=[];await mkdir(path.join(directory,'views'));
