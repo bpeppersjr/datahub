@@ -15,3 +15,13 @@ node --test runner/national-business-lifecycle-industry-jurisdiction-evidence.te
 ```
 
 These commands are local-only and perform no network request, acquisition, payment, account action, terms acceptance, pointer write or production enrollment.
+
+## Protected runtime API
+
+The read-only runtime hard-pins the registration, immutable manifest, artifact and operational-industry crosswalk. It rejects links, unstable files, schema additions, changed claims, incomplete scope or industry rosters, and any ZIP, membership, mapped/unmapped, lifecycle, review or source conservation drift.
+
+- `GET /api/business-map/lifecycle-industry-jurisdiction-summary` returns the national summary and ordered governed scope roster.
+- `GET /api/business-map/lifecycle-industry-jurisdiction?state=MN` returns one exact state/DC row.
+- `GET /api/business-map/lifecycle-industry-jurisdiction?scope=territory:72` returns one exact governed scope, including any of the four special scopes.
+
+The selectors are mutually exclusive. State lookup does not include territories. Runtime counts remain source-relative memberships and must not be treated as unique businesses, additive industry totals, completeness, verified current operations, inferred ZIP-to-state assignment or allocated multi-state evidence.

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { runnerJson } from "./runner-client";
+import LifecycleIndustryJurisdictionPanel from "./lifecycle-industry-jurisdiction-panel";
 
 type Industry = { id: string; label: string };
 type CaReadiness = {
@@ -1356,6 +1357,7 @@ export default function Administration() {
           <small>Assessed {evidence.assessed_at.slice(0, 10)} · Retained state-access report SHA-256 {evidence.report_sha256}. Census reference year 2023 remains the latest publisher release as reviewed {censusStatus?.source.publisher_assessment_observed_at??"unknown"}; Census reports no planned 2024 release date. These are annual employer-establishment aggregates, not named or currently operating businesses, and do not resolve entity-source gaps. For state and source counts, see Industry Summary.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
       </section>
+      <LifecycleIndustryJurisdictionPanel maintainedIndustries={view?.maintainedIndustries ?? []} maintenanceAvailable={!!view} />
       <section className="maintenance-backlog" aria-label="National registry source reconciliation">
         <h3>National registry source reconciliation</h3>
         {registryReconciliation?<><p><strong>{registryReconciliation.status_counts["runtime-pointer-aligned"]} registered source pointers aligned</strong> with national registry release <code>{registryReconciliation.registry.release_id}</code>.</p><p>{registryReconciliation.status_counts["registry-bound-pointer-free-registration"]} embedded dependencies have exact pointer-free registry bindings · {registryReconciliation.status_counts["runtime-pointer-drift"]} pointer drift · {registryReconciliation.status_counts["runtime-pointer-missing"]} missing pointers · {registryReconciliation.status_counts["registry-bound-no-matching-runtime-registration"]} unregistered dependencies.</p><p className="operations-note">Pointer-free bindings preserve exact release and source-evidence hashes without inventing a mutable current pointer or granting refresh authority. Alignment does not prove current operation, complete sources, or business completeness.</p></>:<p role="status">Registry reconciliation is unavailable; no alignment is inferred.</p>}

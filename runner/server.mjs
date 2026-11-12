@@ -51,6 +51,8 @@ import { readNationalBusinessLifecycleZipEvidence, readNationalBusinessLifecycle
 import { nationalBusinessLifecycleZipEvidenceHttp, nationalBusinessLifecycleZipSummaryHttp } from './national-business-lifecycle-zip-evidence-http.mjs';
 import { readNationalBusinessLifecycleJurisdictionEvidence, readNationalBusinessLifecycleJurisdictionSummary } from './national-business-lifecycle-jurisdiction-evidence-reader.mjs';
 import { nationalBusinessLifecycleJurisdictionEvidenceHttp, nationalBusinessLifecycleJurisdictionSummaryHttp } from './national-business-lifecycle-jurisdiction-evidence-http.mjs';
+import { readNationalBusinessLifecycleIndustryJurisdiction, readNationalBusinessLifecycleIndustryJurisdictionSummary } from './national-business-lifecycle-industry-jurisdiction-evidence-reader.mjs';
+import { nationalBusinessLifecycleIndustryJurisdictionHttp, nationalBusinessLifecycleIndustryJurisdictionSummaryHttp } from './national-business-lifecycle-industry-jurisdiction-evidence-http.mjs';
 import { readExactZipIndustrySummaryV32 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-2.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
@@ -917,6 +919,12 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/lifecycle-jurisdiction-evidence'){
       await nationalBusinessLifecycleJurisdictionEvidenceHttp(request,response,url,readNationalBusinessLifecycleJurisdictionEvidence,json);return;
+    }
+    if(url.pathname==='/api/business-map/lifecycle-industry-jurisdiction-summary'){
+      await nationalBusinessLifecycleIndustryJurisdictionSummaryHttp(request,response,url,readNationalBusinessLifecycleIndustryJurisdictionSummary,json);return;
+    }
+    if(url.pathname==='/api/business-map/lifecycle-industry-jurisdiction'){
+      await nationalBusinessLifecycleIndustryJurisdictionHttp(request,response,url,readNationalBusinessLifecycleIndustryJurisdiction,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/exact-zip-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'Exact-ZIP industry summary does not accept options.'});return;}
