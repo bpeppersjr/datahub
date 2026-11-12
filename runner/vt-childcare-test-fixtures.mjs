@@ -26,20 +26,21 @@ export function createVtChildcareFixture({count=2,mutate=()=>{}}={}){
  const calls=[],persisted=[];let selectedSeen=false;
  const fetchImpl=async(url,settings)=>{
   let kind,pageNumber=null,payload;
-  if(settings.method==='GET'){
-   kind=Object.keys(VT_CHILDCARE_URLS).find(k=>VT_CHILDCARE_URLS[k]===url);if(!kind)throw Error('Unexpected synthetic URL');
+  const preflightKind=Object.keys(VT_CHILDCARE_URLS).find(k=>VT_CHILDCARE_URLS[k]===url);
+  if(preflightKind){
+   kind=preflightKind;if(settings.method!=='GET')throw Error('Unexpected synthetic method');
    payload=kind==='metadata'?{id:'ctdw-tmfz',name:'Vermont Child Care Provider Data',description:catalogDescription,attribution:'Department for Children and Families (DCF), Child Development Division',owner:{...owner},licenseId:'OPEN_DATABASE_LICENSE',license:{...license},rowsUpdatedAt:1786726136,viewLastModified:1786726133,publicationDate:1786648521,columns:[...VT_CHILDCARE_FIELDS.map(fieldName=>({fieldName,dataTypeName:VT_CHILDCARE_FIELD_TYPES[fieldName],description:descriptions[fieldName],cachedContents:{sample:'PRIVATE_CACHE'}})),{fieldName:'latitude',dataTypeName:'number',description:jitter('Latitudinal')},{fieldName:'longitude',dataTypeName:'number',description:jitter('Longitudinal')}]}:
    kind==='groups'?[
     ...(count>1?[{file_name:file,provider_program_type:'CBCCPP',license_type:'Licensed Provider',source_rows:String(count-1)}]:[]),
     {file_name:file,provider_program_type:'CBCCPP - Non-Recurring',license_type:'Licensed Provider',source_rows:'1'}
    ]:[{source_rows:String(count),distinct_licenses:String(count),reporting_files:'1',license_start_count:String(count),license_end_count:String(count)}];
   }else{
-   const body=JSON.parse(settings.body);pageNumber=body.page.pageNumber;kind=body.query.startsWith('SELECT file_name,license_id WHERE')?(selectedSeen?'final-ids':'baseline-ids'):'page';
+   const parsed=new URL(url),offset=Number(parsed.searchParams.get('$offset'));pageNumber=offset/500+1;kind=parsed.searchParams.get('$select')==='file_name,license_id'?(selectedSeen?'final-ids':'baseline-ids'):'page';
    if(kind==='page')selectedSeen=true;
-   const expected=vtChildcareRequest(kind,pageNumber);if(url!==expected.url||JSON.stringify(body)!==JSON.stringify(expected.request.body)||settings.method!=='POST')throw Error('Unexpected synthetic request');
+   const expected=vtChildcareRequest(kind,pageNumber);if(url!==expected.url||settings.method!=='GET')throw Error('Unexpected synthetic request');
    payload=structuredClone(selected.slice((pageNumber-1)*500,pageNumber*500));if(kind!=='page')payload=payload.map(({file_name,license_id})=>({file_name,license_id}));
   }
-  calls.push({kind,pageNumber,method:settings.method,url,request:settings.body?JSON.parse(settings.body):null});
+  calls.push({kind,pageNumber,method:settings.method,url,request:null});
   const response=await mutate(payload,kind,{pageNumber,calls,persisted,selected});
   return response instanceof Response?response:Response.json(payload);
  };

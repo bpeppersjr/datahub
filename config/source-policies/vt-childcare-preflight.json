@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "publisher": "Vermont Department for Children and Families (DCF), Child Development Division",
   "ownership": "Vermont Child Care Provider Data ctdw-tmfz; Child Development Division Data Unit.",
-  "source_dataset": "https://data.vermont.gov/api/v3/views/ctdw-tmfz/query.json",
+  "source_dataset": "https://data.vermont.gov/resource/ctdw-tmfz.json",
   "terms_url": "http://opendatacommons.org/licenses/odbl/1.0/",
   "catalog_license": "OPEN_DATABASE_LICENSE",
   "source_access": "Anonymous fixed metadata and aggregate queries only.",

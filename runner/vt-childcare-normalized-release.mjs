@@ -10,7 +10,7 @@ import { normalizeVtChildcareAcquisition } from './vt-childcare-normalization.mj
 export const VT_CHILDCARE_NORMALIZED_RELEASE_VERSION='vt-childcare-normalized-release@1.0.0';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const LIMITS={'normalized.jsonl':200_000_000,'quarantine.jsonl':30_000_000,'summary.json':1_000_000};
-const PINS={connector_sha256:'0dc5abfd7adc46e1cc872ce1bbfed05b019b986699efb7b1367e48f6192bad8c',policy_sha256:'7c4ec65ca5b61260cf0cb52e30c2755aefcf8523db0ca3217b21bd464f7271ff'};
+const PINS={connector_sha256:'0dc5abfd7adc46e1cc872ce1bbfed05b019b986699efb7b1367e48f6192bad8c',policy_sha256:'9b654a3d764378529c9ac9bdc5dd50be7e35845ae96c6b99337d1343efb2fab3'};
 const encode=value=>Buffer.from(JSON.stringify(value)+'\n');
 const hash=value=>createHash('sha256').update(value).digest('hex');
 const check=value=>{if(!value)throw Error('Vermont normalized release rejected.');};

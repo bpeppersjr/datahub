@@ -3,6 +3,7 @@ import {createHash} from 'node:crypto';
 import test from 'node:test';
 import policy from '../config/source-policies/vt-childcare-centers-internal.json' with {type:'json'};
 import {acquireVtChildcareWithTransport,acquireVtChildcareNative,replayVtChildcareAcquisition,vtChildcareRequest} from './vt-childcare-acquisition.mjs';
+import {VT_CHILDCARE_URLS} from './vt-childcare-preflight.mjs';
 import {createVtChildcareFixture} from './vt-childcare-test-fixtures.mjs';
 const hash=v=>createHash('sha256').update(JSON.stringify(v)).digest('hex');
 let good;
@@ -21,8 +22,8 @@ test('VT full synthetic acquisition journals three traversals including terminal
 test('VT replay rejects rehashed request, terminal, member and semantic drift',async()=>{
  assert.ok(good);
  const mutations=[
- e=>{e.observations[0].request.method='GET';},e=>{e.observations[0].request.body.includeSystem=true;},e=>{e.observations[0].request.body.includeSynthetic=true;},e=>{e.observations[1].request.body.page.pageNumber=1;},
- e=>{e.observations[3].request.body.query+=' LIMIT 1';},e=>{e.observations[1].payload[0].license_id=e.observations[0].payload[0].license_id;},e=>{e.observations[7].payload[0].license_id=e.observations[6].payload[0].license_id;},
+ e=>{e.observations[0].request.method='POST';},e=>{e.observations[0].request.extra=true;},e=>{e.observations[1].url=e.observations[0].url;},
+ e=>{const u=new URL(e.observations[3].url);u.searchParams.set('$limit','1');e.observations[3].url=String(u);},e=>{e.observations[1].payload[0].license_id=e.observations[0].payload[0].license_id;},e=>{e.observations[7].payload[0].license_id=e.observations[6].payload[0].license_id;},
  ...[2,5,8].map(index=>e=>{e.observations[index].payload=[{...e.observations[index-1].payload[0]}];}),
  e=>{e.observations[3].payload[0][':id']='PRIVATE';},e=>{e.observations[3].payload[0].provider_name={private:'PRIVATE'};},e=>{e.observations[3].payload[0].file_name='other';},
  e=>{e.observations[3].payload[0].provider_program_type='CBCCPP - Non-Recurring';},e=>{e.observations[3].payload[0].current_license_start_date=null;},
@@ -49,13 +50,13 @@ test('VT cancellation drains trusted prerequisite before any roster request',asy
  const pending=acquireVtChildcareWithTransport({...f.options,signal:controller.signal,retainPrerequisite:async()=>{entered();await held;}}).finally(()=>{finished=true;});
  await ready;controller.abort();await new Promise(resolve=>setImmediate(resolve));assert.equal(finished,false);assert.equal(f.calls.length,6);release();await assert.rejects(pending,{name:'AbortError'});assert.equal(f.calls.length,6);
 });
-test('VT POST cancellation drains headers/body and observation sinks; 403 and duplicate roster never journal',async()=>{
+test('VT selected GET cancellation drains headers/body and observation sinks; 403 and duplicate roster never journal',async()=>{
  await Promise.all(['headers','body','sink','403','duplicate'].map(async mode=>{
-  const controller=new AbortController(),f=createVtChildcareFixture();let late,cancelled=0,entered,release,finished=false,postCalls=0;
+  const controller=new AbortController(),f=createVtChildcareFixture();let late,cancelled=0,entered,release,finished=false,selectedCalls=0;
   const ready=new Promise(resolve=>{entered=resolve;}),held=new Promise(resolve=>{release=resolve;});
   const fetchImpl=async(url,settings)=>{
-   if(settings.method!=='POST')return f.fetchImpl(url,settings);
-   postCalls++;
+   if(Object.values(VT_CHILDCARE_URLS).includes(url))return f.fetchImpl(url,settings);
+   selectedCalls++;
    if(mode==='headers')return new Promise(resolve=>{late=resolve;controller.abort();});
    if(mode==='body')return new Response(new ReadableStream({start(c){c.enqueue(new TextEncoder().encode('['));setImmediate(()=>controller.abort());},cancel(){cancelled++;}}),{headers:{'content-type':'application/json'}});
    if(mode==='403')return new Response('PRIVATE',{status:403});
@@ -71,7 +72,7 @@ test('VT POST cancellation drains headers/body and observation sinks; 403 and du
   if(mode==='headers'||mode==='body')assert.equal(cancelled,1);
   assert.equal(f.persisted.filter(p=>p.kind!=='prerequisite').length,0);
   assert.ok(f.calls.length<=7);
-  assert.equal(postCalls,1);
+  assert.equal(selectedCalls,1);
  }));
 });
 test('VT offline replay checks imported policy drift',async()=>{

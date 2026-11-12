@@ -9,7 +9,7 @@ import {buildVtChildcareAcquiredRelease,buildVtChildcareAcquiredReleaseWithTrans
 import {buildVtChildcareNormalizedRelease,readVtChildcareNormalizedRelease} from './vt-childcare-normalized-release.mjs';
 
 export const VT_CHILDCARE_APP_VERSION='vt-childcare-app@1.0.0';
-export const VT_CHILDCARE_APP_CONTRACT_SHA256='a8b16710b99c1d0ea0b3f6ae6ad88a2be645f86fad4ca5936fc620d6de33a52e';
+export const VT_CHILDCARE_APP_CONTRACT_SHA256='a37ff9f6cc6da6746c685ad8000c0a90e87060f8d50af15fc845c5f1169b556f';
 const NORMALIZATION='0dc5abfd7adc46e1cc872ce1bbfed05b019b986699efb7b1367e48f6192bad8c';
 const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const hash=v=>createHash('sha256').update(v).digest('hex');

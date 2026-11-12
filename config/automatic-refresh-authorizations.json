@@ -6,7 +6,7 @@
     "state-ut-childcare-centers-retained": { "script": "scripts/build-ut-childcare-app.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-ca-childcare": { "script": "scripts/build-ca-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-co-childcare-centers": { "script": "scripts/build-co-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "co-childcare" },
-    "state-vt-childcare-centers": { "script": "scripts/build-vt-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-vt-childcare-centers": { "script": "scripts/build-vt-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "vt-childcare" },
     "state-md-childcare-centers": { "script": "scripts/build-md-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "md-childcare" },
     "state-ct-childcare-centers": { "script": "scripts/build-ct-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "ct-childcare" },
     "state-pa-childcare-centers": { "script": "scripts/build-pa-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "pa-childcare" },

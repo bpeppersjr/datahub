@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "publisher": "Vermont Department for Children and Families (DCF), Child Development Division",
   "ownership": "Vermont Child Care Provider Data ctdw-tmfz; Child Development Division Data Unit. Licensed Provider rows of CBCCPP or CBCCPP - Non-Recurring only.",
-  "source_dataset": "https://data.vermont.gov/api/v3/views/ctdw-tmfz/query.json",
+  "source_dataset": "https://data.vermont.gov/resource/ctdw-tmfz.json",
   "terms_url": "http://opendatacommons.org/licenses/odbl/1.0/",
   "catalog_license": "OPEN_DATABASE_LICENSE",
   "allowed_use": ["bounded anonymous selected center-cohort acquisition", "internal immutable retention, offline verification and subsequent normalization with provenance and quality gaps"],

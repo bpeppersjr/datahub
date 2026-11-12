@@ -28,13 +28,13 @@ const jitter=axis=>axis+' coordinates are generated based on the address fields 
 const catalogDescription='Vermont Child Care Provider Data including location, capacity, mailing list data and contact information, updated monthly. Data reflects the number of programs in business on the final day of the last complete month prior to the most recent update.';
 const license={name:'Open Database License',termsLink:'http://opendatacommons.org/licenses/odbl/1.0/'};
 const owner={id:'ihpx-mmkb',displayName:'Child Development Division Data Unit'};
-function queryUrl(query,pageSize){const url=new URL('https://data.vermont.gov/api/v3/views/ctdw-tmfz/query.json');url.searchParams.set('query',query);url.searchParams.set('pageNumber','1');url.searchParams.set('pageSize',String(pageSize));return String(url);}
+function queryUrl(select,limit,{group,where}={}){const url=new URL('https://data.vermont.gov/resource/ctdw-tmfz.json');url.searchParams.set('$select',select);if(group){url.searchParams.set('$group',group);url.searchParams.set('$order',group);}if(where)url.searchParams.set('$where',where);url.searchParams.set('$limit',String(limit));return String(url);}
 export const VT_CHILDCARE_URLS=Object.freeze({
  metadata:'https://data.vermont.gov/api/views/ctdw-tmfz.json',
- groups:queryUrl('SELECT file_name,provider_program_type,license_type,count(*) as source_rows GROUP BY file_name,provider_program_type,license_type ORDER BY file_name,provider_program_type,license_type',201),
- aggregate:queryUrl('SELECT count(*) as source_rows,count(distinct license_id) as distinct_licenses,count(distinct file_name) as reporting_files,count(current_license_start_date) as license_start_count,count(current_license_end_date) as license_end_count WHERE '+VT_CHILDCARE_FILTER,2)
+ groups:queryUrl('file_name,provider_program_type,license_type,count(*) as source_rows',201,{group:'file_name,provider_program_type,license_type'}),
+ aggregate:queryUrl('count(*) as source_rows,count(distinct license_id) as distinct_licenses,count(distinct file_name) as reporting_files,count(current_license_start_date) as license_start_count,count(current_license_end_date) as license_end_count',2,{where:VT_CHILDCARE_FILTER})
 });
-const PINS={connector_sha256:'b7f692971fb35d95a165457e7a0dea0c4dbee238abe42d87ba8b71e329e75bcd',policy_sha256:'afaf7f296f07b3eb2461fc5da1502174230bc9650316d27a5aa4537cf60da20e'};
+const PINS={connector_sha256:'5ddcf629c2c7b6ff22abb51b54ebc3e9c8a1d84b973739d24d91e97d6d0da862',policy_sha256:'d4c211f7e2889393c99e124a603a21425f0551598ea7cd16f47c36d9d44abc06'};
 const MAXIMUM=2_000_000,WHOLE=120_000,ORDER=['metadata','groups','aggregate','aggregate','groups','metadata'];
 const hash=v=>createHash('sha256').update(v).digest('hex'),jsonHash=v=>hash(JSON.stringify(v));
 const check=v=>{if(!v)throw Error('Vermont childcare metadata preflight rejected.');};

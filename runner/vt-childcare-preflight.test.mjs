@@ -49,7 +49,7 @@ test('VT sanitized six-request preflight conserves center and excluded groups wi
  assert.equal(validateVtChildcarePreflight(r),r);assert.equal(r.source.record_count,503);assert.equal(r.source.total_source_rows,1057);assert.equal(r.source.distinct_licenses,503);assert.equal(r.source.license_end_count,502);
  assert.equal(r.source.reporting_period,null);assert.equal(r.source.reporting_period_verified,false);assert.equal(r.execution_mode,'injected-test-transport');assert.equal(r.readiness.acquisition_ready,false);assert.equal(r.claims.coordinates_selected,false);
  assert.equal(JSON.stringify(r).includes('PRIVATE_CONTACT'),false);assert.equal(r.observations[0].payload.license.termsLink,license.termsLink);assert.equal(r.observations[0].payload.coordinate_notices.length,2);
- assert.equal(new URL(VT_CHILDCARE_URLS.groups).searchParams.get('pageSize'),'201');assert.equal(new URL(VT_CHILDCARE_URLS.aggregate).searchParams.get('pageSize'),'2');assert.equal(VT_CHILDCARE_FIELDS.includes('latitude'),false);
+ assert.equal(new URL(VT_CHILDCARE_URLS.groups).searchParams.get('$limit'),'201');assert.equal(new URL(VT_CHILDCARE_URLS.aggregate).searchParams.get('$limit'),'2');assert.equal(VT_CHILDCARE_FIELDS.includes('latitude'),false);
 });
 test('VT rejects metadata/enum/period/count drift and unselected row leaks',async()=>{
  await Promise.all([

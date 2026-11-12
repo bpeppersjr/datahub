@@ -13,7 +13,7 @@ export {VT_CHILDCARE_FIELDS};
 export const VT_CHILDCARE_PAGE_SIZE=500;
 export const VT_CHILDCARE_ACQUISITION_LIMITS=Object.freeze({records:20000,requests:135,decoded_body_bytes:150_000_000,page_bytes:8_000_000,other_bytes:2_000_000,request_timeout_ms:30000,whole_timeout_ms:900000,request_spacing_ms:1000});
 const LIMIT=VT_CHILDCARE_ACQUISITION_LIMITS;
-const pins=()=>({connector_sha256:'0555dd8125e587f4bd963ae7069f87a76e57eb0c93221ccd414f6b70e39a97e8',policy_sha256:'7c4ec65ca5b61260cf0cb52e30c2755aefcf8523db0ca3217b21bd464f7271ff'});
+const pins=()=>({connector_sha256:'6ff87ce8396fe33b19f49f581d240ee489c72657ee886045914fe8460bd32505',policy_sha256:'9b654a3d764378529c9ac9bdc5dd50be7e35845ae96c6b99337d1343efb2fab3'});
 const hash=v=>createHash('sha256').update(v).digest('hex');
 const jsonHash=v=>hash(JSON.stringify(v));
 const check=(v,label)=>{if(!v)throw Error('Vermont childcare acquisition rejected: '+label+'.');};
@@ -22,10 +22,11 @@ const text=(v,max)=>typeof v==='string'&&v.length<=max&&Buffer.from(v).toString(
 const time=v=>typeof v==='string'&&Number.isFinite(Date.parse(v))&&new Date(v).toISOString()===v;
 const hex=v=>typeof v==='string'&&/^[a-f0-9]{64}$/.test(v);
 function optionsOnly(v,keys){check(v&&typeof v==='object'&&!Array.isArray(v)&&Reflect.ownKeys(v).every(k=>keys.includes(k)&&Object.hasOwn(Object.getOwnPropertyDescriptor(v,k),'value')),'options');check(v.signal===undefined||v.signal instanceof AbortSignal,'signal');}
-const ENDPOINT='https://data.vermont.gov/api/v3/views/ctdw-tmfz/query.json';
+const ENDPOINT='https://data.vermont.gov/resource/ctdw-tmfz.json';
 export function vtChildcareRequest(kind,pageNumber){
  check(['baseline-ids','page','final-ids'].includes(kind)&&Number.isSafeInteger(pageNumber)&&pageNumber>=1&&pageNumber<=41,'page request');
- return {url:ENDPOINT,request:{method:'POST',body:{query:'SELECT '+(kind==='page'?VT_CHILDCARE_FIELDS.join(','):'file_name,license_id')+' WHERE '+VT_CHILDCARE_FILTER+' ORDER BY file_name,license_id',page:{pageNumber,pageSize:500},includeSystem:false,includeSynthetic:false}}};
+ const url=new URL(ENDPOINT);url.searchParams.set('$select',kind==='page'?VT_CHILDCARE_FIELDS.join(','):'file_name,license_id');url.searchParams.set('$where',VT_CHILDCARE_FILTER);url.searchParams.set('$order','file_name,license_id');url.searchParams.set('$limit','500');url.searchParams.set('$offset',String((pageNumber-1)*500));
+ return {url:String(url),request:{method:'GET'}};
 }
 function itinerary(count){
  check(Number.isSafeInteger(count)&&count>0&&count<=LIMIT.records,'source count');const pages=Math.ceil(count/500),steps=[];
@@ -61,7 +62,7 @@ export async function replayVtChildcareAcquisition(evidence,options={}){
  check(Array.isArray(evidence.observations)&&evidence.observations.length===steps.length,'exact itinerary');
  let retained=Buffer.byteLength(JSON.stringify(evidence.before_preflight))+Buffer.byteLength(JSON.stringify(evidence.after_preflight));
  for(const [i,o]of evidence.observations.entries()){
-  check(exact(o,['kind','url','request','observed_at','http_status','body_bytes','body_sha256','payload','payload_sha256'])&&o.kind===steps[i].kind&&o.url===ENDPOINT&&exact(o.request,['method','body'])&&exact(o.request.body,['query','page','includeSystem','includeSynthetic'])&&exact(o.request.body.page,['pageNumber','pageSize'])&&equal(o.request,steps[i].request),'observation/request fields');
+  check(exact(o,['kind','url','request','observed_at','http_status','body_bytes','body_sha256','payload','payload_sha256'])&&o.kind===steps[i].kind&&o.url===steps[i].url&&exact(o.request,['method'])&&equal(o.request,steps[i].request),'observation/request fields');
   validateRows(o.payload,steps[i],evidence.before_preflight.source.reporting_file);
   const maximum=o.kind==='page'?LIMIT.page_bytes:LIMIT.other_bytes;
   retained+=Buffer.byteLength(JSON.stringify(o.payload));check(Buffer.byteLength(JSON.stringify(o.payload))<=maximum&&retained<=LIMIT.decoded_body_bytes,'retained serialization ceilings');
@@ -107,14 +108,14 @@ async function acquire(options,executionMode){
   const whole=new AbortController(),timer=setTimeout(()=>whole.abort(new Error('Vermont acquisition deadline.')),LIMIT.whole_timeout_ms),combined=signal?AbortSignal.any([signal,whole.signal]):whole.signal;
   let previous,requests=0,totalBytes=0,lastEnd=null;
   const stamp=()=>{const value=now().toISOString();check(time(value) && (!previous || value>=previous),'clock');previous=value;return value;};
-  async function request(target,kind,externalSignal,postRequest){
+  async function request(target,kind,externalSignal,selectedRequest){
     const requestScope=externalSignal?AbortSignal.any([combined,externalSignal]):combined;
-    check(postRequest?target===ENDPOINT&&Array.from({length:41},(_,i)=>vtChildcareRequest(kind,i+1)).some(r=>equal(r.request,postRequest)):Object.values(VT_CHILDCARE_URLS).includes(target),'fixed URL and POST body');
+    check(selectedRequest?Array.from({length:41},(_,i)=>vtChildcareRequest(kind,i+1)).some(r=>r.url===target&&equal(r.request,selectedRequest)):Object.values(VT_CHILDCARE_URLS).includes(target),'fixed GET URL');
     if(lastEnd!==null){const wait=Math.max(0,1000-(performance.now()-lastEnd));if(wait)await delay(wait,undefined,{signal:requestScope});}
     requestScope.throwIfAborted();check(++requests<=LIMIT.requests,'request ceiling');
     const controller=new AbortController(),deadline=setTimeout(()=>controller.abort(new Error('Vermont request deadline.')),LIMIT.request_timeout_ms),active=AbortSignal.any([requestScope,controller.signal]);let response,reader;
     try{
-      response=await race(Promise.resolve().then(()=>{active.throwIfAborted();return fetchImpl(target,{method:postRequest?'POST':'GET',redirect:'error',credentials:'omit',headers:{Accept:'application/json','Accept-Encoding':'identity',...(postRequest?{'Content-Type':'application/json'}:{})},...(postRequest?{body:JSON.stringify(postRequest.body)}:{}),signal:active});}),active,cancel);
+      response=await race(Promise.resolve().then(()=>{active.throwIfAborted();return fetchImpl(target,{method:'GET',redirect:'error',credentials:'omit',headers:{Accept:'application/json','Accept-Encoding':'identity'},signal:active});}),active,cancel);
       active.throwIfAborted();check(response instanceof Response && !response.redirected && (!response.url || response.url===target),'response URL');
       if(response.status===429 || response.status===503)throw Object.assign(new Error('Vermont publisher deferred; no retry performed.'),{code:'VT_CHILDCARE_DEFERRED'});
       check(response.status===200 && /^application\/json(?:;|$)/i.test(response.headers.get('content-type')??''),'HTTP status/type');
