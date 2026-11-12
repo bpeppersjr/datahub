@@ -135,6 +135,8 @@ import { cmsNppesPharmacyHttp } from './cms-nppes-pharmacy-http.mjs';
 import { createManagedRefreshScheduler } from './managed-refresh-scheduler.mjs';
 import { loadIndustryConfig } from './industry-segments.mjs';
 import { maintenanceExecutionStatusHttp, readMaintenanceExecutionStatus } from './maintenance-execution-status.mjs';
+import { readOperationalIndustryCensusStatus } from './operational-industry-census-status.mjs';
+import { operationalIndustryCensusStatusHttp } from './operational-industry-census-status-http.mjs';
 const retainedCredentialsView=createRetainedCredentialsView();
 const credentialHeatmapView=createCredentialHeatmapView();
 const censusZbpIndustryView=createCensusZbpIndustryView();
@@ -826,6 +828,9 @@ const server = http.createServer(async (request, response) => {
     if(request.method==='GET'&&url.pathname==='/api/business-map/state-access-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'State-access industry summary does not accept options.'});return;}
       json(response,200,await stateAccessIndustrySummary());return;
+    }
+    if(url.pathname==='/api/administration/operational-industry-census-status'){
+      await operationalIndustryCensusStatusHttp(request,response,url,readOperationalIndustryCensusStatus,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/census-zcta-residual'){
       if([...url.searchParams.keys()].some(key=>!['state','offset','direction'].includes(key))||['state','offset','direction'].some(key=>url.searchParams.getAll(key).length>1)||url.searchParams.has('offset')&&!/^(0|[1-9][0-9]{0,6})$/.test(url.searchParams.get('offset'))){json(response,400,{error:'Unsupported or repeated residual-layer option.'});return;}

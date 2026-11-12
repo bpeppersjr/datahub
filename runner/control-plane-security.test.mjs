@@ -166,6 +166,7 @@ test("protects every live management endpoint while leaving only narrow liveness
     ["GET", "/api/business-map/state-summary"],
     ["GET", "/api/business-map/goal-completion"],
     ["GET", "/api/business-map/state-access?state=NY&industry=retail-consumer"],
+    ["GET", "/api/administration/operational-industry-census-status"],
     ["GET", "/api/business-map/zip-quality"],
     ["GET", "/api/business-map/zip-gdp-segmentation?zip=00601"],
     ["GET", "/api/business-map/names?zip=12345"],
@@ -369,8 +370,8 @@ test("protects every live management endpoint while leaving only narrow liveness
   });
   assert.equal(connectorCatalog.status, 200);
   const connectorCatalogBody = JSON.parse(connectorCatalog.body);
-  assert.equal(connectorCatalogBody.connector_count, 118);
-  assert.equal(connectorCatalogBody.policy_profile_count, 89);
+  assert.equal(connectorCatalogBody.connector_count, 125);
+  assert.equal(connectorCatalogBody.policy_profile_count, 96);
   assert.equal(connectorCatalog.body.includes(CONTROL_TOKEN), false);
 
   const connectorDetail = await rawRequest({
@@ -428,7 +429,7 @@ test("protects every live management endpoint while leaving only narrow liveness
 
 test("serves the verified November authorization chain through the authenticated management endpoint", async (context) => {
   const root = await mkdtemp(path.join(DATA_DIR, ".tmp-authorization-chain-http-"));
-  const matrixRelease = "national-goal-completion-20261112051711-1b351542";
+  const matrixRelease = "national-goal-completion-20261112180509-fecbaabb";
   const readJson = async (relative) => JSON.parse(await readFile(path.join(APP_ROOT, relative)));
   const pointer = "data/business-coverage-views/current.json";
   const coveragePath = path.posix.join(path.posix.dirname(pointer), (await readJson(pointer)).manifest);
@@ -464,7 +465,7 @@ test("serves the verified November authorization chain through the authenticated
   assert.equal(response.headers["cache-control"], "no-store");
   const body = JSON.parse(response.body);
   assert.equal(body.metadata.matrix_release_id, matrixRelease);
-  assert.equal(body.metadata.backlog_release_id, "broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f");
+  assert.equal(body.metadata.backlog_release_id, "broad-organization-acquisition-backlog-2026-11-12T18-05-09.949Z-25fd6dd8573a");
   assert.equal(body.metadata.broad_data_coverage.admitted_jurisdictions, 11);
   assert.equal(body.metadata.authorization_packet_coverage.packeted_current_gaps, 40);
   assert.equal(body.metadata.authorization_packet_coverage.authorization_packet_gaps, 0);

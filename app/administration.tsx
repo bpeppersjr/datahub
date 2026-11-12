@@ -356,6 +356,12 @@ type IndustryEvidence = {
     maintenance_selection_affects_evidence: false;
   };
 };
+type IndustryCensusStatus = {
+  schema_version: "operational-industry-census-status@1.0.0";
+  source: { dataset_id: "census-zbp-baseline"; release_id: string; reference_year: 2023; pointer_sha256: string; manifest_sha256: string; naics_catalog_sha256: string };
+  industries: Array<{ id:string; aggregate_status:"retained-annual-employer-establishment-aggregate"|"not-comparable-to-single-naics"; naics_code:string|null; naics_label:string|null; published_zip_rows:number|null; published_establishments:number|null; reason:string|null }>;
+  claims: { annual_aggregate_context_only:true; named_businesses:false; current_operations_verified:false; business_completeness:null; industry_completeness:null; state_access_gap_resolution_performed:false; zip5_is_zcta:false; zip4_joined:false; network_requests:0; runtime_writes:0 };
+};
 const exact = (value: unknown, keys: string[]) =>
   !!value &&
   typeof value === "object" &&
@@ -1094,6 +1100,13 @@ export function validAdministrationIndustryEvidence(
   });
 }
 
+export function validIndustryCensusStatus(input: unknown): input is IndustryCensusStatus {
+  if (!exact(input,["schema_version","source","industries","claims"])) return false;
+  const value=input as IndustryCensusStatus, sha=/^[a-f0-9]{64}$/;
+  if(value.schema_version!=="operational-industry-census-status@1.0.0"||!exact(value.source,["dataset_id","release_id","reference_year","pointer_sha256","manifest_sha256","naics_catalog_sha256"])||value.source.dataset_id!=="census-zbp-baseline"||value.source.reference_year!==2023||![value.source.pointer_sha256,value.source.manifest_sha256,value.source.naics_catalog_sha256].every(item=>sha.test(item))||!Array.isArray(value.industries)||value.industries.length!==9||!industryIds.every(id=>value.industries.some(row=>row.id===id))||!same(value.claims,{annual_aggregate_context_only:true,named_businesses:false,current_operations_verified:false,business_completeness:null,industry_completeness:null,state_access_gap_resolution_performed:false,zip5_is_zcta:false,zip4_joined:false,network_requests:0,runtime_writes:0}))return false;
+  return value.industries.every(row=>exact(row,["id","aggregate_status","naics_code","naics_label","published_zip_rows","published_establishments","reason"])&&(row.aggregate_status==="retained-annual-employer-establishment-aggregate"?typeof row.naics_code==="string"&&row.naics_code.length===6&&typeof row.naics_label==="string"&&Number.isSafeInteger(row.published_zip_rows)&&Number(row.published_zip_rows)>0&&Number.isSafeInteger(row.published_establishments)&&Number(row.published_establishments)>0&&row.reason===null:row.aggregate_status==="not-comparable-to-single-naics"&&row.naics_code===null&&row.naics_label===null&&row.published_zip_rows===null&&row.published_establishments===null&&typeof row.reason==="string"&&row.reason.length>0));
+}
+
 export default function Administration() {
   const [view, setView] = useState<View | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -1103,6 +1116,7 @@ export default function Administration() {
   const [backlogResult, setBacklog] = useState<Backlog | null>(null);
   const [evidence, setEvidence] = useState<IndustryEvidence | null>(null);
   const [evidenceError, setEvidenceError] = useState(false);
+  const [censusStatus, setCensusStatus] = useState<IndustryCensusStatus | null>(null);
   const [caReadiness, setCaReadiness] = useState<CaReadiness | null>(null);
   const [acsReadiness, setAcsReadiness] = useState<AcsReadiness | null>(null);
   const [acsReadinessError, setAcsReadinessError] = useState(false);
@@ -1154,6 +1168,9 @@ export default function Administration() {
         else setEvidenceError(true);
       })
       .catch(() => !controller.signal.aborted && setEvidenceError(true));
+    void runnerJson<unknown>("/api/administration/operational-industry-census-status", {signal:controller.signal})
+      .then(value=>{if(!controller.signal.aborted&&validIndustryCensusStatus(value))setCensusStatus(value);})
+      .catch(()=>{});
     void runnerJson<unknown>(
       "/api/business-map/ca-childcare-status-readiness",
       { signal: controller.signal },
@@ -1311,9 +1328,10 @@ export default function Administration() {
         <h3>Industry evidence status</h3>
         <p>Evidence availability is the share of the 50 states and D.C. with retained source evidence. It is not the percent of businesses collected or nationwide industry completeness. Reporting starts with the governed evidence already retained; an all-business denominator is not required. Population, geocode, and Census-ZCTA gaps do not suppress otherwise retained industry evidence.</p>
         {evidence ? <div className="representation-table" role="region" aria-label="All operational industries status" tabIndex={0}>
-          <table><thead><tr><th scope="col">Industry</th><th scope="col">Evidence availability</th><th scope="col">Known gaps</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
+          <table><thead><tr><th scope="col">Industry</th><th scope="col">Evidence availability</th><th scope="col">2023 Census aggregate context</th><th scope="col">Known gaps</th><th scope="col">Source access</th><th scope="col">Temporal review</th><th scope="col">Saved maintenance selection</th><th scope="col">Maintenance execution</th></tr></thead><tbody>{evidence.industries.map(row => <tr key={row.id}>
             <th scope="row">{view?.industries.find(industry => industry.id === row.id)?.label ?? row.id.replaceAll("-", " ")}</th>
             <td>{row.jurisdictions_with_retained_access_evidence} of {row.jurisdictions} jurisdictions ({row.retained_access_evidence_percent.toFixed(1)}% evidence availability; completeness unknown)</td>
+            <td>{(()=>{const aggregate=censusStatus?.industries.find(item=>item.id===row.id);return !aggregate?"Unavailable — no aggregate inferred":aggregate.aggregate_status==="retained-annual-employer-establishment-aggregate"?`${aggregate.published_establishments?.toLocaleString()} employer establishments · ${aggregate.published_zip_rows?.toLocaleString()} published ZIP rows · NAICS ${aggregate.naics_code}`:aggregate.reason;})()}</td>
             <td>Unsupported: {(row.access_status_counts["unsupported-missing"] ?? 0) + (row.access_status_counts["unsupported-evidence-not-measured"] ?? 0)} · unmeasured: {row.access_status_counts["unsupported-evidence-not-measured"] ?? 0} · restricted sample: {row.access_status_counts["restricted-query-sample-evidence"] ?? 0} · temporal review due/unknown: {(row.temporal_status_counts["review-due"] ?? 0) + (row.temporal_status_counts["missing-source-reference"] ?? 0)}</td>
             <td>{accessStatuses.filter(status => row.access_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.access_status_counts[status]}`).join(" · ")}</td>
             <td>{temporalStatuses.filter(status => row.temporal_status_counts[status] > 0).map(status => `${status.replaceAll("-", " ")}: ${row.temporal_status_counts[status]}`).join(" · ")}</td>
@@ -1326,7 +1344,7 @@ export default function Administration() {
               <div>Latest collection: {status.latest_collection ? `${status.latest_collection.status} · ${status.latest_collection.operation_id}` : "none retained"}</div>
             </> : "Unknown — execution status unavailable"; })() : "Unknown — settings unavailable"}</td>
           </tr>)}</tbody></table>
-          <small>Assessed {evidence.assessed_at.slice(0, 10)} · Retained state-access report SHA-256 {evidence.report_sha256}. For state and source counts, see Industry Summary.</small>
+          <small>Assessed {evidence.assessed_at.slice(0, 10)} · Retained state-access report SHA-256 {evidence.report_sha256}. Census values are annual employer-establishment aggregates, not named or currently operating businesses, and do not resolve entity-source gaps. For state and source counts, see Industry Summary.</small>
         </div> : <p role="status">{evidenceError ? "Industry evidence unavailable; status is unknown. Maintenance selection remains usable when its settings are available." : "Loading retained industry status…"}</p>}
       </section>
       <section
