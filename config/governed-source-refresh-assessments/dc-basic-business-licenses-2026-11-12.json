@@ -1,0 +1,33 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "dc-basic-business-licenses-2026-11-12",
+  "source_id": "dc-basic-business-licenses",
+  "dataset_id": "dc-basic-business-license-sites",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 1, "aggregate_requests": 1, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "9f93d61bdc4b77ad8b60286cd77b6efe2b358fbd2b4f6eae9815843638882918",
+    "aggregate_sha256": "09e5fe3e8ad300f02df799655311eb2cc268648a18ee7296b69b99b65270ccec",
+    "aggregate_records": 70182,
+    "aggregate_label": "publisher Active Basic Business License rows",
+    "layer_name": "Basic Business License",
+    "layer_type": "Table",
+    "query_capability": true,
+    "maximum_page_records": 2000,
+    "selected_schema_fingerprint": "17ea137c871a939a38f1c692aec555e25740b34fd617a87d4b287c9fe7f332c6",
+    "selected_schema_matches_connector": true,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "active_license_is_current_operation": false,
+    "reported_premise_is_verified_operating_site": false,
+    "complete_all_dc_businesses": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://maps2.dcgis.dc.gov/dcgis/rest/services/FEEDS/DCRA/FeatureServer/0?f=pjson",
+    "https://opendata.dc.gov/datasets/DCGIS::basic-business-licenses"
+  ],
+  "next_action": "Use only the authorization-bound Co*Tive operation. Acquire the fixed selected-field Active Business License query serially, recheck layer metadata and aggregate count before publication, exclude owner, agent, billing, parcel and rounded coordinate fields, independently verify the immutable release, and only then change the governed source pointer."
+}

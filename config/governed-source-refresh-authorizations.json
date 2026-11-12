@@ -61,6 +61,16 @@
       "descriptor_evidence_sha256": "dfa1321ebcbdf600682e8e9f40661a610faa4885c31692bee117aae007fa7ac3",
       "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
     },
+    "dc-basic-business-licenses": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "dc-basic-business-licenses-production-20261112-01",
+      "source_id": "dc-basic-business-licenses",
+      "approved_at": "2026-11-12T17:00:00.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "ccb2bf372459dc13ab4d941f1a69c78994a0ec5d05e96509114f86fa1cb20239",
+      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
+    },
     "irs-eo-bmf": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "irs-eo-bmf-production-20261112-01",

@@ -18,7 +18,7 @@
     "state-tn-childcare": { "script": "scripts/build-tn-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-nj-childcare": { "script": "scripts/build-nj-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-ma-childcare": { "script": "scripts/build-ma-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
-    "state-dc-basic-licenses": { "script": "scripts/build-dc-basic-business-licenses.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-dc-basic-licenses": { "script": "scripts/build-dc-basic-business-licenses.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "dc-basic-business-licenses" },
     "national-irs-eo-bmf": { "script": "scripts/build-irs-eo-bmf.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "irs-eo-bmf" },
     "national-nppes-organizations": { "script": "scripts/build-cms-nppes-organizations.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "cms-nppes-organizations" },
     "national-snap-retailers": { "script": "scripts/build-usda-snap-retailers.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "usda-snap-retailers" },
