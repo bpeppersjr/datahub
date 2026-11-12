@@ -166,6 +166,7 @@
     "cms-nursing-home-nppes-overlap:verify": "node scripts/verify-cms-nursing-home-nppes-overlap-readiness.mjs",
     "retained-childcare-zip:build": "node scripts/build-retained-childcare-zip-evidence.mjs",
     "retained-childcare-zip:verify": "node scripts/verify-retained-childcare-zip-evidence.mjs",
+    "retained-childcare-zip:lineage-audit": "node scripts/audit-retained-childcare-zip-lineage.mjs",
     "childcare-state-availability:build": "node scripts/build-childcare-state-industry-availability-projection.mjs",
     "childcare-state-availability:verify": "node scripts/verify-childcare-state-industry-availability-projection.mjs",
     "zip-denominator-gaps:build": "node scripts/build-zip-denominator-gap-cohort.mjs",

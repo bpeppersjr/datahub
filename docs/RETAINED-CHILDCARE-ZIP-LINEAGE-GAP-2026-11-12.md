@@ -1,0 +1,7 @@
+# Retained childcare ZIP lineage gap — November 12, 2026
+
+The read-only `audit-retained-childcare-zip-lineage.mjs` audit independently reconciles the retained childcare selection used by production plan 293 with the currently registered pointer-free ZIP evidence release. It performs no network request, acquisition, production-pointer update or ZIP-release change.
+
+The selected seven-state cohort contains 12,234 source-candidate rows. The registered ZIP release `retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b`, manifest SHA-256 `9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a`, contains 12,210. The exact 24-row delta is entirely Pennsylvania: the selected current Pennsylvania enrollment has 5,019 accepted rows while the registered ZIP layer retains 4,995. Vermont is already aligned at 507 rows, and CT, MD, CO, UT and IA are unchanged.
+
+This gap does not invalidate either immutable evidence set and does not block production reconciliation. It means a later retained-childcare ZIP successor must adopt the selected Pennsylvania enrollment and then cascade through the state-availability projection, exact-ZIP matrix, temporal qualification, state disposition and national federation before those consumers can claim alignment with plan 293. ZIP+4 remains separate and unaggregated. Candidate rows are not unique businesses, verified physical sites, verified current operations or a completeness numerator.
