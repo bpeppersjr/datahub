@@ -293,6 +293,8 @@
     "business-lifecycle-jurisdiction:verify": "node scripts/verify-national-business-lifecycle-jurisdiction-evidence.mjs",
     "business-lifecycle-industry-jurisdiction:build": "node scripts/build-national-business-lifecycle-industry-jurisdiction-evidence.mjs",
     "business-lifecycle-industry-jurisdiction:verify": "node scripts/verify-national-business-lifecycle-industry-jurisdiction-evidence.mjs",
+    "business-lifecycle-industry-zip:build": "node scripts/build-national-business-lifecycle-industry-zip-evidence.mjs",
+    "business-lifecycle-industry-zip:verify": "node scripts/verify-national-business-lifecycle-industry-zip-evidence.mjs",
     "business-source-status-posture:verify": "node scripts/verify-national-business-source-status-posture.mjs",
     "business-co-registration-status-posture:verify": "node scripts/verify-national-business-co-registration-status-posture.mjs",
     "postal-cutover:plan": "node scripts/cutover-normalized-us-postal-migration.mjs plan",
