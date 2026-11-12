@@ -23,7 +23,7 @@
     "national-nppes-organizations": { "script": "scripts/build-cms-nppes-organizations.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "national-snap-retailers": { "script": "scripts/build-usda-snap-retailers.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "national-fdic-bankfind": { "script": "scripts/build-fdic-bankfind.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "fdic-bankfind" },
-    "national-ncua-quarterly": { "script": "scripts/build-ncua-quarterly.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-ncua-quarterly": { "script": "scripts/build-ncua-quarterly.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "ncua-quarterly" },
     "national-fmcsa-census": { "script": "scripts/build-fmcsa-company-census.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-ny-retail-food": { "script": "scripts/build-ny-retail-food-stores.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-ca-abc": { "script": "scripts/build-ca-abc-active-license-sites.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },

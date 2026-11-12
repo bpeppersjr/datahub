@@ -37,3 +37,9 @@ Reported phone, hours, main-office flag, office type, member-service, ATM, drive
 ## ZIP coverage
 
 `derived/zip-coverage.jsonl` preserves the Census ZBP/ZCTA union and adds any accepted five-digit ZIP from an NCUA U.S. branch. Counts distinguish main offices, branch offices, reported ATMs, and reported drive-through service. ZIPs with no NCUA record remain visible as source-specific gaps; absence does not mean no business. Current USPS validity remains unverified pending an authoritative denominator.
+
+## Governed refresh authorization on November 12, 2026
+
+A page-only discovery request and archive HEAD request selected the official final June 2026 archive at `call-report-data-2026-06.zip`. They downloaded no archive or entity rows and changed no production data. The archive reports ETag `ef40ede521e57abee6fd5cacf730b253` and last-modified time `2026-09-14T17:34:19Z`; row counts remain deliberately unknown until the app acquires and validates the complete archive.
+
+The assessment, existing privacy exclusions, connector, retained March release, and reviewed source policy are hash-bound to the governed full-snapshot operation. Co*Tive may acquire this national edition once and partition verified evidence locally for every state. Publication remains conditional on cycle/schema validation, complete row accounting, foreign and non-federally-insured exclusions, privacy-minimized normalization, artifact verification, and atomic pointer replacement. Edition differences are not net business creation and this source is not an all-credit-union, all-financial-business, or all-business denominator.

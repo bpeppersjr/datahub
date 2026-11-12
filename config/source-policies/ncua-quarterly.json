@@ -1,6 +1,6 @@
 {
   "policy_id": "ncua-quarterly",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "National Credit Union Administration",
   "ownership": "United States federal government public credit-union Call Report data",
   "source_home": "https://ncua.gov/analysis/credit-union-corporate-call-report-data",
@@ -28,5 +28,7 @@
   "contains_personal_data": true,
   "personal_data_handling": "The raw FOICU ATTENTION_OF field may contain a public business-contact name. It is retained only inside the internal immutable source archive and is not normalized or published to the registry.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "NCUA publishes final quarterly Call Report ZIP files for public database or spreadsheet use. Quarterly institution, branch, trade-name, hours, and service fields remain publisher assertions; they do not establish continuous operation, current public access, current hours, membership eligibility, every service, every credit union, or every financial business. Person-oriented ATTENTION_OF data is excluded from normalized and public output."
 }

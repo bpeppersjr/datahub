@@ -1,0 +1,33 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "ncua-quarterly-2026-11-12",
+  "source_id": "ncua-quarterly",
+  "dataset_id": "ncua-quarterly-credit-unions",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 1, "aggregate_requests": 1, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "bc338d6dd9d19fe61d36e4b6823835460925c1c9b091c9bc01406fe7f60ec523",
+    "aggregate_sha256": "5b6f639ae86076bee4343744f4b6811376cf1f374ade05f65035cdf2331c0759",
+    "aggregate_records": 1,
+    "aggregate_label": "current final quarterly archive selected; rows verified only after acquisition",
+    "source_page": "https://ncua.gov/analysis/credit-union-corporate-call-report-data/quarterly-data",
+    "source_page_http_status": 200,
+    "source_page_bytes": 70306,
+    "discovered_cycle": "2026-06",
+    "archive_url": "https://ncua.gov/files/publications/analysis/call-report-data-2026-06.zip",
+    "archive_head_http_status": 200,
+    "archive_content_type": "application/octet-stream",
+    "archive_etag": "\"ef40ede521e57abee6fd5cacf730b253\"",
+    "archive_last_modified": "Mon, 14 Sep 2026 17:34:19 GMT",
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "quarterly_membership_is_current_operation": false,
+    "reported_branch_is_verified_public_premise": false,
+    "complete_all_credit_unions": false,
+    "edition_delta_is_net_business_creation": false,
+    "complete_all_us_businesses": false
+  },
+  "citations": ["https://ncua.gov/analysis/credit-union-corporate-call-report-data", "https://ncua.gov/analysis/credit-union-corporate-call-report-data/quarterly-data", "https://ncua.gov/files/publications/analysis/call-report-data-2026-06.zip"],
+  "next_action": "Use only the authorization-bound Co*Tive operation; acquire the selected final quarterly archive once, verify its cycle, schema, row accounting, exclusions, artifacts, and immutable publication before changing the NCUA source pointer."
+}
