@@ -4772,6 +4772,9 @@ const exactObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
 const EXACT_ZIP_V32_RELEASE = "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629";
 const EXACT_ZIP_V32_MANIFEST = "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1";
+const EXACT_ZIP_V33_RELEASE = "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13";
+const EXACT_ZIP_V33_MANIFEST = "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad";
+const RETAINED_CHILDCARE_V12_RELEASE = "retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b";
 const NY_RETAIL_FOOD_REFRESHED_SOURCE = {
   source_release_id: "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",
   source_reference_at: "2026-10-14T19:08:34.000Z",
@@ -4811,15 +4814,17 @@ function validRefreshedNyRetailFoodLocationTemporal(rows: unknown): boolean {
 const exactZipDisposition=(cell_status:string,semantic:string,review:string)=>{const lifecycle_status=review==="unmapped"&&semantic==="unmapped"?"unmapped":review==="unmeasured"?"unmeasured":review==="stale"?"stale":semantic==="source-defined-current"?(cell_status==="positive"?"source-defined-current-positive-within-review-window":"source-defined-current-without-positive-evidence"):(cell_status==="positive"?"non-active-reporting-positive":"non-active-reporting-without-positive-evidence");return{cell_status,lifecycle_status,label:`${cell_status.replaceAll("-"," ")} · ${lifecycle_status.replaceAll("-"," ")}`,current_operations_verified:false}};
 function validExactZipEvidenceV21(value:unknown,zip:string):boolean{if(!exactObject(value)||value.schema_version!=="national-exact-zip-industry-evidence-matrix@2.1.0"||value.release_id!=="national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3"||value.manifest_sha256!=="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"||value.full_matrix_replay_performed!==false||!exactObject(value.cell_status_counts_by_dimension)||Object.keys(value.cell_status_counts_by_dimension).length!==42)return false;const row=value.row,tq=value.temporal_qualification;if(row!==null&&(!exactObject(row)||row.schema_version!=="national-exact-zip-industry-evidence-row@2.1.0"||row.zip5!==zip||row.zip4!==null||!exactObject(row.cells)||Object.keys(row.cells).length!==42||EXACT_ZIP_V21_SOURCES.some(source=>!(source in row.cells))))return false;if(!exactObject(tq)||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@2.1.0"||tq.zip5!==zip||!Array.isArray(tq.rows)||tq.rows.length!==42||new Set(tq.rows.map(r=>exactObject(r)?r.dimension_id:null)).size!==42||!exactObject(tq.summary)||tq.summary.qualification_cell_total!==2024148||tq.summary.semantic_cell_total!==2024148||!exactObject(tq.provenance)||tq.provenance.matrix_release_id!==value.release_id||tq.provenance.matrix_manifest_sha256!==value.manifest_sha256)return false;return tq.rows.every(r=>exactObject(r)&&typeof r.dimension_id==="string"&&EXACT_ZIP_V21_SOURCES.includes(r.dimension_id as typeof EXACT_ZIP_V21_SOURCES[number])&&r.current_operations_verified===false&&exactObject(r.evidence_disposition)&&r.evidence_disposition.current_operations_verified===false);}
 function validExactZipOutsideCohort(value: unknown, zip: string): value is ExactZipOutsideCohort {
-  return /^\d{5}$/.test(zip) && sameClosed(value, {
-    schema_version: "national-exact-zip-industry-evidence-row@3.2.0",
+  if (!/^\d{5}$/.test(zip) || !exactObject(value)) return false;
+  const v33 = value.schema_version === "national-exact-zip-industry-evidence-row@3.3.0";
+  return sameClosed(value, {
+    schema_version: v33 ? "national-exact-zip-industry-evidence-row@3.3.0" : "national-exact-zip-industry-evidence-row@3.2.0",
     status: "absent",
     reason: "outside-retained-cohort",
     zip5: zip,
     row: null,
     temporal_qualification: null,
-    release_id: EXACT_ZIP_V32_RELEASE,
-    manifest_sha256: EXACT_ZIP_V32_MANIFEST,
+    release_id: v33 ? EXACT_ZIP_V33_RELEASE : EXACT_ZIP_V32_RELEASE,
+    manifest_sha256: v33 ? EXACT_ZIP_V33_MANIFEST : EXACT_ZIP_V32_MANIFEST,
     full_matrix_replay_performed: false,
     recursive_lineage_verified: true,
   });
@@ -4828,6 +4833,17 @@ export function validExactZipEvidence(
   value: unknown,
   zip: string,
 ): value is ExactZipEvidence {
+  if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@3.3.0"&&exactObject(value.temporal_qualification)&&value.temporal_qualification.schema_version==="exact-zip-industry-temporal-qualification-view@3.3.0"){
+    if(value.release_id!==EXACT_ZIP_V33_RELEASE||value.manifest_sha256!==EXACT_ZIP_V33_MANIFEST||value.status!=="present"||value.full_matrix_replay_performed!==false||value.recursive_lineage_verified!==true)return false;
+    const rows=value.temporal_qualification.rows;
+    if(!Array.isArray(rows)||rows.length!==51)return false;
+    const childcareIds=["childcare_pa_candidates","childcare_ct_candidates","childcare_md_candidates","childcare_vt_candidates","childcare_co_candidates","childcare_ut_candidates","childcare_ia_candidates"];
+    if(!childcareIds.every(id=>{const row=rows.find(candidate=>exactObject(candidate)&&candidate.dimension_id===id);return exactObject(row)&&row.source_release_id===RETAINED_CHILDCARE_V12_RELEASE&&row.assessment_as_of==="2026-11-12T19:21:14.719Z"&&row.review_qualification==="unmeasured"&&row.current_operations_verified===false&&exactObject(row.evidence_disposition)&&row.evidence_disposition.lifecycle_status==="unmeasured"&&row.evidence_disposition.current_operations_verified===false;}))return false;
+    const compatible=JSON.parse(JSON.stringify(value)) as Record<string,unknown>, tq=compatible.temporal_qualification as Record<string,unknown>;
+    compatible.schema_version="national-exact-zip-industry-evidence-row@3.2.0";compatible.release_id=EXACT_ZIP_V32_RELEASE;compatible.manifest_sha256=EXACT_ZIP_V32_MANIFEST;tq.schema_version="exact-zip-industry-temporal-qualification-view@3.2.0";
+    if(exactObject(tq.provenance)){tq.provenance.matrix_release_id=EXACT_ZIP_V32_RELEASE;tq.provenance.matrix_manifest_sha256=EXACT_ZIP_V32_MANIFEST;}
+    return validExactZipEvidence(compatible,zip);
+  }
   if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@3.2.0"&&exactObject(value.temporal_qualification)&&value.temporal_qualification.schema_version==="exact-zip-industry-temporal-qualification-view@3.2.0"){
     const row=value.row,tq=value.temporal_qualification,q=Array.isArray(tq.rows)?tq.rows.find(item=>exactObject(item)&&item.dimension_id==="ny_retail_food_license_address_evidence_count"):null;
     return value.release_id===EXACT_ZIP_V32_RELEASE&&value.manifest_sha256===EXACT_ZIP_V32_MANIFEST&&

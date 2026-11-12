@@ -17,6 +17,7 @@ import { readExactZipIndustrySummaryV30 } from "./exact-zip-industry-summary-v3-
 import { readExactZipIndustrySummaryV31 } from "./exact-zip-industry-summary-v3-1.mjs";
 import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV32 } from "./exact-zip-industry-temporal-qualification-v3-2.mjs";
+import { readExactZipIndustryEvidenceWithTemporalQualificationV33 } from "./exact-zip-industry-temporal-qualification-v3-3.mjs";
 import { TEMPORAL_MAPPINGS_V31 } from "./exact-zip-industry-temporal-mappings-v3-1.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV30 } from "./exact-zip-industry-temporal-qualification-v3-0.mjs";
 import { stateAccessIndustrySummary } from "./state-access-view.mjs";
@@ -58,6 +59,19 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
     v=>{temporal(v,"ny_retail_food_license_address_evidence_count").evidence_disposition.additive=true},
     v=>{temporal(v,"ny_retail_food_location_profiles").source_release_id="ny-retail-food-stores-2025-09-30-9dfbb0199594dab8"},
     v=>{temporal(v,"ny_retail_food_location_profiles").review_qualification="unmeasured"},
+  ]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
+  h.close();
+});
+
+test("v3.3 ZIP view accepts refreshed childcare lineage and rejects drift",async()=>{
+  const evidence=await readExactZipIndustryEvidenceWithTemporalQualificationV33({zip5:"10001"}),h=harness(async()=>evidence);
+  assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
+  const temporal=(view,id)=>view.temporal_qualification.rows.find(row=>row.dimension_id===id);
+  for(const mutate of [
+    v=>{v.manifest_sha256="0".repeat(64)},
+    v=>{temporal(v,"childcare_pa_candidates").source_release_id="invented"},
+    v=>{temporal(v,"childcare_vt_candidates").review_qualification="within-review-window"},
+    v=>{temporal(v,"childcare_ia_candidates").current_operations_verified=true},
   ]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
   h.close();
 });
