@@ -56,6 +56,10 @@ The layer remains `published-reviewable-partial`. It does not claim all entities
 
 ## Validated live release
 
+The current release `business-entity-resolution-20261112-025152257Z-75c216bb` binds registry release `national-business-registry-20261112-005851952Z-44f0a338`. Structural verification covered 101 artifacts totaling 412,615,462 bytes. The release reports 8,011,213 eligible profiles, 2,325,053 reversible site-alias decisions, 146,828 reversible establishment-alias decisions, and 106,431 unapplied review candidates. Two oversized review groups were skipped. The release remains incomplete and local-review-only.
+
+## September source-bound replay
+
 The independently verified release `business-entity-resolution-20260911-040411512Z-e6812503` depends on registry release `national-business-registry-20260911-022652067Z-1ec656c3` with exact manifest SHA-256 `d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76`. Source-bound replay verified all 8,011,835 profiles and reproduced 2,578,153 complete decision rows: 2,325,194 reversible site-alias decisions, 146,896 reversible establishment-alias decisions, and 106,063 unapplied review candidates. The profiles form 6,505,544 address groups, including 876,086 multi-member street-address groups. Two oversized residual review groups were skipped and counted; no automatic decision was created for them. The 101 verified artifacts total 412,594,557 bytes.
 
 These are decision-row counts, not counts of unique resolved businesses. The release remains incomplete and local-review-only.

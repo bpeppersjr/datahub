@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {APP_ROOT} from './paths.mjs';
-import {BENCHMARK_SHA256,COHORT_SHA256,DATASET,MAX_PREFIX_BYTES,REGISTRY_SHA256,RELEASE_SHA256,readZipEntityResolutionEvidence} from './zip-entity-resolution-evidence.mjs';
+import {BENCHMARK_SHA256,COHORT_SHA256,DATASET,MAX_PREFIX_BYTES,REGISTRY_SHA256,RELEASE_SHA256,readZipEntityResolutionEvidence,verifyZipEntityResolutionEvidence} from './zip-entity-resolution-evidence.mjs';
 
 const hash=x=>createHash('sha256').update(x).digest('hex');
 const stable=x=>Buffer.from(`${JSON.stringify(x)}\n`);
@@ -26,4 +26,21 @@ test('bucket tampering, oversized declarations, and cancellation fail closed',as
  const f=await fixture(t);await fs.appendFile(path.join(f.root,f.dir,'zip-00.json'),' ');await assert.rejects(readZipEntityResolutionEvidence({root:f.root,zip5:'00501'}));
  const g=await fixture(t);g.manifest.artifacts[0].bytes=MAX_PREFIX_BYTES+1;const raw=stable(g.manifest);await fs.writeFile(path.join(g.root,g.dir,'manifest.json'),raw);const configPath=path.join(g.root,`config/datasets/${DATASET}.json`),config=JSON.parse(await fs.readFile(configPath,'utf8'));config.retained_release.manifest_sha256=hash(raw);await fs.writeFile(configPath,stable(config));await assert.rejects(readZipEntityResolutionEvidence({root:g.root,zip5:'00501'}));
  const h=await fixture(t),controller=new AbortController();controller.abort();await assert.rejects(readZipEntityResolutionEvidence({root:h.root,zip5:'00501',signal:controller.signal}),/abort/i);
+});
+
+test('historical replay rejects a live benchmark substituted at the retained manifest path',async t=>{
+ const root=await fs.mkdtemp(path.join(APP_ROOT,'data/tmp/zip-entity-resolution-replay-'));
+ t.after(()=>fs.rm(root,{recursive:true,force:true}));
+ const registration=JSON.parse(await fs.readFile(path.join(APP_ROOT,`config/datasets/${DATASET}.json`),'utf8'));
+ const {bindings}=JSON.parse(await fs.readFile(path.join(APP_ROOT,registration.retained_release.manifest),'utf8'));
+ for(const key of ['resolution','registry','benchmark']){
+  const historical=bindings[key].manifest_path;
+  const target=path.join(root,historical);
+  await fs.mkdir(path.dirname(target),{recursive:true});
+  await fs.copyFile(path.join(APP_ROOT,historical),target);
+ }
+ const benchmarkFolder='data/business-entity-resolution-benchmark';
+ const live=JSON.parse(await fs.readFile(path.join(APP_ROOT,benchmarkFolder,'current.json'),'utf8'));
+ await fs.copyFile(path.join(APP_ROOT,benchmarkFolder,live.manifest),path.join(root,bindings.benchmark.manifest_path));
+ await assert.rejects(verifyZipEntityResolutionEvidence(path.join(root,registration.retained_release.manifest),{root}),/pinned benchmark manifest lineage/);
 });

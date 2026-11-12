@@ -25,11 +25,10 @@ including registry-to-geography lineage. Declared other dependency hashes are
 retained, not independently replayed. Current-pointer drift requires rebuilding
 against a newly reviewed selection; there is no historical-source resolver.
 
-The installed metadata identifies 48,194 rows in a 712,218,883-byte source with
-SHA-256 `b24a6dc7026a3bec96cea4cd4cb227aa58d11be9beebd633d8229ca5ee37a6dd`.
-Focused tests read only its metadata, not its payload. A separate one-line read
-confirmed canonical encoding and the original nested `registry_coverage.status`
-shape; this is not native full verification.
+The November coverage selection identifies 48,194 rows in a 714,580,381-byte
+source with SHA-256 `bbec4dc2b4ff79702b35c3e7dc937958fc4c82005260087b1dbcf3253646abb2`.
+The focused test compares the selected metadata with the retained binding in
+`config/datasets/coverage-zip-view-index.json` without opening the source payload.
 
 ## Representation and proof boundary
 
@@ -49,7 +48,7 @@ The full scan retains only bounded positional metadata, not all source rows.
 
 One-ZIP lookup reads bounded metadata, one bucket, and at most one 65,536-byte
 source range. It verifies the range digest bound by the caller-pinned index and
-checks the original ZIP identity. It does **not** hash the full 712 MB source or
+checks the original ZIP identity. It does **not** hash the full source or
 certify unrelated rows. The caller-held index manifest pin must originate from
 successful publication/full verification; an arbitrary rehashed manifest is not
 its own trust bootstrap. `full_source_replay_performed: false` remains explicit.
@@ -86,9 +85,9 @@ separately as recorded below; fixture tests do not repeat it. No source acquisit
 or runtime integration is performed by this module. Supported Astra fallback
 was used, not Spark. Full repository checks remain the integrator's release gate.
 
-## Native release evidence
+## Historical native release evidence
 
-The integrator completed pointer-free publication and independent full verification
+The integrator completed October pointer-free publication and independent full verification
 of `coverage-zip-view-index-84ab1aff4d30eb285f59f21f20a8c06f6cef7b529a88b1a7ac4672c2adc09dce`.
 Manifest SHA-256:
 `a10a0ae018d76b3923e7f2a788cfb7611e2c5a8616cf49fc93ea26bcae217b6e`.

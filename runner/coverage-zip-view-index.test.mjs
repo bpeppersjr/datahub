@@ -92,7 +92,11 @@ test('lock cleanup failure reports retained publication; replacement lock is nev
 });
 test('public functions reject injection; native metadata binds selected 48194-row coverage without scanning',async()=>{
  for(const call of [()=>publishCoverageZipViewIndex({context:{}}),()=>verifyCoverageZipViewIndex('manifest.json',{loader:()=>{}}),()=>readCoverageZipViewLookup({contract:{}})])await assert.rejects(call(),/unsupported option/);
- const c=await core.loadRegistered(APP_ROOT);assert.equal(c.artifact.record_count,48194);assert.equal(c.artifact.sha256,'b24a6dc7026a3bec96cea4cd4cb227aa58d11be9beebd633d8229ca5ee37a6dd');assert.equal(c.binding.spatial_zip_polygon_denominator.count,33791);
+ const registration=JSON.parse(await fs.readFile(path.join(APP_ROOT,'config/datasets/coverage-zip-view-index.json'),'utf8'));
+ const context=await core.loadRegistered(APP_ROOT);
+ assert.deepEqual(context.binding,registration.retained_release.bindings);
+ assert.equal(context.artifact.record_count,48194);
+ assert.equal(context.binding.spatial_zip_polygon_denominator.count,33791);
 });
 
 test('range-read cancellation and in-flight source replacement reject without partial results',async t=>{

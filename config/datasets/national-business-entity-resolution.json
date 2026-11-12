@@ -59,31 +59,31 @@
   ],
   "current_verified_release": {
     "output": "data/business-entity-resolution/current.json",
-    "manifest": "data/business-entity-resolution/releases/business-entity-resolution-20260911-040411512Z-e6812503/manifest.json",
-    "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff",
-    "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+    "manifest": "data/business-entity-resolution/releases/business-entity-resolution-20261112-025152257Z-75c216bb/manifest.json",
+    "manifest_sha256": "a5f2e82fe0cbe7d4ddb248f9c27660bb516ef7b23080d4e269fb1426554af881",
+    "release_id": "business-entity-resolution-20261112-025152257Z-75c216bb",
     "publisher": {
       "id": "national-business-entity-resolution",
       "version": "1.0.0"
     },
-    "created_at": "2026-09-11T04:04:11.512Z",
+    "created_at": "2026-11-12T02:51:52.257Z",
     "status": "published-reviewable-partial",
     "scope_authority": "The immutable release manifest is authoritative for complete source-specific coverage and limitations; this catalog stores exact headline totals only.",
     "dependencies": {
       "registry": {
         "dataset_id": "national-business-registry",
-        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
-        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+        "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+        "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048"
       }
     },
     "verified_artifact_count": 101,
-    "verified_bytes": 412594557,
-    "profiles": 8011835,
-    "address_groups": 6505544,
-    "multi_member_street_address_groups": 876086,
-    "site_alias_decisions": 2325194,
-    "establishment_alias_decisions": 146896,
-    "review_candidate_decisions": 106063,
+    "verified_bytes": 412615462,
+    "profiles": 8011213,
+    "address_groups": 6505053,
+    "multi_member_street_address_groups": 876076,
+    "site_alias_decisions": 2325053,
+    "establishment_alias_decisions": 146828,
+    "review_candidate_decisions": 106431,
     "review_groups_skipped_for_size": 2,
     "complete_entity_resolution": false,
     "export_policy": "Local review only until benchmarked precision and contributing-source policy checks authorize an export."

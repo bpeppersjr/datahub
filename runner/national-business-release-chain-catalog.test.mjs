@@ -86,8 +86,10 @@ test('downstream catalogs bind the retained release chain without upgrading evid
   assert.equal(b.complete_labeled_benchmark, false);
   assert.equal(b.coverage.submitted_labels, 0);
   assert.equal(b.coverage.benchmark_gate_passed, false);
-  assert.equal(b.automatic_precision_gate_passed, false);
-  assert.equal(b.export_authorized, false);
+  for (const key of ['automatic_precision_gate_passed', 'export_authorized']) {
+    assert.equal(b[key], false, key);
+    if (Object.hasOwn(benchmark.manifest, key)) assert.equal(benchmark.manifest[key], false, key);
+  }
 
   const catalog = catalogs.get(coverage.manifest.dataset_id);
   const v = catalog.current_verified_release;
