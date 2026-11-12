@@ -1,16 +1,24 @@
 import {createHash} from 'node:crypto';
 import {readdir} from 'node:fs/promises';
 import path from 'node:path';
+import retainedHistory from '../config/broad-organization-authorization-retained-history.json' with {type:'json'};
 import {mnSelectionCanonical as canonical, mnSelectionReadJson as readJson} from './mn-construction-retained-selection.mjs';
 
 const fail=()=>{throw Error('Authorization view release inventory or newest lineage is invalid.');};
 const hash=value=>createHash('sha256').update(value).digest('hex');
 
+export function isPinnedAuthorizationHistory(dataset,releaseId,manifestSha256){
+  const pinned=retainedHistory[dataset]?.[releaseId];
+  if(pinned===undefined)return false;
+  if(pinned!==manifestSha256)fail();
+  return true;
+}
+
 // Check every retained envelope, including historical ones, without replaying
 // historical policy through today's implementation. Never skip corrupt entries.
 export async function readAuthorizationViewReleases(root,dataset,artifactName){
   const releases=path.join(root,'releases');await canonical(releases);
-  const entries=await readdir(releases,{withFileTypes:true});if(!entries.length)fail();
+  const entries=await readdir(releases,{withFileTypes:true});if(!entries.length||entries.length>256)fail();
   const result=[];
   for(const entry of entries){
     if(!entry.isDirectory()||entry.isSymbolicLink()||!entry.name.startsWith(`${dataset}-`))fail();
@@ -25,6 +33,7 @@ export async function readAuthorizationViewReleases(root,dataset,artifactName){
       ||manifest.release_id!==`${dataset}-${date.replace(/[^A-Za-z0-9._-]/g,'-')}-${artifactMeter.sha256.slice(0,12)}`
       ||manifest.artifacts?.length!==1||manifest.artifacts[0].path!==artifactName||manifest.artifacts[0].bytes!==artifactMeter.bytes||manifest.artifacts[0].sha256!==artifactMeter.sha256
       ||hash(`${JSON.stringify(manifest,null,2)}\n`)!==manifestMeter.sha256||hash(`${JSON.stringify(artifact,null,2)}\n`)!==artifactMeter.sha256)fail();
+    isPinnedAuthorizationHistory(dataset,manifest.release_id,manifestMeter.sha256);
     result.push({manifest,artifact,manifestPath,manifestSha256:manifestMeter.sha256,instant});
   }
   return result;

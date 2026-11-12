@@ -1,0 +1,2168 @@
+{
+  "schema_version": "broad-organization-current-matrix-authorization-wave@1.0.0",
+  "dataset_id": "broad-organization-current-matrix-authorization-wave",
+  "observed_at": "2026-11-12T05:17:11.911Z",
+  "purpose": "Current-matrix-aligned approval-only wave specification. Every item remains HOLD; this artifact grants no acquisition or execution authority.",
+  "source_projection": {
+    "dataset_id": "broad-organization-matrix-gap-projection",
+    "release_id": "broad-organization-matrix-gap-projection-2026-11-12T05-17-11.911Z-eb4723fed2ff",
+    "manifest_sha256": "20c2bbe685d99647486d70e373e804a57551bdd8118c68f3aad47fd35fb30f75",
+    "artifact_sha256": "eb4723fed2ffc16e1237acb760f999805956e27685e73484389c1e16a6d8445b",
+    "matrix_release_id": "national-goal-completion-20261112051711-1b351542",
+    "matrix_manifest_sha256": "bf6010b6d54d79e99df6eb3db19745be688f190704908b0ddbab979bafde2694",
+    "backlog_release_id": "broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f",
+    "backlog_manifest_sha256": "203d2c6455f2074e4d9bbee4d466f781b15acd249c7e034b1e759229b7743362"
+  },
+  "prior_wave": {
+    "release_id": "broad-organization-current-matrix-authorization-wave-2026-11-12T05-17-11.911Z-990ed23316a5",
+    "manifest_sha256": "a312a250c313456988da28715da75629bbcb631a0ed2f4aa8577574982130b6b",
+    "artifact_sha256": "990ed23316a567f3b902509d0c81f6b0f4830a28d154ac2f4980f43a781f1628",
+    "wave_state_abbreviations": [
+      "MD",
+      "ME",
+      "MI",
+      "MN",
+      "MS",
+      "ND",
+      "NJ",
+      "NV",
+      "SC",
+      "TN"
+    ]
+  },
+  "scope": {
+    "matrix_gap_jurisdictions": 40,
+    "wave_number": 3,
+    "wave_size": 10,
+    "selected_jurisdictions": 10,
+    "prior_wave_jurisdictions": 20,
+    "remaining_current_gaps": 10,
+    "conservation_total": 40,
+    "acquisition_authorized": false,
+    "source_actions_performed": 0,
+    "network_requests": 0,
+    "current_pointer_changed": false,
+    "approval_only": true,
+    "status": "HOLD"
+  },
+  "wave_state_abbreviations": [
+    "VA",
+    "VT",
+    "WI",
+    "WV",
+    "AZ",
+    "IN",
+    "KS",
+    "LA",
+    "MO",
+    "MT"
+  ],
+  "states": [
+    {
+      "wave_position": 1,
+      "state_abbreviation": "VA",
+      "state_name": "Virginia",
+      "historical_backlog_priority": 21,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "schema",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy"
+      ],
+      "gate_items": [
+        {
+          "item_id": "va-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-schema",
+          "item_index": 2,
+          "gate_key": "schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "va-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "va-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://law.lis.virginia.gov/admincode/title5/agency5/chapter40/section10/",
+          "https://www.scc.virginia.gov/businesses/about-the-clerks-office/",
+          "https://www.scc.virginia.gov/businesses/about-the-clerks-office/business-copies-and-certificate-documents/",
+          "https://www.scc.virginia.gov/businesses/forms-and-fees/virginia-stock-corporations/",
+          "https://www.scc.virginia.gov/accessibility-and-web-policy/",
+          "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-19/",
+          "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-21.2/",
+          "https://appspre.scc.virginia.gov/procure/rfp_scc12020_scc.pdf",
+          "https://appspre.scc.virginia.gov/clk/files/cismanual.pdf",
+          "https://cis.scc.virginia.gov/EntitySearch/Index",
+          "https://www.scc.virginia.gov/about-the-scc/contact-us/"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "VA",
+        "state_name": "Virginia",
+        "assessment_id": "va-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Virginia State Corporation Commission Office of the Clerk",
+          "product": "official business-organization source",
+          "availability": "discretionary-structured-data-request",
+          "price": "Structured-data price unknown. The separate $6 certificate/certified-copy service does not price a database extract."
+        },
+        "official_urls": [
+          "https://law.lis.virginia.gov/admincode/title5/agency5/chapter40/section10/",
+          "https://www.scc.virginia.gov/businesses/about-the-clerks-office/",
+          "https://www.scc.virginia.gov/businesses/about-the-clerks-office/business-copies-and-certificate-documents/",
+          "https://www.scc.virginia.gov/businesses/forms-and-fees/virginia-stock-corporations/",
+          "https://www.scc.virginia.gov/accessibility-and-web-policy/",
+          "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-19/",
+          "https://law.lis.virginia.gov/vacode/title12.1/chapter4/section12.1-21.2/",
+          "https://appspre.scc.virginia.gov/procure/rfp_scc12020_scc.pdf",
+          "https://appspre.scc.virginia.gov/clk/files/cismanual.pdf",
+          "https://cis.scc.virginia.gov/EntitySearch/Index",
+          "https://www.scc.virginia.gov/about-the-scc/contact-us/"
+        ],
+        "observed_evidence": [
+          "Separate actual current document access from discretionary structured-data services; historical procurement descriptions do not specify the current extract.",
+          "5VAC5-40-10(D) allows reasonable charges for database records and discretionary creation of an abstract or summary. No recurring business-entity bulk product was verified.",
+          "Public CIS is an interactive filing/search service; no supported public bulk API contract was established.",
+          "Current corporate forms distinguish principal office from registered office and identify officers/directors. No current bulk schema, identifier lifecycle or person-free projection was established.",
+          "Good-standing certificates and annual-report filing requirements establish administrative facts, not current physical operation. A complete extract status dictionary remains required.",
+          "The Clerk holds corporate and related filing records; the reviewed sources do not establish a current full extract population or all operating businesses; statewide_complete=false.",
+          "Principal office and registered office are distinct roles; neither proves an operating establishment. ZIP5 and ZIP4 remain separate fields.",
+          "Many filed-document images from January 1, 1997 onward are available, excluding unaccepted or withdrawn submissions. This image availability is not a database history or refresh contract.",
+          "Public examination and electronic document access do not establish a recurring automated extract. The web policy prohibits unintended system use; supported bulk transport remains unresolved.",
+          "Website policy grants fair use, encourages attribution and restricts commercial use beyond intended public availability. Product-specific derived-use and redistribution terms remain unresolved."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "schema",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "First establish whether an existing recurring entity-only extract is offered, as distinct from a discretionary custom abstract. Obtain its schema, scope, ID/status/address definitions, refresh and delivery terms, price and derived-use scope. This assessment authorizes no contact, production request or portal query. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-5-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 2,
+      "state_abbreviation": "VT",
+      "state_name": "Vermont",
+      "historical_backlog_priority": 22,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "schema",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy"
+      ],
+      "gate_items": [
+        {
+          "item_id": "vt-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-schema",
+          "item_index": 2,
+          "gate_key": "schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "vt-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "vt-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://bizfilings.vermont.gov/bulk-download",
+          "https://legislature.vermont.gov/Documents/2026/Workgroups/Senate%20Institutions/State%20Agencies/Secretary%20of%20State/W~Sarah%20Copeland%20Hanzas~Senate%20Institutions%20Presentation%20-%20Secretary%20Of%20State%20Data~2-17-2026.pdf",
+          "https://legislature.vermont.gov/statutes/section/03/005/00118",
+          "https://sos.vermont.gov/secretary-of-state-services/records-officer",
+          "https://sos.vermont.gov/business-services/copies-certificates",
+          "https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Data/W~Lauren%20Hibbert~Transparency%20and%20Accessibility%20of%20SOS%20Data~4-29-2025.pdf",
+          "https://legislature.vermont.gov/statutes/section/01/005/00316"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "VT",
+        "state_name": "Vermont",
+        "assessment_id": "vt-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Vermont Secretary of State",
+          "product": "official business-organization source",
+          "availability": "official-bulk-availability-contract-unverified",
+          "price": "Current product price unverified. Published 3 V.S.A. 118(c) includes authority for data sales effective July 1, 2025; that provision is not a price schedule."
+        },
+        "official_urls": [
+          "https://bizfilings.vermont.gov/bulk-download",
+          "https://legislature.vermont.gov/Documents/2026/Workgroups/Senate%20Institutions/State%20Agencies/Secretary%20of%20State/W~Sarah%20Copeland%20Hanzas~Senate%20Institutions%20Presentation%20-%20Secretary%20Of%20State%20Data~2-17-2026.pdf",
+          "https://legislature.vermont.gov/statutes/section/03/005/00118",
+          "https://sos.vermont.gov/secretary-of-state-services/records-officer",
+          "https://sos.vermont.gov/business-services/copies-certificates",
+          "https://legislature.vermont.gov/Documents/2026/Workgroups/House%20Energy%20and%20Digital/Data/W~Lauren%20Hibbert~Transparency%20and%20Accessibility%20of%20SOS%20Data~4-29-2025.pdf",
+          "https://legislature.vermont.gov/statutes/section/01/005/00316"
+        ],
+        "observed_evidence": [
+          "February 2026 official testimony confirms current/historical registration bulk availability and feeds still in development. The public bulk URL still returns an application shell, leaving the actual acquisition and schema contract unverified.",
+          "Official February 17, 2026 testimony says a bulk download is available. Anonymous HTTP 200 response at the bulk route contains the application shell, not a documented immutable data file.",
+          "Official testimony describes data feeds as in development; no current public API specification was established.",
+          "No current bulk field dictionary, record identifier lifecycle, status/address codebook, file controls or machine-readable release manifest was established by the reviewed pages.",
+          "Testimony explicitly includes current and historic registrations; a bulk download cannot be assumed to contain only active businesses.",
+          "Registry scope is not an establishment census. No current full-extract count, inclusion/exclusion contract or verified retained release was established.",
+          "No bulk address-role or ZIP completeness guarantee established. Any future projection must separate ZIP5/ZIP4 and avoid treating registered offices as business sites.",
+          "No verified current refresh interval, snapshot identity, correction/deletion contract or checksum continuity. Earlier historical weekly descriptions are not current production proof.",
+          "No anonymous supported unattended transfer contract, rate limit, current fee or account requirement was verified. Availability testimony does not authorize portal automation.",
+          "No product-specific retention or derivative/export rights contract was established in reviewed documentation. Legislative revenue authority does not itself answer those questions."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "schema",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Retain HOLD pending a current schema-only bulk contract: scope, price/account requirements, Record Number lifecycle, status/address definitions, counts, timestamps, refresh semantics, supported transfer and derivative rights. Existing testimony proves product availability only; no account, request, acquisition, portal automation or production action is authorized. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-revalidation-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 3,
+      "state_abbreviation": "WI",
+      "state_name": "Wisconsin",
+      "historical_backlog_priority": 23,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "bulk-layout-and-identifier-mapping",
+        "identifier-lifecycle",
+        "bulk-status-type-date-mapping",
+        "eligible-business-address-availability",
+        "current-file-counts-and-checksums",
+        "snapshot-cutoff-deletion-and-replay",
+        "supported-unattended-delivery",
+        "controlling-bulk-rights",
+        "privacy-exclusions"
+      ],
+      "gate_items": [
+        {
+          "item_id": "wi-bulk-layout-and-identifier-mapping",
+          "item_index": 1,
+          "gate_key": "bulk-layout-and-identifier-mapping",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-identifier-lifecycle",
+          "item_index": 2,
+          "gate_key": "identifier-lifecycle",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-bulk-status-type-date-mapping",
+          "item_index": 3,
+          "gate_key": "bulk-status-type-date-mapping",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-eligible-business-address-availability",
+          "item_index": 4,
+          "gate_key": "eligible-business-address-availability",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-current-file-counts-and-checksums",
+          "item_index": 5,
+          "gate_key": "current-file-counts-and-checksums",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-snapshot-cutoff-deletion-and-replay",
+          "item_index": 6,
+          "gate_key": "snapshot-cutoff-deletion-and-replay",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-supported-unattended-delivery",
+          "item_index": 7,
+          "gate_key": "supported-unattended-delivery",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-controlling-bulk-rights",
+          "item_index": 8,
+          "gate_key": "controlling-bulk-rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wi-privacy-exclusions",
+          "item_index": 9,
+          "gate_key": "privacy-exclusions",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "wi-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/FAQ.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CurrentHistoricalStats.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/083126_EndOfMonthEntityCounts.pdf",
+          "https://dfi.wi.gov/Pages/About/OpenRecords.aspx",
+          "https://apps.dfi.wi.gov/apps/corpsearch/search.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/AdministrativeDissolutions.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/GeneralInformation.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/073126_EndOfMonthEntityCounts.pdf",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP5i.pdf"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "WI",
+        "state_name": "Wisconsin",
+        "assessment_id": "wi-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Wisconsin Department of Financial Institutions, Division of Corporate and Consumer Services",
+          "product": "official business-organization source",
+          "availability": "paid-full-corporate-database-sharefile",
+          "price": "Production Form 51, revised August 2024, prices each full snapshot at $40 and each New Formations delivery at $5. Ordering requires mailing the form and payment; DFI creates the ShareFile subscriber account."
+        },
+        "official_urls": [
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CorpDataServices.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP51.pdf",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/FAQ.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/CurrentHistoricalStats.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/083126_EndOfMonthEntityCounts.pdf",
+          "https://dfi.wi.gov/Pages/About/OpenRecords.aspx",
+          "https://apps.dfi.wi.gov/apps/corpsearch/search.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/AdministrativeDissolutions.aspx",
+          "https://dfi.wi.gov/Pages/BusinessServices/BusinessEntities/GeneralInformation.aspx",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/073126_EndOfMonthEntityCounts.pdf",
+          "https://dfi.wi.gov/Documents/BusinessServices/BusinessEntities/Forms/CORP5i.pdf"
+        ],
+        "observed_evidence": [
+          "Reconfirm paid bulk delivery and narrow unresolved schema/status questions using the public dictionary; refresh the latest observed aggregate while preserving its limited population.",
+          "Full Corporate Database is a text snapshot. New Formations is a separate prior-month additions product, not a replacement baseline or general update feed.",
+          "The reviewed official pages establish no anonymous bulk API or supported unattended ShareFile retrieval contract.",
+          "Public pages describe field categories, not an exact text layout, delimiter, encoding or bulk identifier mapping. Officer/director details are expressly omitted. The FAQ supplies public status, transaction and type dictionaries, but their serialization in the purchased file remains unverified.",
+          "CRIS describes legal filing condition. ORG indicates no termination filing; INC also includes reporting standing, while DLQ means overdue reports. MER denotes the survivor and MGD the non-survivor. These definitions do not establish operating activity or a validated bulk active filter.",
+          "DFI expressly excludes many unregistered sole proprietors and general partnerships from its registry. The August 2026 active summary is an aggregate for selected entity classes, not the all-status purchased file's control total or the state's operating-business universe.",
+          "Only registered agent/office address is advertised for bulk delivery. A principal-office definition in the FAQ does not prove that field is supplied in the file. ZIP and ZIP+4 layout is unpublished; preserve them as separate fields if later documented. Agent addresses cannot establish operating sites under the project's canonical boundary.",
+          "The FAQ distinguishes effective dates from processing dates, which can differ. Published delivery cadence does not define snapshot cutoffs, disappearance/deletion meaning, correction replay or checksums. Monthly formation additions do not convey subsequent status changes.",
+          "Full files are offered once, weekly on Tuesday, or monthly on the second Tuesday. New Formations arrives by email on the second Monday. These delivery schedules do not establish unattended retrieval permission or an acquisition authorization.",
+          "The reviewed pages do not publish controlling bulk reuse/redistribution terms. Open-records guidance points corporate compilations to the paid product and warns purchased products may not be obtainable by an open-records request; it supplies no alternate free acquisition contract."
+        ],
+        "unresolved_gates": [
+          "bulk-layout-and-identifier-mapping",
+          "identifier-lifecycle",
+          "bulk-status-type-date-mapping",
+          "eligible-business-address-availability",
+          "current-file-counts-and-checksums",
+          "snapshot-cutoff-deletion-and-replay",
+          "supported-unattended-delivery",
+          "controlling-bulk-rights",
+          "privacy-exclusions"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only request for the purchased text layout and public-key lifecycle, mapping to the existing public type/status/date dictionary, any principal-business-address availability, file control totals, snapshot/replay contract, unattended delivery support and unsigned reuse terms. Treat the full file as an organization layer if eligible business addresses are absent. No contact, account, order, payment, terms acceptance, data acquisition, connector implementation or production admission is authorized. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 4,
+      "state_abbreviation": "WV",
+      "state_name": "West Virginia",
+      "historical_backlog_priority": 24,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "current-price-contract",
+        "current-schema-continuity",
+        "identifier-lifecycle",
+        "status-and-biennial-election",
+        "organization-address-role",
+        "change-replay",
+        "automation",
+        "rights",
+        "privacy"
+      ],
+      "gate_items": [
+        {
+          "item_id": "wv-current-price-contract",
+          "item_index": 1,
+          "gate_key": "current-price-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-current-schema-continuity",
+          "item_index": 2,
+          "gate_key": "current-schema-continuity",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-identifier-lifecycle",
+          "item_index": 3,
+          "gate_key": "identifier-lifecycle",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-status-and-biennial-election",
+          "item_index": 4,
+          "gate_key": "status-and-biennial-election",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-organization-address-role",
+          "item_index": 5,
+          "gate_key": "organization-address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-change-replay",
+          "item_index": 6,
+          "gate_key": "change-replay",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "wv-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "wv-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://apps.wv.gov/sos/bulkdata/RegistrationInformation.aspx",
+          "https://apps.wv.gov/sos/bulkdata/Forms/FileDescriptions.aspx",
+          "https://apps.wv.gov/sos/bulkdata/Content/BED_FileInformation.pdf",
+          "https://code.wvlegislature.gov/59-1-2A/",
+          "https://sos.wv.gov/business",
+          "https://sos.wv.gov/sites/default/files/2026-04/BulkDataResaleContract.pdf"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "WV",
+        "state_name": "West Virginia",
+        "assessment_id": "wv-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "West Virginia Secretary of State",
+          "product": "official business-organization source",
+          "availability": "paid-account-bulk-contract-required",
+          "price": "Current statute lists $12,000 for the full database and $1,000/month for updates. Historical assessment price conflicts are unresolved because the current request form was not inspectable."
+        },
+        "official_urls": [
+          "https://apps.wv.gov/sos/bulkdata/RegistrationInformation.aspx",
+          "https://apps.wv.gov/sos/bulkdata/Forms/FileDescriptions.aspx",
+          "https://apps.wv.gov/sos/bulkdata/Content/BED_FileInformation.pdf",
+          "https://code.wvlegislature.gov/59-1-2A/",
+          "https://sos.wv.gov/business",
+          "https://sos.wv.gov/sites/default/files/2026-04/BulkDataResaleContract.pdf"
+        ],
+        "observed_evidence": [
+          "Current legislation adds eligible biennial reporting; source freshness must account for that election. Public registration links now lead to an AccessGov form, so historic request-form pricing is not revalidated.",
+          "Monthly full registry and separate daily, weekly and monthly new-company products are documented. These are not documented all-change streams.",
+          "No supported public registry API established.",
+          "The December 2009 layout documents nine tilde-delimited files with headers and Recordid joins. Corporations contains names, formation/filing dates and termination fields. Addresses is described as officer information with ContactType and ZipCode, not a verified operating-site table. Current schema continuity is unverified.",
+          "Do not infer current business operation from filing status or missing annual reports. Effective July 1, 2026, qualifying entities may elect biennial reports after five consecutive timely annual filings while in good standing. Current status codebooks and election fields remain unverified.",
+          "Registry entities and physical establishments are distinct populations. No acquired release or reconciled control total was established.",
+          "Keep future ZIP5 and ZIP4 separate. The old address layout does not establish an organization-only physical address selection; exclude officer/contact and service-of-process addresses.",
+          "Monthly snapshots plus new-company extracts do not establish update/deletion replay. Biennial election prevents interpreting every missing annual filing as lapse. Counts, checksums, corrections and tombstones remain unresolved.",
+          "WV.gov credentials, Monthly Account Holder Agreement and source subscription are required. Request and resale links redirected to AccessGov; no form was submitted. Unattended retrieval terms remain unresolved.",
+          "Registration requires a separate commercial resale contract for resale. This review does not grant retention, geocoding, aggregation or public export rights."
+        ],
+        "unresolved_gates": [
+          "current-price-contract",
+          "current-schema-continuity",
+          "identifier-lifecycle",
+          "status-and-biennial-election",
+          "organization-address-role",
+          "change-replay",
+          "automation",
+          "rights",
+          "privacy"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only inquiry covering the current request/resale terms, price reconciliation, schema continuity, biennial-election/status mapping, organization-only address roles and full-change replay. HOLD persists; this record authorizes no contact, account, payment, rows or connector. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-3-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 5,
+      "state_abbreviation": "AZ",
+      "state_name": "Arizona",
+      "historical_backlog_priority": 25,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "schema",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy",
+        "control-totals"
+      ],
+      "gate_items": [
+        {
+          "item_id": "az-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-schema",
+          "item_index": 2,
+          "gate_key": "schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "az-control-totals",
+          "item_index": 10,
+          "gate_key": "control-totals",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "az-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://www.azcc.gov/faqs",
+          "https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6",
+          "https://www.azcc.gov/news/home/2026/01/07/less-than-one-week-away-from-the-launch-of-arizona-business-connect",
+          "https://www.azcc.gov/public-records-request",
+          "https://www.azleg.gov/ars/39/00121-03.htm",
+          "https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request.pdf?sfvrsn=73637fee_4",
+          "https://azcc.gov/docs/default-source/corps-files/fee-schedules/fee-schedule-corporations6def4cc74b1a47129d16c2b1c3851bda.pdf",
+          "https://azcc.gov/corporations",
+          "https://www.azcc.gov/corporations/notices",
+          "https://webprod.azcc.gov/",
+          "https://www.azcc.gov/privacy-policy"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "AZ",
+        "state_name": "Arizona",
+        "assessment_id": "az-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Arizona official state publishers",
+          "product": "official business-organization source",
+          "availability": "paid-request-schema-unresolved",
+          "price": "Online ordering availability does not establish automated delivery. Commercial-purpose disclosure and purpose-specific charges remain applicable; no order or purpose declaration was submitted."
+        },
+        "official_urls": [
+          "https://www.azcc.gov/faqs",
+          "https://www.azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request4afa009930ae4583a9310593ba4c65ce.pdf?sfvrsn=73637fee_6",
+          "https://www.azcc.gov/news/home/2026/01/07/less-than-one-week-away-from-the-launch-of-arizona-business-connect",
+          "https://www.azcc.gov/public-records-request",
+          "https://www.azleg.gov/ars/39/00121-03.htm",
+          "https://azcc.gov/docs/default-source/corps-files/forms/m027-database-extraction-request.pdf?sfvrsn=73637fee_4",
+          "https://azcc.gov/docs/default-source/corps-files/fee-schedules/fee-schedule-corporations6def4cc74b1a47129d16c2b1c3851bda.pdf",
+          "https://azcc.gov/corporations",
+          "https://www.azcc.gov/corporations/notices",
+          "https://webprod.azcc.gov/",
+          "https://www.azcc.gov/privacy-policy"
+        ],
+        "observed_evidence": [
+          "Current FAQ confirms online extraction ordering; distinguish that route from the older form's delivery instructions and the January 2026 platform migration.",
+          "FAQ advertises online full extraction for $1,000 or partial extraction for $75. The older M027 form specifies quoted comma-separated ASCII, CD-ROM/email delivery and a full-database download option.",
+          "No public unattended API or recurring extraction contract established by reviewed official documentation.",
+          "M027 lists name/address, dates, status, business type and person-role groups, but no exact current header or stable-ID contract. SIC codes, phone, EIN and financial information are unavailable.",
+          "Bulk status vocabulary and effective dates remain unverified; corporate registration cannot establish operating-site activity.",
+          "The advertised corporation/LLC database is not a denominator of every business establishment. Current counts, types and historical inclusion remain unresolved.",
+          "Business address, statutory-agent address and officer addresses need distinct roles. Keep ZIP5 and ZIP4 separate and do not infer business coordinates from agent addresses.",
+          "No release cadence, full/delta semantics, deletion contract, replay controls or post-migration identifier continuity was established.",
+          "Online ordering availability does not establish automated delivery. Commercial-purpose disclosure and purpose-specific charges remain applicable; no order or purpose declaration was submitted.",
+          "ARS 39-121.03 links commercial use to the declared purpose. Intended retention, geocoding and derivative distribution need a product-specific determination."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "schema",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy",
+          "control-totals"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only clarification of current online extraction delivery, person-free schema, identifier continuity, release totals, replay and intended-use rights. HOLD remains; no account, request submission, payment or contact is authorized. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-6-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 6,
+      "state_abbreviation": "IN",
+      "state_name": "Indiana",
+      "historical_backlog_priority": 26,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "schema",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy",
+        "control-totals"
+      ],
+      "gate_items": [
+        {
+          "item_id": "in-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-schema",
+          "item_index": 2,
+          "gate_key": "schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "in-control-totals",
+          "item_index": 10,
+          "gate_key": "control-totals",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "in-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://inbiz.in.gov/Inbiz/BulkDataServices/Index",
+          "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf",
+          "https://inbiz.in.gov/business-filings/business-entityreport",
+          "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/",
+          "https://www.in.gov/sos/business/files/20250326-IR-075250155FNA.pdf",
+          "https://inbiz.in.gov/inbiz/bulkdataservices/index",
+          "https://www.in.gov/sos/files/2025-InBiz-Legislative-Council-Report-Business-One-Stop-10-31-25.pdf",
+          "https://inbiz.in.gov/business-filings/admin-dissolution",
+          "https://bsd.sos.in.gov/publicbusinesssearch",
+          "https://www.in.gov/core/terms_of_use.html",
+          "https://www.in.gov/sos/business/files/New-INBiz-FAQs.pdf",
+          "https://www.in.gov/pla/license/download-license-files/"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "IN",
+        "state_name": "Indiana",
+        "assessment_id": "in-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Indiana official state publishers",
+          "product": "official business-organization source",
+          "availability": "account-gated-paid-bulk-contract-unresolved",
+          "price": "Account, payment, delivery and automation terms need verification. The March 2025 first-public-comment document is proposed-rule evidence, not proof of final adoption."
+        },
+        "official_urls": [
+          "https://inbiz.in.gov/Inbiz/BulkDataServices/Index",
+          "https://www.in.gov/sos/business/files/Regulatory-Analysis-Business-Entity-Bulk-Data-Fees-LSA-25-155-OMB-2025-01R.pdf",
+          "https://inbiz.in.gov/business-filings/business-entityreport",
+          "https://www.in.gov/sos/business/hb-1593-and-hb-1666-filing-process-changes/",
+          "https://www.in.gov/sos/business/files/20250326-IR-075250155FNA.pdf",
+          "https://inbiz.in.gov/inbiz/bulkdataservices/index",
+          "https://www.in.gov/sos/files/2025-InBiz-Legislative-Council-Report-Business-One-Stop-10-31-25.pdf",
+          "https://inbiz.in.gov/business-filings/admin-dissolution",
+          "https://bsd.sos.in.gov/publicbusinesssearch",
+          "https://www.in.gov/core/terms_of_use.html",
+          "https://www.in.gov/sos/business/files/New-INBiz-FAQs.pdf",
+          "https://www.in.gov/pla/license/download-license-files/"
+        ],
+        "observed_evidence": [
+          "Surface all-registered versus active-only scope ambiguity and distinguish 2026 residential-address suppression from CMRA disclosure requirements.",
+          "INBiz advertises a month-start full file through prior month-end, with 12 months of update eligibility. Regulatory analysis describes USB baseline delivery, $8,000 one-time or $9,500 plus $500 per selected monthly update.",
+          "Monthly download access does not establish an unattended API.",
+          "Exact bulk schema, Business-ID lifecycle, control totals and person-free projection remain unverified. The $35 new-business list is a separate product, not a full registry.",
+          "Biennial reporting maintains registry status; general partnerships and sole proprietors do not register. Operational activity cannot be inferred from registry standing.",
+          "Product narrative says all registered businesses; regulatory analysis comparison table says all active. Resolve this scope ambiguity before assigning a denominator.",
+          "2026 guidance permits eligible remote businesses to exclude a residential address and separately requires CMRA disclosures. It does not say CMRA addresses are categorically withheld. Keep ZIP5/ZIP4 separate and suppressed addresses unknown.",
+          "Updates are described as differential. Tombstones, ordering, correction/replay, baseline compatibility and checksums remain unresolved.",
+          "Account, payment, delivery and automation terms need verification. The March 2025 first-public-comment document is proposed-rule evidence, not proof of final adoption.",
+          "Commercial demand for bulk records does not itself settle retention, geocoding, derived publication or redistribution terms."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "schema",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy",
+          "control-totals"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only clarification of all-registered versus active scope, current USB/download delivery, redaction flags, person-free schema, differential replay and intended-use terms. HOLD remains; no account, purchase, contact or acquisition is authorized. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 7,
+      "state_abbreviation": "KS",
+      "state_name": "Kansas",
+      "historical_backlog_priority": 27,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "ink-contract",
+        "source-scope",
+        "machine-readable-schema",
+        "stable-identifier-lifecycle",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy"
+      ],
+      "gate_items": [
+        {
+          "item_id": "ks-ink-contract",
+          "item_index": 1,
+          "gate_key": "ink-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-source-scope",
+          "item_index": 2,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-machine-readable-schema",
+          "item_index": 3,
+          "gate_key": "machine-readable-schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-stable-identifier-lifecycle",
+          "item_index": 4,
+          "gate_key": "stable-identifier-lifecycle",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-status-codebook",
+          "item_index": 5,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-address-role",
+          "item_index": 6,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-change-contract",
+          "item_index": 7,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-automation",
+          "item_index": 8,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-rights",
+          "item_index": 9,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "ks-privacy",
+          "item_index": 10,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "ks-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-correction",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://www.sos.ks.gov/forms/elections/RAR.pdf",
+          "https://mykansas.ks.gov/ucc/?p=help_costs",
+          "https://ksrevisor.gov/statutes/chapters/ch45/045_002_0030.html",
+          "https://sos.ks.gov/eforms/BusinessEntity/Search.aspx"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "KS",
+        "state_name": "Kansas",
+        "assessment_id": "ks-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-correction",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Kansas Secretary of State",
+          "product": "one-time active business-entity list; entire database via INK inquiry",
+          "availability": "one-time-paid-request",
+          "price": "$150-$200 by email or CD; entire-database contract and price unknown"
+        },
+        "official_urls": [
+          "https://www.sos.ks.gov/forms/elections/RAR.pdf",
+          "https://mykansas.ks.gov/ucc/?p=help_costs",
+          "https://ksrevisor.gov/statutes/chapters/ch45/045_002_0030.html",
+          "https://sos.ks.gov/eforms/BusinessEntity/Search.aspx"
+        ],
+        "observed_evidence": [
+          "The September 22 assessment incorrectly treated the $1,500-per-month UCC bulk-download service as a corporate business-entity product. The official corporate offering evidenced here is the one-time Database Records Access Request; UCC pricing is not corporate-registry pricing.",
+          "The request form identifies Business Entity ID, entity type and status, name, mailing address, formation date and jurisdiction, resident-agent name, and registered-office address. Person and registered-agent fields require exclusion; no machine-readable schema, sample or checksum is published.",
+          "The offered lists are described as active entities, but registry status and biennial-report standing are legal filing evidence rather than verified current operation; a complete status codebook is not published.",
+          "The $150-$200 products are bounded one-time active-entity lists. An entire-database route exists through INK, but its population, exclusions, contract, price and delivery terms are unknown.",
+          "Mailing and registered-office addresses are listed. Mailing address is administrative evidence only; registered-office and resident-agent data must be excluded. No principal or physical-site field is established.",
+          "The evidenced corporate products are one-time lists; no recurring cadence, full/delta semantics, deletions, replay, archive, counts or checksums are documented. Kansas biennial reporting can make legal/address evidence approximately two years old."
+        ],
+        "unresolved_gates": [
+          "ink-contract",
+          "source-scope",
+          "machine-readable-schema",
+          "stable-identifier-lifecycle",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Request non-row-bearing written SOS/INK terms for the entire corporate database, including price, population, person-free schema, Business Entity ID lifecycle, status and address dictionaries, cadence, full/delta/deletion/replay/checksum behavior, unattended delivery, and retention, transformation, geocoding, derived-publication and redistribution rights. Do not acquire or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "ks-business-source-2026-09-22"
+      }
+    },
+    {
+      "wave_position": 8,
+      "state_abbreviation": "LA",
+      "state_name": "Louisiana",
+      "historical_backlog_priority": 28,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "custom-extract-schema",
+        "api-route-and-version-clarification",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy"
+      ],
+      "gate_items": [
+        {
+          "item_id": "la-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-custom-extract-schema",
+          "item_index": 2,
+          "gate_key": "custom-extract-schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-api-route-and-version-clarification",
+          "item_index": 3,
+          "gate_key": "api-route-and-version-clarification",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-stable-identifier",
+          "item_index": 4,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-status-codebook",
+          "item_index": 5,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-address-role",
+          "item_index": 6,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-change-contract",
+          "item_index": 7,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-automation",
+          "item_index": 8,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-rights",
+          "item_index": 9,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "la-privacy",
+          "item_index": 10,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "la-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://www.sos.la.gov/business-services/how-to-order",
+          "https://static.sos.la.gov/COAPI/Commercial_API_Guide.pdf",
+          "https://subscriptions.sos.la.gov/",
+          "https://www.doa.la.gov/doa/osr/louisiana-administrative-code/",
+          "https://coraweb.sos.la.gov/CommercialSearch/CommercialSearch.aspx",
+          "https://www.sos.la.gov/business-services/start-a-business",
+          "https://www.sos.la.gov/business-services/frequently-asked-questions",
+          "https://www.sos.la.gov/our-office/about-us",
+          "https://legis.la.gov/Legis/Law.aspx?d=920189",
+          "https://www.legis.la.gov/legis/Law.aspx?d=76257",
+          "https://www.legis.la.gov/legis/Law.aspx?d=920229",
+          "https://legis.la.gov/Legis/Law.aspx?d=920469",
+          "https://www.legis.la.gov/legis/Law.aspx?d=99688",
+          "https://legis.la.gov/Legis/Law.aspx?d=99691&p=y",
+          "https://www.sos.la.gov/disclaimer",
+          "https://www.sos.la.gov/business-services/contact-us"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "LA",
+        "state_name": "Louisiana",
+        "assessment_id": "la-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Louisiana Secretary of State, Commercial Division",
+          "product": "custom Computer Query; separate Commercial API lookup service",
+          "availability": "paid-custom-extract-contract-required",
+          "price": "Computer Query: $25 for first 40 records plus $0.01 per additional record; current live API quote not established"
+        },
+        "official_urls": [
+          "https://www.sos.la.gov/business-services/how-to-order",
+          "https://static.sos.la.gov/COAPI/Commercial_API_Guide.pdf",
+          "https://subscriptions.sos.la.gov/",
+          "https://www.doa.la.gov/doa/osr/louisiana-administrative-code/",
+          "https://coraweb.sos.la.gov/CommercialSearch/CommercialSearch.aspx",
+          "https://www.sos.la.gov/business-services/start-a-business",
+          "https://www.sos.la.gov/business-services/frequently-asked-questions",
+          "https://www.sos.la.gov/our-office/about-us",
+          "https://legis.la.gov/Legis/Law.aspx?d=920189",
+          "https://www.legis.la.gov/legis/Law.aspx?d=76257",
+          "https://www.legis.la.gov/legis/Law.aspx?d=920229",
+          "https://legis.la.gov/Legis/Law.aspx?d=920469",
+          "https://www.legis.la.gov/legis/Law.aspx?d=99688",
+          "https://legis.la.gov/Legis/Law.aspx?d=99691&p=y",
+          "https://www.sos.la.gov/disclaimer",
+          "https://www.sos.la.gov/business-services/contact-us"
+        ],
+        "observed_evidence": [
+          "Reconfirmed custom Computer Query pricing and separated it from the lookup API. The API guide has a contradictory CommercialLookup path that requires publisher clarification before implementation.",
+          "Official order instructions offer request-defined custom multi-entity queries; a complete recurring statewide extract contract remains unverified.",
+          "REST JSON uses token plus account email; live tokens are paid and test tokens return test data. Limits are 18 calls/minute and 1,000 search results; no pagination or change-feed contract is documented.",
+          "The guide documents entity identifiers, charter status, address structures and natural-person sections. CommercialLookup names /api/Commercial/Search in the method section but /api/Commercial/Lookup in its appendix. Header version/date and revision-history entries also differ; no route was probed.",
+          "Charter and annual-report standing are legal filing assertions; operating-business status and status-code lifecycle remain unverified.",
+          "The 1,000-result API cap and undocumented enumeration contract cannot establish a statewide baseline. A custom query needs an explicit entity-class scope and complete as-of count.",
+          "Address structures include ZipCode and AddressType; published value semantics are insufficient to identify physical sites. Future outputs must keep ZIP5 and ZIP4 separate and exclude agent/person contact fields.",
+          "No recurring custom-extract cadence, full/delta/deletion, correction, replay or checksum contract established.",
+          "Official query pricing is documented. Account, token, current agreement and permitted scope remain prerequisites for live API use; no signup, payment or acceptance occurred.",
+          "No reviewed grant of indefinite retention, derived publication or redistribution was established for a custom extract."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "custom-extract-schema",
+          "api-route-and-version-clarification",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only query for a complete person-free custom extract quote, schema, current rights and refresh contract. Include the guide's lookup-route discrepancy if API integration is contemplated; do not substitute capped name searches for statewide acquisition. Separate authorization is required before sending. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-8-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 9,
+      "state_abbreviation": "MO",
+      "state_name": "Missouri",
+      "historical_backlog_priority": 29,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "source-scope",
+        "schema",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy",
+        "control-totals"
+      ],
+      "gate_items": [
+        {
+          "item_id": "mo-source-scope",
+          "item_index": 1,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-schema",
+          "item_index": 2,
+          "gate_key": "schema",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mo-control-totals",
+          "item_index": 10,
+          "gate_key": "control-totals",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "mo-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://www.sos.mo.gov/business/formsAndServices",
+          "https://www.sos.mo.gov/business/corporations/faqs.asp",
+          "https://www.sos.mo.gov/business/corporations/fictitious_faq",
+          "https://www.sos.mo.gov/CMSImages/SOSMain/AshcroftAdministrationAccomplishments.pdf",
+          "https://www.sos.mo.gov/CMSImages/NewsReleases/OfficeCalendarYear2023.pdf",
+          "https://revisor.mo.gov/main/OneSection.aspx?section=610.026",
+          "https://revisor.mo.gov/main/OneSection.aspx?section=610.029",
+          "https://www.sos.mo.gov/business/corporations",
+          "https://www.sos.mo.gov/business/corporations/about.asp",
+          "https://www.sos.mo.gov/CMSImages/Business/BRSGuides/SearchingforEntitiy.pdf",
+          "https://www.sos.mo.gov/business/corporations/generalInfo",
+          "https://oa.mo.gov/sites/default/files/2021-State-Projects-Report.pdf",
+          "https://www.sos.mo.gov/bsd/RegSysFAQ",
+          "https://www.sos.mo.gov/ipolicy",
+          "https://www.sos.mo.gov/business/corporations/contact.asp"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "MO",
+        "state_name": "Missouri",
+        "assessment_id": "mo-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Missouri official state publishers",
+          "product": "official business-organization source",
+          "availability": "bulk-product-current-contract-unresolved",
+          "price": "Current product fees and automation permissions remain unresolved. Indiana's comparative pricing table is not a Missouri publisher quote."
+        },
+        "official_urls": [
+          "https://www.sos.mo.gov/business/formsAndServices",
+          "https://www.sos.mo.gov/business/corporations/faqs.asp",
+          "https://www.sos.mo.gov/business/corporations/fictitious_faq",
+          "https://www.sos.mo.gov/CMSImages/SOSMain/AshcroftAdministrationAccomplishments.pdf",
+          "https://www.sos.mo.gov/CMSImages/NewsReleases/OfficeCalendarYear2023.pdf",
+          "https://revisor.mo.gov/main/OneSection.aspx?section=610.026",
+          "https://revisor.mo.gov/main/OneSection.aspx?section=610.029",
+          "https://www.sos.mo.gov/business/corporations",
+          "https://www.sos.mo.gov/business/corporations/about.asp",
+          "https://www.sos.mo.gov/CMSImages/Business/BRSGuides/SearchingforEntitiy.pdf",
+          "https://www.sos.mo.gov/business/corporations/generalInfo",
+          "https://oa.mo.gov/sites/default/files/2021-State-Projects-Report.pdf",
+          "https://www.sos.mo.gov/bsd/RegSysFAQ",
+          "https://www.sos.mo.gov/ipolicy",
+          "https://www.sos.mo.gov/business/corporations/contact.asp"
+        ],
+        "observed_evidence": [
+          "Revalidate published service availability and distinguish entity-type filing cadence from data-release freshness.",
+          "Current SOS service catalog lists searches, filings and copies but no bulk ordering route or price. The historical implementation report referenced by queue 7 could not be fetched in this review.",
+          "No public API contract or unattended delivery specification established.",
+          "No current bulk field dictionary, person-free header, stable charter-key lifecycle or release count was located in the reviewed service documentation.",
+          "Legal standing and dissolution are filing facts; neither proves that an establishment is operating.",
+          "General partnerships, separately regulated banking/insurance filings and local licenses require separate coverage. Bulk inclusion of entity types and fictitious names remains unverified.",
+          "Registered office is a service-of-process location. Preserve address roles and separate ZIP5/ZIP4; do not treat that office as a business establishment.",
+          "LLCs have no annual-report duty; corporations can elect biennial reports; LLP/LLLP registrations renew yearly. These are filing cadences, not a bulk release or replay contract.",
+          "Current product fees and automation permissions remain unresolved. Indiana's comparative pricing table is not a Missouri publisher quote.",
+          "Reviewed Missouri service documentation does not settle intended retention, transformation, geocoding or redistribution rights."
+        ],
+        "unresolved_gates": [
+          "source-scope",
+          "schema",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy",
+          "control-totals"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Prepare a document-only inquiry for the current bulk product route, quote, person-free schema, scope, entity-specific status and filing-age semantics, delivery/replay controls and derived-use rights. Do not infer universal annual freshness. HOLD remains and no contact or acquisition is authorized. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-7-wave-1-2026-09-03"
+      }
+    },
+    {
+      "wave_position": 10,
+      "state_abbreviation": "MT",
+      "state_name": "Montana",
+      "historical_backlog_priority": 30,
+      "matrix_gap_status": "unmeasured",
+      "approval_status": "HOLD",
+      "item_kind": "approval-only",
+      "acquisition_authorized": false,
+      "unresolved_gates": [
+        "current-layout-compatibility",
+        "source-scope",
+        "stable-identifier",
+        "status-codebook",
+        "address-role",
+        "change-contract",
+        "automation",
+        "rights",
+        "privacy",
+        "control-totals"
+      ],
+      "gate_items": [
+        {
+          "item_id": "mt-current-layout-compatibility",
+          "item_index": 1,
+          "gate_key": "current-layout-compatibility",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-source-scope",
+          "item_index": 2,
+          "gate_key": "source-scope",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-stable-identifier",
+          "item_index": 3,
+          "gate_key": "stable-identifier",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-status-codebook",
+          "item_index": 4,
+          "gate_key": "status-codebook",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-address-role",
+          "item_index": 5,
+          "gate_key": "address-role",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-change-contract",
+          "item_index": 6,
+          "gate_key": "change-contract",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-automation",
+          "item_index": 7,
+          "gate_key": "automation",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-rights",
+          "item_index": 8,
+          "gate_key": "rights",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-privacy",
+          "item_index": 9,
+          "gate_key": "privacy",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        },
+        {
+          "item_id": "mt-control-totals",
+          "item_index": 10,
+          "gate_key": "control-totals",
+          "item_kind": "approval-only",
+          "status": "HOLD",
+          "acquisition_authorized": false,
+          "source_action_authorized": false,
+          "authority_note": "No source, contact, download, payment, record-request, or production action is authorized by this item."
+        }
+      ],
+      "required_exclusions": [
+        "natural-person and registered-agent data",
+        "direct contact and sensitive identifiers",
+        "filing documents and free text"
+      ],
+      "assessment_provenance": {
+        "assessment_id": "mt-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "official_urls": [
+          "https://sosmt.gov/business/business-services-catalog/",
+          "https://sosmt.gov/wp-content/uploads/BulkDownloadSpecs.pdf",
+          "https://sosmt.gov/Business/Fees/",
+          "https://biz.sosmt.gov/search/business/query/",
+          "https://sosmt.gov/Portals/142/Business/Corp_Bulk_Download_Data_Layout.pdf",
+          "https://biz.sosmt.gov/forms/new/1354"
+        ]
+      },
+      "assessment_snapshot": {
+        "state_abbreviation": "MT",
+        "state_name": "Montana",
+        "assessment_id": "mt-business-source-reassessment-2026-10-03",
+        "assessment_kind": "official-source-reassessment",
+        "observed_at": "2026-10-03",
+        "coverage_release_id": "national-business-coverage-views-20260902-115337634Z-ba689784",
+        "decision": "hold",
+        "authorized_next_action_type": "written-preflight-inquiry",
+        "bounded_connector_implementation_authorized": false,
+        "autonomous_acquisition_authorized": false,
+        "paid_acquisition_authorized": false,
+        "complete_source_acquisition_authorized": false,
+        "row_bearing_preflight_authorized": false,
+        "offline_fixture_connector_authorized": false,
+        "production_ready": false,
+        "broad_layer_production_ready": false,
+        "candidate": {
+          "publisher": "Montana official state publishers",
+          "product": "official business-organization source",
+          "availability": "paid-bulk-published-layout",
+          "price": "The current fee schedule supports a paid bulk route but does not establish an executable quote, account requirements, automation authorization or an accepted order."
+        },
+        "official_urls": [
+          "https://sosmt.gov/business/business-services-catalog/",
+          "https://sosmt.gov/wp-content/uploads/BulkDownloadSpecs.pdf",
+          "https://sosmt.gov/Business/Fees/",
+          "https://biz.sosmt.gov/search/business/query/",
+          "https://sosmt.gov/Portals/142/Business/Corp_Bulk_Download_Data_Layout.pdf",
+          "https://biz.sosmt.gov/forms/new/1354"
+        ],
+        "observed_evidence": [
+          "Narrow schema discovery to validating the current delivery against the already published tagged-record specification; retain unresolved delivery, rights and identity gates.",
+          "The official catalog describes comma-delimited corporate extracts compressed into ZIP files. The fee page lists corporate bulk data at $0.02 per record; new-entity reports are $80, with subscriptions separately listed at $80/month.",
+          "No supported unattended bulk API, authenticated transfer contract or rate-limit policy was established.",
+          "The public Version 2 specification dated April 26, 2017 defines tagged entity/child rows, Business Entity Number joins, status/date fields and seven-component addresses. Current delivery compatibility remains unverified; a public layout is not a validated package.",
+          "Status descriptions include active and inactive examples, and some entity types have inactive reasons/dates. These are not proof of current business operation; a complete current codebook is unresolved.",
+          "Catalog scope includes corporations, LLCs, partnerships, assumed/foreign names, trademarks and bonds. These are distinct record populations; delivered subtype coverage and counts require validation before any business completeness claim.",
+          "The older specification identifies principal-office mailing addresses and separate agent/person-role addresses. Exclude person-role rows from business projection; preserve address roles and ZIP5/ZIP4 separately.",
+          "The specification's 2017 revision is historical contract evidence. The HTML catalog's 2026 table timestamps are publication metadata, not source-release freshness. Refresh, deletions, correction replay, counts and checksums remain unresolved.",
+          "The current fee schedule supports a paid bulk route but does not establish an executable quote, account requirements, automation authorization or an accepted order.",
+          "Retention, derived-use and redistribution rights were not established by the technical specification or fee schedule; public documentation does not grant product-specific rights."
+        ],
+        "unresolved_gates": [
+          "current-layout-compatibility",
+          "source-scope",
+          "stable-identifier",
+          "status-codebook",
+          "address-role",
+          "change-contract",
+          "automation",
+          "rights",
+          "privacy",
+          "control-totals"
+        ],
+        "required_exclusions": [
+          "natural-person and registered-agent data",
+          "direct contact and sensitive identifiers",
+          "filing documents and free text"
+        ],
+        "strongest_bounded_next_action": "Use the published layout to prepare a current-version compatibility checklist, person-role exclusion map and precise unresolved contract questions. Before acquisition, resolve subtype counts, stable keys, current status/address semantics, refresh/replay controls, price and product rights. HOLD remains accurate; no purchase, contact or acquisition authority is added. Do not enroll, pay, acquire, contact, accept terms, automate, or execute production from this reassessment.",
+        "prior_decision": "hold",
+        "changed_since_prior_review": false,
+        "supersedes_assessment_id": "state-business-source-discovery-queue-4-wave-2-2026-09-03"
+      }
+    }
+  ]
+}

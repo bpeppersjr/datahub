@@ -10,6 +10,7 @@ import { DATA_DIR } from "./paths.mjs";
 import {
   buildBroadOrganizationAcquisitionBacklog,
   deriveBroadOrganizationAcquisitionBacklog,
+  loadCurrentBroadOrganizationAcquisitionBacklog,
   loadCurrentBroadOrganizationGapEvidence,
   verifyBroadOrganizationAcquisitionBacklog,
 } from "./broad-organization-acquisition-backlog.mjs";
@@ -83,6 +84,15 @@ test("continues to verify every immutable historical v2 release without selectin
   }
   assert.equal(verified.length, 5);
   assert.equal(verified.every(({ backlog }) => backlog.schema_version === "2.0.0" && backlog.states.length === 40), true);
+});
+
+test("replays the newest v3 backlog while preserving the October v3 release by its immutable pins", async () => {
+  const releases = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases");
+  const current = await loadCurrentBroadOrganizationAcquisitionBacklog();
+  const historical = await verifyBroadOrganizationAcquisitionBacklog(path.join(releases, "broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-111caa82f3c6", "manifest.json"));
+  assert.equal(current.manifest.source_matrix_release_id, "national-goal-completion-20261112051711-1b351542");
+  assert.equal(historical.manifest.source_matrix_release_id, "national-goal-completion-20261007052337-6ca8bb3a");
+  assert.equal(current.manifest.schema_version, historical.manifest.schema_version);
 });
 
 test("historical v1 verifier rejects a rehashed mutation instead of trusting its embedded inventory", async () => {

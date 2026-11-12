@@ -1,0 +1,23 @@
+{
+  "schema_version": "broad-organization-current-matrix-authorization-wave-manifest@1.0.0",
+  "dataset_id": "broad-organization-current-matrix-authorization-wave",
+  "release_id": "broad-organization-current-matrix-authorization-wave-2026-11-12T05-17-11.911Z-aaef539e2656",
+  "status": "published-local-derived-approval-specification",
+  "source_actions_performed": 0,
+  "network_requests": 0,
+  "current_pointer_changed": false,
+  "acquisition_authorized": false,
+  "source_projection_release_id": "broad-organization-matrix-gap-projection-2026-11-12T05-17-11.911Z-eb4723fed2ff",
+  "source_projection_manifest_sha256": "20c2bbe685d99647486d70e373e804a57551bdd8118c68f3aad47fd35fb30f75",
+  "source_projection_artifact_sha256": "eb4723fed2ffc16e1237acb760f999805956e27685e73484389c1e16a6d8445b",
+  "jurisdiction_count": 10,
+  "source_gap_count": 40,
+  "remaining_gap_count": 0,
+  "artifacts": [
+    {
+      "path": "authorization-wave.json",
+      "bytes": 117682,
+      "sha256": "aaef539e26567ca6bf7e016d7a8682f65f87f4bbf2b8c5b0a4d2431c1391ec79"
+    }
+  ]
+}

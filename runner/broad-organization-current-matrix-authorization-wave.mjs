@@ -3,18 +3,13 @@ import { lstat, mkdir, readFile, readdir, realpath, rename, rm, rmdir, writeFile
 import path from "node:path";
 
 import { APP_ROOT } from "./paths.mjs";
-import { DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT, verifyBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
+import { loadCurrentBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
+import { isPinnedAuthorizationHistory, newestAuthorizationCohort, readAuthorizationViewReleases } from "./authorization-view-release-selection.mjs";
 
 export const CURRENT_MATRIX_AUTHORIZATION_WAVE_SCHEMA = "broad-organization-current-matrix-authorization-wave@1.0.0";
 export const CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET = "broad-organization-current-matrix-authorization-wave";
 export const DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT = path.join(APP_ROOT, "data", CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET);
 export const CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE = 10;
-const WAVE_ROSTERS = Object.freeze([
-  Object.freeze(["IL", "MS", "AR", "KY", "HI", "KS", "NV", "UT", "WA", "OK"]),
-  Object.freeze(["AL", "AZ", "CA", "GA", "ID", "IN", "LA", "MA", "MD", "ME"]),
-  Object.freeze(["MI", "MN", "MO", "MT", "NC", "ND", "NH", "NJ", "NM", "OH"]),
-  Object.freeze(["RI", "SC", "SD", "TN", "VA", "VT", "WI", "WV", "WY", "NE"]),
-]);
 const fail = (message) => { throw new Error(`Current-matrix authorization wave is invalid: ${message}`); };
 const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
 const jsonBytes = (value) => Buffer.from(`${JSON.stringify(value, null, 2)}\n`, "utf8");
@@ -36,20 +31,6 @@ async function assertDataDirectory(directory, { create = false } = {}) {
   return resolved;
 }
 
-async function newestVerifiedProjection() {
-  const releases = path.join(DEFAULT_BROAD_ORGANIZATION_MATRIX_GAP_PROJECTION_ROOT, "releases");
-  const entries = await readdir(releases, { withFileTypes: true });
-  const candidates = entries.filter((entry) => entry.isDirectory() && !entry.isSymbolicLink() && entry.name.startsWith("broad-organization-matrix-gap-projection-")).map((entry) => entry.name).sort().reverse();
-  if (!candidates.length || candidates.length > 256) fail("verified current matrix-gap projection is absent or release inventory requires review");
-  const directory = path.join(releases, candidates[0]);
-  if (await realpath(directory) !== directory) fail("matrix-gap projection release path is not canonical");
-  const manifestPath = path.join(directory, "manifest.json"), verified = await verifyBroadOrganizationMatrixGapProjection(manifestPath);
-  const manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes.toString("utf8"));
-  const artifactBytes = await readFile(path.join(directory, "gap-projection.json"));
-  if (!artifactBytes.equals(jsonBytes(verified.projection)) || hash(artifactBytes) !== manifest.artifacts?.[0]?.sha256) fail("verified matrix-gap projection changed after verification");
-  return { projection: verified.projection, manifest, manifestBytes, artifactSha256: hash(artifactBytes), manifestPath };
-}
-
 export function deriveCurrentMatrixAuthorizationWave(projection, projectionManifestBytes, projectionManifest, projectionArtifactSha256, { waveNumber = 1, priorWave = null } = {}) {
   if (![1, 2, 3, 4].includes(waveNumber)) fail("wave number must select one of the four governed ten-state waves");
   if (projection?.schema_version !== "broad-organization-matrix-gap-projection@1.0.0" || projection.dataset_id !== "broad-organization-matrix-gap-projection" || projection.scope?.jurisdictions !== 51 || projection.scope?.broad_layers_admitted !== 11 || projection.scope?.current_broad_layer_gaps !== 40 || projection.scope?.acquisition_authorized !== false || projection.scope?.source_actions_performed !== 0 || projection.scope?.network_requests !== 0 || projection.scope?.current_pointer_changed !== false) fail("verified 40-gap projection identity or authority boundary is invalid");
@@ -57,20 +38,20 @@ export function deriveCurrentMatrixAuthorizationWave(projection, projectionManif
   if (projectionManifest?.dataset_id !== projection.dataset_id || projectionManifest?.release_id !== `${projection.dataset_id}-${projection.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${hash(artifact).slice(0, 12)}` || projectionManifest.artifacts?.length !== 1 || projectionManifest.artifacts[0].path !== "gap-projection.json" || projectionManifest.artifacts[0].bytes !== artifact.length || projectionManifest.artifacts[0].sha256 !== projectionArtifactSha256 || projectionArtifactSha256 !== hash(artifact) || !Buffer.from(projectionManifestBytes).equals(jsonBytes(projectionManifest))) fail("projection manifest/artifact binding drifted");
   if (!Array.isArray(projection.gaps) || projection.gaps.length !== 40) fail("projection no longer contains exactly 40 current gaps");
   const sorted = [...projection.gaps].sort((left, right) => left.backlog_priority - right.backlog_priority);
-  if (new Set(sorted.map((row) => row.state_abbreviation)).size !== 40 || new Set(sorted.map((row) => row.backlog_priority)).size !== 40 || sorted.some((row) => !Number.isSafeInteger(row.backlog_priority) || row.backlog_priority < 1 || row.backlog_priority > 43)) fail("gap roster or historical priority is invalid");
+  if (new Set(sorted.map((row) => row.state_abbreviation)).size !== 40 || sorted.some((row, index) => row.backlog_priority !== index + 1)) fail("gap roster or backlog priority is invalid");
   let priorWaveBinding = null;
   if (waveNumber > 1) {
     if (!priorWave?.wave || !priorWave?.manifest || !priorWave?.manifestBytes || !priorWave?.artifactSha256 || !priorWave?.artifactBytes) fail(`a verified published wave-${waveNumber - 1} release is required before deriving wave ${waveNumber}`);
     const prior = priorWave.wave;
     const priorWaveNumber = waveNumber - 1, priorSelectedCount = priorWaveNumber * CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE;
     const priorCountValid = priorWaveNumber === 1 ? prior.scope?.prior_wave_jurisdictions === undefined : prior.scope?.prior_wave_jurisdictions === (priorWaveNumber - 1) * CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE;
-    if (prior.scope?.wave_number !== priorWaveNumber || prior.scope?.matrix_gap_jurisdictions !== 40 || prior.scope?.selected_jurisdictions !== 10 || !priorCountValid || prior.scope?.remaining_current_gaps !== 40 - priorSelectedCount || prior.scope?.conservation_total !== 40 || prior.states?.length !== 10 || JSON.stringify(prior.wave_state_abbreviations) !== JSON.stringify(WAVE_ROSTERS[priorWaveNumber - 1]) || JSON.stringify(prior.wave_state_abbreviations) !== JSON.stringify(sorted.slice((priorWaveNumber - 1) * CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE, priorSelectedCount).map((row) => row.state_abbreviation)) || prior.source_projection?.release_id !== projectionManifest.release_id || prior.source_projection?.manifest_sha256 !== hash(projectionManifestBytes) || prior.source_projection?.artifact_sha256 !== projectionArtifactSha256 || priorWave.manifest.schema_version !== `${CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET}-manifest@1.0.0` || priorWave.manifest.status !== "published-local-derived-approval-specification" || priorWave.manifest.source_actions_performed !== 0 || priorWave.manifest.network_requests !== 0 || priorWave.manifest.current_pointer_changed !== false || priorWave.manifest.acquisition_authorized !== false || priorWave.manifest.jurisdiction_count !== 10 || priorWave.manifest.source_gap_count !== 40 || priorWave.manifest.remaining_gap_count !== 40 - priorSelectedCount || priorWave.manifest.source_projection_release_id !== projectionManifest.release_id || priorWave.manifest.source_projection_manifest_sha256 !== hash(projectionManifestBytes) || priorWave.manifest.source_projection_artifact_sha256 !== projectionArtifactSha256 || priorWave.manifest.release_id !== priorWave.manifest.dataset_id + `-${prior.observed_at.replace(/[^A-Za-z0-9._-]/g, "-")}-${hash(jsonBytes(prior)).slice(0, 12)}` || !Buffer.from(priorWave.manifestBytes).equals(jsonBytes(priorWave.manifest)) || priorWave.manifest.artifacts?.[0]?.sha256 !== priorWave.artifactSha256 || priorWave.artifactSha256 !== hash(jsonBytes(prior)) || !Buffer.from(priorWave.artifactBytes).equals(jsonBytes(prior))) fail(`published wave-${priorWaveNumber} release does not match the current projection or exact priority slice`);
+    const expectedPriorRoster = sorted.slice((priorWaveNumber - 1) * CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE, priorSelectedCount).map((row) => row.state_abbreviation);
+    const expectedPriorManifest = buildCurrentMatrixAuthorizationWaveManifest(prior);
+    if (prior.scope?.wave_number !== priorWaveNumber || prior.scope?.matrix_gap_jurisdictions !== 40 || prior.scope?.selected_jurisdictions !== 10 || !priorCountValid || prior.scope?.remaining_current_gaps !== 40 - priorSelectedCount || prior.scope?.conservation_total !== 40 || prior.scope?.status !== "HOLD" || prior.scope?.approval_only !== true || prior.scope?.acquisition_authorized !== false || prior.states?.length !== 10 || JSON.stringify(prior.wave_state_abbreviations) !== JSON.stringify(expectedPriorRoster) || prior.source_projection?.release_id !== projectionManifest.release_id || prior.source_projection?.manifest_sha256 !== hash(projectionManifestBytes) || prior.source_projection?.artifact_sha256 !== projectionArtifactSha256 || !Buffer.from(priorWave.manifestBytes).equals(jsonBytes(expectedPriorManifest)) || JSON.stringify(priorWave.manifest) !== JSON.stringify(expectedPriorManifest) || priorWave.artifactSha256 !== expectedPriorManifest.artifacts[0].sha256 || !Buffer.from(priorWave.artifactBytes).equals(jsonBytes(prior))) fail(`published wave-${priorWaveNumber} release does not match the current projection or exact priority slice`);
     priorWaveBinding = { release_id: priorWave.manifest.release_id, manifest_sha256: hash(priorWave.manifestBytes), artifact_sha256: priorWave.artifactSha256, wave_state_abbreviations: [...prior.wave_state_abbreviations] };
   }
   const start = (waveNumber - 1) * CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE;
   const selected = sorted.slice(start, start + CURRENT_MATRIX_AUTHORIZATION_WAVE_SIZE);
-  if (JSON.stringify(selected.map((row) => row.state_abbreviation)) !== JSON.stringify(WAVE_ROSTERS[waveNumber - 1]) || (waveNumber === 1 && ["AK", "DC", "TX"].some((code) => selected.some((row) => row.state_abbreviation === code)))) fail(`current wave ${waveNumber} is not the exact next ten historical priorities among current gaps`);
-  if (waveNumber > 1 && (selected.length !== 10 || selected.some((row) => priorWave.wave.wave_state_abbreviations.includes(row.state_abbreviation)) || JSON.stringify([...sorted.slice(0, start).map((row) => row.state_abbreviation), ...selected.map((row) => row.state_abbreviation)]) !== JSON.stringify(sorted.slice(0, start + 10).map((row) => row.state_abbreviation)))) fail(`wave ${waveNumber} overlaps, skips, or reorders the current priority sequence`);
   const states = selected.map((row, index) => {
     if (!row.assessment_snapshot || row.assessment_snapshot.state_abbreviation !== row.state_abbreviation || JSON.stringify(row.unresolved_gates) !== JSON.stringify(row.assessment_snapshot.unresolved_gates) || JSON.stringify(row.required_exclusions) !== JSON.stringify(row.assessment_snapshot.required_exclusions)) fail(`assessment/gate provenance or exclusions drifted for ${row.state_abbreviation}`);
     return {
@@ -123,20 +104,24 @@ export function buildCurrentMatrixAuthorizationWaveManifest(wave) {
   return { schema_version: `${CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET}-manifest@1.0.0`, dataset_id: CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET, release_id: releaseId, status: "published-local-derived-approval-specification", source_actions_performed: 0, network_requests: 0, current_pointer_changed: false, acquisition_authorized: false, source_projection_release_id: wave.source_projection.release_id, source_projection_manifest_sha256: wave.source_projection.manifest_sha256, source_projection_artifact_sha256: wave.source_projection.artifact_sha256, jurisdiction_count: 10, source_gap_count: 40, remaining_gap_count: wave.scope.remaining_current_gaps, artifacts: [{ path: "authorization-wave.json", bytes: bytes.length, sha256: digest }] };
 }
 
-async function loadPublishedWave(waveNumber, source, releasesRoot) {
-  const priorWave = waveNumber === 1 ? null : await loadPublishedWave(waveNumber - 1, source, releasesRoot);
-  const wave = deriveCurrentMatrixAuthorizationWave(source.projection, source.manifestBytes, source.manifest, source.artifactSha256, { waveNumber, priorWave });
-  const manifest = buildCurrentMatrixAuthorizationWaveManifest(wave);
-  const manifestPath = path.join(releasesRoot, manifest.release_id, "manifest.json");
-  const verified = await verifyCurrentMatrixAuthorizationWave(manifestPath);
-  const manifestBytes = await readFile(manifestPath), artifactBytes = await readFile(path.join(path.dirname(manifestPath), "authorization-wave.json"));
-  if (!artifactBytes.equals(jsonBytes(wave)) || !manifestBytes.equals(jsonBytes(manifest))) fail(`published wave-${waveNumber} release is not the exact current priority slice`);
-  return { wave: verified.wave, manifest: verified.manifest, manifestBytes, artifactBytes, artifactSha256: hash(artifactBytes) };
+async function loadPublishedWaves(count, source, releasesRoot) {
+  const waves = [];
+  for (let waveNumber = 1; waveNumber <= count; waveNumber += 1) {
+    const wave = deriveCurrentMatrixAuthorizationWave(source.projection, source.manifestBytes, source.manifest, source.artifactSha256, { waveNumber, priorWave: waves.at(-1) });
+    const manifest = buildCurrentMatrixAuthorizationWaveManifest(wave);
+    const manifestPath = path.join(releasesRoot, manifest.release_id, "manifest.json");
+    const verified = await verifyWaveRelease(manifestPath, { expected: { wave, manifest } });
+    const manifestBytes = jsonBytes(verified.manifest);
+    const artifactBytes = jsonBytes(verified.wave);
+    waves.push({ ...verified, manifestBytes, manifestSha256: hash(manifestBytes), artifactBytes, artifactSha256: manifest.artifacts[0].sha256 });
+  }
+  return waves;
 }
 
 async function loadCurrentWave(waveNumber = 1, releasesRoot = path.join(DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT, "releases")) {
-  const source = await newestVerifiedProjection();
-  const priorWave = waveNumber === 1 ? null : await loadPublishedWave(waveNumber - 1, source, releasesRoot);
+  if (![1, 2, 3, 4].includes(waveNumber)) fail("wave number must select one of the four governed ten-state waves");
+  const source = await loadCurrentBroadOrganizationMatrixGapProjection();
+  const priorWave = (await loadPublishedWaves(waveNumber - 1, source, releasesRoot)).at(-1);
   const wave = deriveCurrentMatrixAuthorizationWave(source.projection, source.manifestBytes, source.manifest, source.artifactSha256, { waveNumber, priorWave });
   return { ...source, wave, manifest: buildCurrentMatrixAuthorizationWaveManifest(wave) };
 }
@@ -148,7 +133,7 @@ export async function buildCurrentMatrixAuthorizationWave({ outputRoot = DEFAULT
   const source = await loadCurrentWave(waveNumber, releases);
   signal?.throwIfAborted();
   const releaseDirectory = path.join(releases, source.manifest.release_id);
-  try { const stat = await lstat(releaseDirectory); if (!stat.isDirectory() || stat.isSymbolicLink()) fail("pre-existing release identity is not a real directory"); await verifyCurrentMatrixAuthorizationWave(path.join(releaseDirectory, "manifest.json")); return { wave: source.wave, manifest: source.manifest, releaseDirectory, reused_existing_release: true }; } catch (error) { if (error.code !== "ENOENT") throw error; }
+  try { const stat = await lstat(releaseDirectory); if (!stat.isDirectory() || stat.isSymbolicLink()) fail("pre-existing release identity is not a real directory"); await verifyWaveRelease(path.join(releaseDirectory, "manifest.json"), { expected: source }); return { wave: source.wave, manifest: source.manifest, releaseDirectory, reused_existing_release: true }; } catch (error) { if (error.code !== "ENOENT") throw error; }
   const lock = path.join(releases, `.${source.manifest.release_id}.publish-lock`);
   await mkdir(lock);
   const staging = path.join(releases, `.${source.manifest.release_id}.staging-${randomUUID()}`);
@@ -160,15 +145,15 @@ export async function buildCurrentMatrixAuthorizationWave({ outputRoot = DEFAULT
     signal?.throwIfAborted();
     await writeFile(path.join(staging, "manifest.json"), jsonBytes(source.manifest), { flag: "wx" });
     signal?.throwIfAborted();
-    await verifyCurrentMatrixAuthorizationWave(path.join(staging, "manifest.json"), { allowOwnedStaging: true });
+    await verifyWaveRelease(path.join(staging, "manifest.json"), { allowOwnedStaging: true, expected: source });
     try { await lstat(releaseDirectory); fail("release identity appeared during publication"); } catch (error) { if (error.code !== "ENOENT") throw error; }
     await rename(staging, releaseDirectory); ownsStaging = false;
-    await verifyCurrentMatrixAuthorizationWave(path.join(releaseDirectory, "manifest.json"));
+    await verifyWaveRelease(path.join(releaseDirectory, "manifest.json"), { expected: source });
   } finally { if (ownsStaging) await rm(staging, { recursive: true, force: true }); await rmdir(lock); }
   return { wave: source.wave, manifest: source.manifest, releaseDirectory, reused_existing_release: false };
 }
 
-export async function verifyCurrentMatrixAuthorizationWave(manifestPath, { allowOwnedStaging = false } = {}) {
+async function verifyWaveRelease(manifestPath, { allowOwnedStaging = false, expected = null } = {}) {
   await assertDataDirectory(path.dirname(manifestPath));
   const manifestStat = await lstat(manifestPath);
   if (!manifestStat.isFile() || manifestStat.isSymbolicLink() || manifestStat.nlink !== 1) fail("manifest must be a singly linked regular file");
@@ -183,9 +168,32 @@ export async function verifyCurrentMatrixAuthorizationWave(manifestPath, { allow
   if (artifactBytes.length !== manifest.artifacts[0].bytes || hash(artifactBytes) !== manifest.artifacts[0].sha256) fail("authorization wave checksum mismatch");
   const artifactWave = JSON.parse(artifactBytes.toString("utf8")), waveNumber = artifactWave.scope?.wave_number;
   if (![1, 2, 3, 4].includes(waveNumber)) fail("artifact wave number is invalid");
-  const expected = await loadCurrentWave(waveNumber, path.dirname(directory));
-  if (JSON.stringify(manifest) !== JSON.stringify(expected.manifest) || !artifactBytes.equals(jsonBytes(expected.wave))) fail("authorization wave differs from exact current projection priority selection or widens authority");
   const name = path.basename(directory), staging = new RegExp(`^\\.${manifest.release_id}\\.staging-[0-9a-f-]{36}$`, "i").test(name);
   if (name !== manifest.release_id && !(allowOwnedStaging && staging)) fail("release directory identity mismatch");
+  if (!expected && isPinnedAuthorizationHistory(manifest.dataset_id, manifest.release_id, hash(manifestBytes))) return { manifest, wave: artifactWave };
+  expected ??= await loadCurrentWave(waveNumber, path.dirname(directory));
+  if (!manifestBytes.equals(jsonBytes(expected.manifest)) || !artifactBytes.equals(jsonBytes(expected.wave))) fail("authorization wave differs from exact current projection priority selection or widens authority");
   return { manifest, wave: expected.wave };
+}
+
+export async function verifyCurrentMatrixAuthorizationWave(manifestPath) {
+  return verifyWaveRelease(manifestPath);
+}
+
+export async function loadCurrentMatrixAuthorizationWaveChain({
+  waveRoot = DEFAULT_CURRENT_MATRIX_AUTHORIZATION_WAVE_ROOT,
+  projectionRoot,
+  backlogRoot,
+} = {}) {
+  const source = await loadCurrentBroadOrganizationMatrixGapProjection({ projectionRoot, backlogRoot });
+  const snapshots = await readAuthorizationViewReleases(waveRoot, CURRENT_MATRIX_AUTHORIZATION_WAVE_DATASET, "authorization-wave.json");
+  const cohort = newestAuthorizationCohort(snapshots, (row) => row.artifact.source_projection?.release_id);
+  if (cohort.length !== 4 || cohort.some(({ instant, artifact }) => instant !== source.instant
+      || artifact.source_projection?.release_id !== source.manifest.release_id
+      || artifact.source_projection?.manifest_sha256 !== hash(source.manifestBytes)
+      || artifact.source_projection?.artifact_sha256 !== source.artifactSha256)) fail("newest projection cohort is incomplete or has inconsistent bindings");
+  const waves = await loadPublishedWaves(4, source, path.join(waveRoot, "releases"));
+  const cohortHashes = new Set(cohort.map((row) => row.manifestSha256));
+  if (waves.some((wave) => !cohortHashes.has(wave.manifestSha256))) fail("newest wave cohort changed during verification");
+  return { waves, projection: source.projection, projectionManifest: source.manifest };
 }

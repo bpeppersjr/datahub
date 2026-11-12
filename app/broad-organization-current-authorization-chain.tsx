@@ -18,6 +18,7 @@ type ChainView = {
   schema_version: string; available: true;
   metadata: {
     matrix_release_id: string; matrix_manifest_sha256: string; gap_projection_release_id: string; gap_projection_manifest_sha256: string; gap_projection_artifact_sha256: string;
+    backlog_release_id: string; backlog_manifest_sha256: string; backlog_artifact_sha256: string;
     jurisdiction_count: 51; broad_data_coverage: { admitted_jurisdictions: 11; denominator: 51; current_data_gaps: 40; meaning: string };
     authorization_packet_coverage: { expected_current_gaps: 40; packeted_current_gaps: 40; authorization_packet_gaps: 0 };
     wave_count: 4; current_gap_state_count: 40; gate_item_count: number;
@@ -27,6 +28,7 @@ type ChainView = {
   diagnostic_batch: {
     kind: 'weakest-comparable-diagnostic-profile-batch'; metric: 'reported_profiles_divided_by_2023_nonemployer_baseline'; selection_count: 10;
     comparable_gap_count: 31; unavailable_gap_count: 9; source_coverage_release_id: string;
+    source_gap_projection_release_id: string; source_gap_projection_manifest_sha256: string;
     meaning: string; unavailable_treatment: string;
     authority: { status: 'HOLD'; source_action_authorized: false; contact_authorized: false; payment_authorized: false; download_authorized: false; record_request_authorized: false; acquisition_authorized: false; network_request_authorized: false; pointer_change_authorized: false; production_change_authorized: false };
     states: { state_abbreviation: string; state_name: string; reported_profiles: number; nonemployer_baseline_2023: number; diagnostic_profile_percent: number; coverage_release_id: string }[];
@@ -77,7 +79,7 @@ export default function BroadOrganizationCurrentAuthorizationChain() {
 
   return <section className="operations-builder" aria-labelledby="current-auth-chain-title">
     <h3 id="current-auth-chain-title">Current broad-organization authorization chain</h3>
-    <p className="operations-note">Read-only verification of the four current-matrix waves. Broad data coverage is 11 of 51 jurisdictions, with 40 unresolved data gaps; all 40 are separately represented in approval packets, leaving zero unpacketized gaps. Packet coverage is not data coverage.</p>
+    <p className="operations-note">Read-only verification of the four current-matrix authorization waves.</p>
     <div className="operations-actions">
       <label>Wave<select aria-label="Filter current authorization wave" value={selectedWave} disabled={!view} onChange={(event) => { setSelectedWave(event.target.value); setSelectedState(''); }}>
         <option value="">All four waves</option>{view?.waves.map((wave) => <option key={wave.wave_number} value={String(wave.wave_number)}>Wave {wave.wave_number} · {wave.state_abbreviations.join(', ')}</option>)}
@@ -98,12 +100,15 @@ export default function BroadOrganizationCurrentAuthorizationChain() {
         <div className="table-wrap"><table><thead><tr><th>State</th><th>Reported source profiles</th><th>2023 nonemployer baseline</th><th>Diagnostic profile ratio</th></tr></thead><tbody>
           {view.diagnostic_batch.states.map((state) => <tr key={state.state_abbreviation}><td>{state.state_name} ({state.state_abbreviation})</td><td>{state.reported_profiles.toLocaleString()}</td><td>{state.nonemployer_baseline_2023.toLocaleString()}</td><td>{state.diagnostic_profile_percent.toFixed(1)}%</td></tr>)}
         </tbody></table></div>
-        <p className="operations-note">Shared coverage release: {view.diagnostic_batch.source_coverage_release_id}. Status: HOLD. This separate diagnostic selection does not change wave order and grants no source action, contact, payment, download, record request, acquisition, network request, pointer change, or production authority.</p>
+        <p className="operations-note">Historical comparison release {view.diagnostic_batch.source_coverage_release_id}, retained in gap projection {view.diagnostic_batch.source_gap_projection_release_id}. Status HOLD. The wave order follows the current backlog.</p>
       </section>
       <details><summary>Verified four-wave release chain and lineage</summary>
         <dl>
           <dt>Current matrix release</dt><dd>{view.metadata.matrix_release_id}</dd>
           <dt>Matrix manifest SHA-256</dt><dd><code>{view.metadata.matrix_manifest_sha256}</code></dd>
+          <dt>Current backlog release</dt><dd>{view.metadata.backlog_release_id}</dd>
+          <dt>Backlog manifest SHA-256</dt><dd><code>{view.metadata.backlog_manifest_sha256}</code></dd>
+          <dt>Backlog artifact SHA-256</dt><dd><code>{view.metadata.backlog_artifact_sha256}</code></dd>
           <dt>Gap projection release</dt><dd>{view.metadata.gap_projection_release_id}</dd>
           <dt>Gap projection manifest SHA-256</dt><dd><code>{view.metadata.gap_projection_manifest_sha256}</code></dd>
           <dt>Gap projection artifact SHA-256</dt><dd><code>{view.metadata.gap_projection_artifact_sha256}</code></dd>
@@ -117,7 +122,7 @@ export default function BroadOrganizationCurrentAuthorizationChain() {
       </details>
       <p className="operations-note"><strong>{`${view.metadata.current_gap_state_count} current data-gap states · ${view.metadata.gate_item_count} unresolved gate items`}</strong> · {`filtered: ${visibleStates.length} state${visibleStates.length === 1 ? '' : 's'}`}.</p>
       {visibleStates.map((state) => <article key={state.state_abbreviation} className="operation-record">
-        <h4>{`Wave ${state.wave}, position ${state.wave_position} · ${state.state_name} (${state.state_abbreviation}) · historical priority ${state.historical_backlog_priority}`}</h4>
+        <h4>{`Wave ${state.wave}, position ${state.wave_position} · ${state.state_name} (${state.state_abbreviation}) · backlog priority ${state.historical_backlog_priority}`}</h4>
         <p>Current broad data status: {words(state.matrix_gap_status)}. Packet status: <strong>HOLD · approval-only</strong>. Acquisition authorized: no.</p>
         <details><summary>{state.unresolved_gates.length} approval-only gate items — all HOLD</summary>
           <ul>{state.unresolved_gates.map((gate) => <li key={gate.gate_key}>{words(gate.gate_key)} · {gate.item_kind} · {gate.status} · acquisition authorized: no</li>)}</ul>

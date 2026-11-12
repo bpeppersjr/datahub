@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rename, rm } from "node:fs/promises";
 import http from "node:http";
 import net from "node:net";
 import os from "node:os";
@@ -11,6 +11,8 @@ import {
   createControlToken,
   createLocalControlPlaneGuard,
 } from "./control-plane-security.mjs";
+import { BROAD_ORGANIZATION_SOURCES } from "./broad-organization-evidence.mjs";
+import { APP_ROOT, DATA_DIR } from "./paths.mjs";
 
 const CONTROL_TOKEN = "fixture-control-token-that-is-long-enough-123456789";
 
@@ -105,9 +107,7 @@ test("enforces exact Host, origin, and bearer-token boundaries without disclosin
   }
 });
 
-test("protects every live management endpoint while leaving only narrow liveness public", async (context) => {
-  const root = await mkdtemp(path.join(os.tmpdir(), "datahub-control-plane-"));
-  context.after(() => rm(root, { recursive: true, force: true }));
+async function startRunner(context, root) {
   const port = await unusedPort();
   const child = spawn(process.execPath, [path.resolve("runner/server.mjs")], {
     cwd: path.resolve("."),
@@ -137,7 +137,13 @@ test("protects every live management endpoint while leaving only narrow liveness
   assert.equal(child.exitCode, null, output);
   assert.match(output, /listening at/);
   assert.equal(output.includes(CONTROL_TOKEN), false);
+  return port;
+}
 
+test("protects every live management endpoint while leaving only narrow liveness public", async (context) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "datahub-control-plane-"));
+  context.after(() => rm(root, { recursive: true, force: true }));
+  const port = await startRunner(context, root);
   const hostHeader = `127.0.0.1:${port}`;
   const health = await rawRequest({ port, hostHeader });
   assert.equal(health.status, 200);
@@ -418,4 +424,66 @@ test("protects every live management endpoint while leaving only narrow liveness
   assert.equal(status.status, 200);
   assert.equal(JSON.parse(status.body).runner, "Co*Tive Collector");
   assert.equal(status.body.includes(CONTROL_TOKEN), false);
+});
+
+test("serves the verified November authorization chain through the authenticated management endpoint", async (context) => {
+  const root = await mkdtemp(path.join(DATA_DIR, ".tmp-authorization-chain-http-"));
+  const matrixRelease = "national-goal-completion-20261112051711-1b351542";
+  const readJson = async (relative) => JSON.parse(await readFile(path.join(APP_ROOT, relative)));
+  const pointer = "data/business-coverage-views/current.json";
+  const coveragePath = path.posix.join(path.posix.dirname(pointer), (await readJson(pointer)).manifest);
+  const coverage = await readJson(coveragePath);
+  const registryId = coverage.dependencies.find((row) => row.dataset_id === "national-business-registry").release_id;
+  const registryPath = `data/business-registry/releases/${registryId}/manifest.json`;
+  const irsId = (await readJson(registryPath)).dependencies.find((row) => row.dataset_id === "irs-eo-bmf-organizations").release_id;
+  const irsRoot = `data/business-sources/irs-eo-bmf-organizations/releases/${irsId}`;
+  const fixtures = [
+    "config",
+    `data/national-goal-completion-matrix/releases/${matrixRelease}`,
+    "data/national-goal-completion-matrix/releases/national-goal-completion-20261007052337-6ca8bb3a",
+    "data/broad-organization-acquisition-backlog/releases",
+    "data/broad-organization-matrix-gap-projection/releases",
+    "data/broad-organization-current-matrix-authorization-wave/releases",
+    pointer, coveragePath, registryPath, `${irsRoot}/manifest.json`, `${irsRoot}/derived/source-summary.json`,
+    ...coverage.artifacts.filter((row) => ["state-coverage-view-jsonl", "source-coverage-view-jsonl"].includes(row.artifact_type)).map((row) => path.posix.join(path.posix.dirname(coveragePath), row.path)),
+    ...Object.values(BROAD_ORGANIZATION_SOURCES).flatMap((source) => source.datasetManifestPath ? [source.datasetManifestPath] : []),
+  ];
+  const port = await startRunner(context, root);
+  context.after(() => rm(root, { recursive: true, force: true }));
+  for (const relative of fixtures) {
+    const target = path.join(root, relative);
+    await mkdir(path.dirname(target), { recursive: true });
+    await cp(path.join(APP_ROOT, relative), target, { recursive: true });
+  }
+  const request = { port, hostHeader: `127.0.0.1:${port}`, pathname: "/api/data-operations/broad-organization-current-authorization-chain" };
+  const unauthorized = await rawRequest(request);
+  assert.equal(unauthorized.status, 401);
+  const authenticated = { ...request, authorization: `Bearer ${CONTROL_TOKEN}` };
+  const response = await rawRequest(authenticated);
+  assert.equal(response.status, 200, response.body);
+  assert.equal(response.headers["cache-control"], "no-store");
+  const body = JSON.parse(response.body);
+  assert.equal(body.metadata.matrix_release_id, matrixRelease);
+  assert.equal(body.metadata.backlog_release_id, "broad-organization-acquisition-backlog-2026-11-12T05-17-11.911Z-145f1512454f");
+  assert.equal(body.metadata.broad_data_coverage.admitted_jurisdictions, 11);
+  assert.equal(body.metadata.authorization_packet_coverage.packeted_current_gaps, 40);
+  assert.equal(body.metadata.authorization_packet_coverage.authorization_packet_gaps, 0);
+  assert.equal(new Set(body.states.map((state) => state.state_abbreviation)).size, 40);
+  assert.ok(body.states.every((state) => state.approval_status === "HOLD" && !state.acquisition_authorized));
+  assert.ok(Object.entries(body.authority).every(([key, value]) => key === "status" ? value === "HOLD" : key === "approval_only" ? value === true : value === false || value === 0));
+
+  const releasePaths = [
+    ["data/broad-organization-current-matrix-authorization-wave/releases", body.waves[3].release_id],
+    ["data/national-goal-completion-matrix/releases", matrixRelease],
+  ];
+  for (const [releases, id] of releasePaths) {
+    const present = path.join(root, releases, id), removed = path.join(root, id);
+    await rename(present, removed);
+    const unavailable = await rawRequest(authenticated);
+    assert.equal(unavailable.status, 503);
+    assert.equal(unavailable.headers["cache-control"], "no-store");
+    assert.match(unavailable.body, /verified current authorization chain is unavailable/);
+    assert.doesNotMatch(unavailable.body, /manifest\.json|2026-10-07/);
+    await rename(removed, present);
+  }
 });

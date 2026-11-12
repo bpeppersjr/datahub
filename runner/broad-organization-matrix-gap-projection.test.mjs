@@ -1,56 +1,41 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 
-import { DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, verifyBroadOrganizationAcquisitionBacklog } from "./broad-organization-acquisition-backlog.mjs";
+import { loadCurrentBroadOrganizationAcquisitionBacklog } from "./broad-organization-acquisition-backlog.mjs";
 import { readNewestNationalGoalCompletionMatrix } from "./national-goal-completion-view.mjs";
 import { verifyBroadOrganizationMatrixGapProjection, buildBroadOrganizationMatrixGapProjection, deriveBroadOrganizationMatrixGapProjection } from "./broad-organization-matrix-gap-projection.mjs";
 import { DATA_DIR } from "./paths.mjs";
 
 const temporaryRoot = path.join(DATA_DIR, `.tmp-broad-org-matrix-gap-${process.pid}`);
-async function currentBacklog() {
-  const entries = await readdir(path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases"), { withFileTypes: true });
-  const candidates = [];
-  for (const entry of entries) {
-    if (!entry.isDirectory() || entry.isSymbolicLink() || !entry.name.startsWith("broad-organization-acquisition-backlog-")) continue;
-    const candidatePath = path.join(DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT, "releases", entry.name, "manifest.json");
-    const manifest = JSON.parse(await readFile(candidatePath, "utf8"));
-    if (manifest.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0") candidates.push(candidatePath);
-  }
-  assert.equal(candidates.length, 1, "expected exactly one historical v1 backlog lineage");
-  const manifestPath = candidates[0];
-  return { path: manifestPath, ...(await verifyBroadOrganizationAcquisitionBacklog(manifestPath)) };
-}
-
-test("matrix-aligned projection preserves 43-state history while isolating exactly the current 40 broad-layer gaps", async () => {
-  const backlog = await currentBacklog();
-  const backlogPath = backlog.path;
+test("matrix-aligned projection binds the verified v3 backlog and exactly its 40 priorities", async () => {
+  const backlog = await loadCurrentBroadOrganizationAcquisitionBacklog();
   const matrix = await readNewestNationalGoalCompletionMatrix();
   assert.ok(matrix);
-  const manifestBytes = await readFile(backlogPath);
   const matrixManifestBytes = await readFile(matrix.manifestPath);
   const matrixManifest = JSON.parse(matrixManifestBytes);
   const matrixArtifactBytes = await readFile(path.join(path.dirname(matrix.manifestPath), "report.json"));
   const artifactSha = createHash("sha256").update(matrixArtifactBytes).digest("hex");
-  const projection = deriveBroadOrganizationMatrixGapProjection(backlog.backlog, manifestBytes, backlog.manifest, matrix.report, matrixManifestBytes, matrixManifest, artifactSha);
+  const projection = deriveBroadOrganizationMatrixGapProjection(backlog.backlog, backlog.manifestBytes, backlog.manifest, matrix.report, matrixManifestBytes, matrixManifest, artifactSha);
   const gaps = new Set(projection.gaps.map((row) => row.state_abbreviation));
   const admitted = new Map(projection.admitted_jurisdictions.map((row) => [row.state_abbreviation, row]));
-  assert.equal(projection.scope.historical_backlog_jurisdictions, 43);
+  assert.equal(projection.scope.historical_backlog_jurisdictions, 40);
+  assert.equal(projection.source_backlog.release_id, backlog.manifest.release_id);
+  assert.deepEqual([...projection.gaps].sort((a, b) => a.backlog_priority - b.backlog_priority).map((row) => row.assessment_snapshot), backlog.backlog.states.map((row) => row.assessment));
   assert.equal(projection.scope.current_broad_layer_gaps, 40);
   assert.equal(projection.scope.jurisdictions, 51);
   assert.equal(admitted.size, 11);
-  for (const code of ["TX", "DC", "AK"]) { assert.equal(gaps.has(code), false); assert.equal(admitted.get(code)?.historical_backlog_member, true); }
+  for (const code of ["TX", "DC", "AK"]) { assert.equal(gaps.has(code), false); assert.equal(admitted.get(code)?.historical_backlog_member, false); }
   assert.ok(projection.gaps.every((row) => row.assessment_snapshot.state_abbreviation === row.state_abbreviation && row.assessment_snapshot.unresolved_gates.length === row.unresolved_gates.length));
   assert.ok(projection.gaps.every((row) => row.authority.acquisition_authorized === false));
 });
 
 test("current matrix and backlog roster drift fail closed", async () => {
-  const backlog = await currentBacklog();
-  const backlogPath = backlog.path;
+  const backlog = await loadCurrentBroadOrganizationAcquisitionBacklog();
   const matrix = await readNewestNationalGoalCompletionMatrix();
-  const backlogBytes = await readFile(backlogPath), matrixBytes = await readFile(matrix.manifestPath), matrixManifest = JSON.parse(matrixBytes);
+  const backlogBytes = backlog.manifestBytes, matrixBytes = await readFile(matrix.manifestPath), matrixManifest = JSON.parse(matrixBytes);
   const artifactSha = createHash("sha256").update(await readFile(path.join(path.dirname(matrix.manifestPath), "report.json"))).digest("hex");
   assert.throws(() => deriveBroadOrganizationMatrixGapProjection(backlog.backlog, backlogBytes, backlog.manifest, { ...matrix.report, jurisdictions: matrix.report.jurisdictions.slice(1) }, matrixBytes, matrixManifest, artifactSha), /matrix identity|roster/);
   const driftedMatrix = structuredClone(matrix.report);
@@ -59,7 +44,7 @@ test("current matrix and backlog roster drift fail closed", async () => {
   const driftedArtifactBytes = Buffer.from(`${JSON.stringify(driftedMatrix, null, 2)}\n`);
   driftedMatrixManifest.artifacts[0].bytes = driftedArtifactBytes.length;
   driftedMatrixManifest.artifacts[0].sha256 = createHash("sha256").update(driftedArtifactBytes).digest("hex");
-  assert.throws(() => deriveBroadOrganizationMatrixGapProjection(backlog.backlog, backlogBytes, backlog.manifest, driftedMatrix, Buffer.from(`${JSON.stringify(driftedMatrixManifest, null, 2)}\n`), driftedMatrixManifest, driftedMatrixManifest.artifacts[0].sha256), /40 gaps/);
+  assert.throws(() => deriveBroadOrganizationMatrixGapProjection(backlog.backlog, backlogBytes, backlog.manifest, driftedMatrix, Buffer.from(`${JSON.stringify(driftedMatrixManifest, null, 2)}\n`), driftedMatrixManifest, driftedMatrixManifest.artifacts[0].sha256), /backlog lineage differs/);
   const alteredBacklog = structuredClone(backlog.backlog);
   alteredBacklog.states[0].assessment.unresolved_gates = [];
   assert.throws(() => deriveBroadOrganizationMatrixGapProjection(alteredBacklog, backlogBytes, backlog.manifest, matrix.report, matrixBytes, matrixManifest, artifactSha), /source bytes or artifact binding/);

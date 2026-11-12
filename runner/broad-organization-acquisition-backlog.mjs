@@ -8,12 +8,14 @@ import {
 } from "./state-business-source-assessment.mjs";
 import { readNewestNationalGoalCompletionMatrix } from "./national-goal-completion-view.mjs";
 import { verifyNationalGoalCompletionMatrix } from "./national-goal-completion-matrix.mjs";
+import { isPinnedAuthorizationHistory, newestAuthorizationCohort, readAuthorizationViewReleases } from "./authorization-view-release-selection.mjs";
 import { APP_ROOT } from "./paths.mjs";
 
 export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_SCHEMA_VERSION = "3.0.0";
 export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID = "broad-organization-acquisition-backlog";
 export const DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT = path.join(APP_ROOT, "data", BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID);
 export const BROAD_ORGANIZATION_ACQUISITION_BACKLOG_FIRST_WAVE_SIZE = 10;
+const CURRENT_MANIFEST_VERSION = "broad-organization-acquisition-backlog-manifest@3.0.0";
 
 const PRIORITY_RULE = "Current broad-layer gaps sort by assessment evidence date newest first, bounded implementation authorization first, unresolved gate count ascending, then jurisdiction abbreviation. This ranking does not authorize source acquisition.";
 const STATE_CODES = Object.freeze("AL AK AZ AR CA CO CT DE FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY DC".split(" "));
@@ -84,11 +86,22 @@ async function assertDataLocalDirectory(directory, { create = false } = {}) {
 }
 
 export async function loadCurrentBroadOrganizationGapEvidence() {
-  const loaded = await readNewestNationalGoalCompletionMatrix({ root: APP_ROOT });
+  const loaded = await readNewestNationalGoalCompletionMatrix({
+    root: APP_ROOT,
+    verifier: async (manifestPath, options) => {
+      const directory = await assertDataLocalDirectory(path.dirname(manifestPath));
+      for (const file of [manifestPath, path.join(directory, "report.json")]) {
+        const stat = await lstat(file);
+        if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1) fail("matrix inputs must be singly linked regular files");
+      }
+      return verifyNationalGoalCompletionMatrix(manifestPath, options);
+    },
+  });
   if (!loaded) fail("no verified current national goal-completion matrix exists");
   const manifestPath = path.resolve(loaded.manifestPath);
+  const releaseId = path.basename(path.dirname(manifestPath));
   const releasesRoot = path.join(await realpath(APP_ROOT), "data", "national-goal-completion-matrix", "releases");
-  if (!isInside(releasesRoot, manifestPath) || !MATRIX_RELEASE_ID.test(path.basename(path.dirname(manifestPath)))) fail("current matrix path is not canonical");
+  if (!isInside(releasesRoot, manifestPath) || !MATRIX_RELEASE_ID.test(releaseId) || loaded.report.release_id !== releaseId) fail("current matrix path is not canonical");
   const verified = await verifyNationalGoalCompletionMatrix(manifestPath, { root: APP_ROOT });
   const manifestBytes = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
@@ -199,7 +212,7 @@ export function buildBroadOrganizationAcquisitionBacklogManifest(backlog) {
   const observedToken = backlog.observed_at.replace(/[^A-Za-z0-9._-]/g, "-");
   const releaseId = `${BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID}-${observedToken}-${artifactSha256.slice(0, 12)}`;
   return {
-    schema_version: "broad-organization-acquisition-backlog-manifest@3.0.0",
+    schema_version: CURRENT_MANIFEST_VERSION,
     dataset_id: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID,
     release_id: releaseId,
     status: "published",
@@ -284,7 +297,7 @@ export async function buildBroadOrganizationAcquisitionBacklog({
 export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { catalog = null, matrixSource = null, allowOwnedStaging = false } = {}) {
   await assertDataLocalDirectory(path.dirname(manifestPath));
   const manifestStat = await lstat(manifestPath);
-  if (!manifestStat.isFile() || manifestStat.isSymbolicLink()) fail("manifest must be a regular file");
+  if (!manifestStat.isFile() || manifestStat.isSymbolicLink() || manifestStat.nlink !== 1) fail("manifest must be a singly linked regular file");
   const manifestBytes = await readFile(manifestPath);
   const manifest = JSON.parse(manifestBytes.toString("utf8"));
   const historicalV1 = manifest.schema_version === "broad-organization-acquisition-backlog-manifest@1.0.0";
@@ -293,7 +306,7 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
     ? ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "current_pointer_changed", "assessment_catalog_id", "assessment_catalog_sha256", "state_count", "first_wave_state_abbreviations", "artifacts"]
     : ["schema_version", "dataset_id", "release_id", "status", "derived_only", "source_actions_performed", "network_requests", "current_pointer_changed", "assessment_catalog_id", "assessment_catalog_sha256", "source_matrix_release_id", "source_matrix_manifest_sha256", "source_matrix_artifact_sha256", "state_count", "first_wave_state_abbreviations", "artifacts"];
   if (JSON.stringify(Object.keys(manifest).sort()) !== JSON.stringify([...expectedKeys].sort())) fail("manifest schema drifted");
-  if (!historicalV1 && !historicalV2 && manifest.schema_version !== "broad-organization-acquisition-backlog-manifest@3.0.0"
+  if (!historicalV1 && !historicalV2 && manifest.schema_version !== CURRENT_MANIFEST_VERSION
       || manifest.dataset_id !== BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID
       || manifest.status !== "published" || manifest.derived_only !== true
       || manifest.source_actions_performed !== 0 || (!historicalV1 && manifest.network_requests !== 0) || manifest.current_pointer_changed !== false) fail("manifest identity or authority boundary is invalid");
@@ -304,7 +317,7 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
   if (entries.length !== 2 || entries.some((entry) => !["backlog.json", "manifest.json"].includes(entry.name) || !entry.isFile())) fail("release contains unexpected files or directories");
   const artifactPath = path.join(releaseDirectory, "backlog.json");
   const artifactStat = await lstat(artifactPath);
-  if (!artifactStat.isFile() || artifactStat.isSymbolicLink()) fail("backlog artifact must be a regular file");
+  if (!artifactStat.isFile() || artifactStat.isSymbolicLink() || artifactStat.nlink !== 1) fail("backlog artifact must be a singly linked regular file");
   if (manifest.artifacts.length !== 1 || manifest.artifacts[0].path !== "backlog.json") fail("manifest artifact inventory drifted");
   const artifactBytes = await readFile(artifactPath);
   if (artifactBytes.length !== manifest.artifacts[0].bytes || sha256(artifactBytes) !== manifest.artifacts[0].sha256) fail("backlog artifact checksum mismatch");
@@ -327,7 +340,7 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
         || backlog.scope?.source_actions_performed !== 0 || backlog.scope?.network_requests !== 0
         || backlog.scope?.current_pointer_changed !== false
         || backlog.states.some(({ assessment }) => Object.entries(FORBIDDEN_AUTHORITY).some(([field, value]) => assessment?.[field] !== value))) fail("historical v2 content differs from its immutable lineage pins");
-  } else {
+  } else if (matrixSource || !isPinnedAuthorizationHistory(manifest.dataset_id, manifest.release_id, sha256(manifestBytes))) {
     const pinnedCatalog = catalog ?? await loadStateBusinessSourceAssessmentCatalog();
     const expectedBacklog = deriveBroadOrganizationAcquisitionBacklog(pinnedCatalog, matrixSource ?? await loadCurrentBroadOrganizationGapEvidence());
     const expectedManifest = buildBroadOrganizationAcquisitionBacklogManifest(expectedBacklog);
@@ -338,4 +351,21 @@ export async function verifyBroadOrganizationAcquisitionBacklog(manifestPath, { 
   const stagedName = new RegExp(`^\\.${manifest.release_id}\\.staging-[0-9a-f-]{36}$`, "i").test(directoryName);
   if (directoryName !== manifest.release_id && !(allowOwnedStaging && stagedName)) fail("release directory identity mismatch");
   return { manifest, backlog };
+}
+
+export async function loadCurrentBroadOrganizationAcquisitionBacklog({
+  backlogRoot = DEFAULT_BROAD_ORGANIZATION_ACQUISITION_BACKLOG_ROOT,
+  matrixSource = null,
+} = {}) {
+  const matrix = matrixSource ?? await loadCurrentBroadOrganizationGapEvidence();
+  const rows = await readAuthorizationViewReleases(backlogRoot, BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID, "backlog.json");
+  const cohort = newestAuthorizationCohort(rows, (row) => row.instant);
+  const current = cohort.filter(({ manifest }) => manifest.schema_version === CURRENT_MANIFEST_VERSION);
+  if (current.length !== 1 || current[0].manifest.source_matrix_release_id !== matrix.manifest.release_id
+      || current[0].instant !== Date.parse(matrix.report.created_at)) fail("newest v3 backlog for the current goal-completion matrix is unavailable or ambiguous");
+  const { manifestPath, manifestSha256 } = current[0];
+  const verified = await verifyBroadOrganizationAcquisitionBacklog(manifestPath, { matrixSource: matrix });
+  const manifestBytes = jsonBytes(verified.manifest);
+  if (sha256(manifestBytes) !== manifestSha256) fail("newest backlog changed during verification");
+  return { ...verified, manifestPath, manifestBytes };
 }
