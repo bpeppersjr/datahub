@@ -12,21 +12,21 @@ import { createCountySpatialIndex, assignPointToCounty } from './national-busine
 
 export const BUSINESS_ENTITY_GEOGRAPHY_VERSION = 'business-entity-geography-relationship@1.0.0';
 const DATASET = 'business-entity-geography-relationship';
-const REGISTRY_RELEASE = 'national-business-registry-20260911-022652067Z-1ec656c3';
-const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
+const REGISTRY_RELEASE = 'national-business-registry-20261112-005851952Z-44f0a338';
+const REGISTRY_SHA = '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048';
 const GEO_RELEASE = 'us-census-geography-20260830-132803990Z-3629abc0';
 const GEO_SHA = '5426cae150c0fba64f8ff43a48ca39c4e78b5b4ba8a8007fbd211615540d1c8b';
 const CROSSWALK_RELEASE = 'us-census-zcta-jurisdiction-crosswalk-20260830-222631137Z-4b9227f8';
 const CROSSWALK_SHA = '02e19bd98ad587426628cd50013942acc0cc3e9c9a48ac653eaf96cf534b8fe2';
 const GAP_RELEASE = 'zip-denominator-gap-cohort-20261003072243230-9f1be37aa2eb';
 const GAP_SHA = '792361841d937a508d0243b22cf3c7b3fe67e32d2749adadca299ad59c21f8ea';
-const ZIP_QUALITY_RELEASE = 'registry-zip-quality-index-4b454f2383f5932e9cb89734e2c120ed7ec85276cc43f5e8fa65409583d4e430';
-const ZIP_QUALITY_SHA = '1ecbc4cb23d59e584d4528a4f65c23ed9fe4f658e134864416731fc48130941c';
-const COVERAGE_RELEASE = 'national-business-coverage-views-20260911-040908332Z-f01c882a';
-const COVERAGE_SHA = 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6';
-const SELECTED_RELEASE_ID = 'business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7';
-const SELECTED_MANIFEST_SHA256 = '07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2';
-const EXPECTED = Object.freeze({ profiles: 8011835, same: 7963395, outside: 48439, placeholder: 1, missing: 0, assigned: 995293, notAssigned: 7016542 });
+const ZIP_QUALITY_RELEASE = 'registry-zip-quality-index-f9c232d42c69f74a1abc10156aae857157209de7377bea5c6c0aaef9332479a8';
+const ZIP_QUALITY_SHA = '8537365ffb54123678b1141d17f4998a31d754497e0473334d6f5348096b2429';
+const COVERAGE_RELEASE = 'national-business-coverage-views-20261112-025948835Z-76733954';
+const COVERAGE_SHA = '7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a';
+const SELECTED_RELEASE_ID = 'business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00';
+const SELECTED_MANIFEST_SHA256 = '76e78c9b87f83a0cce24fe0604a4c2920c6e56578e4e1d6c3f16d0a82799c4cd';
+const EXPECTED = Object.freeze({ profiles: 8011213, same: 7962776, outside: 48436, placeholder: 1, missing: 0, assigned: 994752, notAssigned: 7016461 });
 const SHA = /^[a-f0-9]{64}$/;
 const LEGACY_ADDRESS_EXTRA_KEYS = new Set(['country', 'state_county_fips', 'county_fips', 'address_role', 'reported_county_code', 'country_source', 'independently_verified', 'postal_code_status', 'site_inference_eligible', 'site_inference_reason', 'source_scope', 'state_semantics', 'postal_code_source', 'unit', 'address_line', 'source_premise_in_dc', 'source_value', 'validation_status', 'street_2', 'street_3', 'street_number', 'street_name', 'address_line_2', 'address_line_3', 'county_source', 'zip_coverage_eligible']);
 const LEGACY_POINT_UNVERIFIED_KEYS = new Set(['coordinates', 'type']);
@@ -43,8 +43,12 @@ const canonical = value => Array.isArray(value) ? value.map(canonical) : value &
 const safeRelative = value => typeof value === 'string' && value.length && !path.isAbsolute(value) && !value.includes('\\') && value.split('/').every(part => part && part !== '.' && part !== '..');
 
 export function normalizeRetainedGeographyProfile(raw, registryManifest, registryManifestSha256) {
-  check(raw && raw.profile_version === 'business-location-match-profile@1.0.0' && registryManifest.release_id === REGISTRY_RELEASE
-    && registryManifestSha256 === REGISTRY_SHA && raw.address && typeof raw.address === 'object' && !Array.isArray(raw.address));
+  check(raw && registryManifest.release_id === REGISTRY_RELEASE && registryManifestSha256 === REGISTRY_SHA
+    && raw.address && typeof raw.address === 'object' && !Array.isArray(raw.address));
+  if (raw.profile_version === 'business-location-match-profile@1.1.0') {
+    return { ...normalizeBusinessLocationProfile(raw), _geography_point_status: 'source-geocode-retained' };
+  }
+  check(raw.profile_version === 'business-location-match-profile@1.0.0');
   const addressKeys = Object.keys(raw.address);
   check(addressKeys.every(key => ['street', 'unit_or_additional', 'city', 'state', 'zip_code', 'postal_code', 'zip4', 'county_name'].includes(key) || LEGACY_ADDRESS_EXTRA_KEYS.has(key)));
   check(raw.address.zip_code === raw.zip_code && raw.address.postal_code === raw.zip_code && /^\d{5}$/.test(raw.zip_code ?? '')

@@ -7,8 +7,8 @@ import {APP_ROOT} from './paths.mjs';
 
 const hash=b=>createHash('sha256').update(b).digest('hex');
 const expected={
- 'registry-zip-quality-index':{manifest:'1ecbc4cb23d59e584d4528a4f65c23ed9fe4f658e134864416731fc48130941c',bytes:22997,artifacts:6051556},
- 'coverage-zip-view-index':{manifest:'a10a0ae018d76b3923e7f2a788cfb7611e2c5a8616cf49fc93ea26bcae217b6e',bytes:17267,artifacts:6065062},
+ 'registry-zip-quality-index':{manifest:'8537365ffb54123678b1141d17f4998a31d754497e0473334d6f5348096b2429',bytes:22997,artifacts:6051556,created_at:'2026-11-12T03:44:55.386Z'},
+ 'coverage-zip-view-index':{manifest:'f48792a3747486037d284240de59186eb1db67729c327b7dededfe0f08455500',bytes:17267,artifacts:6065087,created_at:'2026-11-12T03:44:55.375Z'},
 };
 async function regular(relative){
  assert.ok(typeof relative==='string'&&!path.isAbsolute(relative)&&!relative.split(/[\\/]/).includes('..'));
@@ -23,7 +23,7 @@ function reconcile(id,c,bytes){
  assert.equal(r.manifest,`data/${id}/releases/${m.release_id}/manifest.json`);assert.equal(r.manifest_sha256,hash(bytes));assert.equal(r.manifest_sha256,e.manifest);assert.equal(r.manifest_bytes,bytes.length);assert.equal(bytes.length,e.bytes);
  assert.equal(r.manifest_schema_version,m.schema_version);assert.equal(m.schema_version,`${id}@1.0.0`);assert.equal(m.status,'immutable-local-lookup-index');
  for(const k of ['release_id','status','created_at','indexed_zip_count','bindings'])assert.deepEqual(r[k],m[k]);
- assert.equal(r.created_at,'2026-10-02T20:00:00.000Z');assert.equal(r.indexed_zip_count,48194);
+ assert.equal(r.created_at,e.created_at);assert.equal(r.indexed_zip_count,48194);
  assert.equal(r.artifact_count,m.artifacts.length);assert.equal(r.artifact_count,100);assert.equal(r.artifact_bytes,m.artifacts.reduce((s,a)=>s+a.bytes,0));assert.equal(r.artifact_bytes,e.artifacts);
  assert.equal(r.artifact_inventory_sha256,hash(JSON.stringify(m.artifacts)));assert.equal(r.artifact_inventory_hash_encoding,'SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order');assert.equal(m.artifacts.reduce((s,a)=>s+a.zip_count,0),48194);
  for(const [i,a]of m.artifacts.entries()){assert.equal(a.path,`zip-${String(i).padStart(2,'0')}.json`);assert.match(a.sha256,/^[a-f0-9]{64}$/);assert.ok(Number.isSafeInteger(a.bytes)&&a.bytes>0&&a.bytes<=256000);assert.ok(Number.isSafeInteger(a.zip_count)&&a.zip_count>0&&a.zip_count<=1000);}

@@ -9,30 +9,30 @@
   "current_pointer_written": false,
   "export_policy": "local-review-only",
   "retained_release": {
-    "release_id": "coverage-zip-view-index-84ab1aff4d30eb285f59f21f20a8c06f6cef7b529a88b1a7ac4672c2adc09dce",
-    "manifest": "data/coverage-zip-view-index/releases/coverage-zip-view-index-84ab1aff4d30eb285f59f21f20a8c06f6cef7b529a88b1a7ac4672c2adc09dce/manifest.json",
-    "manifest_sha256": "a10a0ae018d76b3923e7f2a788cfb7611e2c5a8616cf49fc93ea26bcae217b6e",
+    "release_id": "coverage-zip-view-index-9a01b7da46bd36db28441b8e6f2e640120c36d50d8dc386d754541147b9c21e9",
+    "manifest": "data/coverage-zip-view-index/releases/coverage-zip-view-index-9a01b7da46bd36db28441b8e6f2e640120c36d50d8dc386d754541147b9c21e9/manifest.json",
+    "manifest_sha256": "f48792a3747486037d284240de59186eb1db67729c327b7dededfe0f08455500",
     "manifest_bytes": 17267,
     "manifest_schema_version": "coverage-zip-view-index@1.0.0",
     "status": "immutable-local-lookup-index",
-    "created_at": "2026-10-02T20:00:00.000Z",
+    "created_at": "2026-11-12T03:44:55.375Z",
     "indexed_zip_count": 48194,
     "source_zip_rows": 48194,
     "bindings": {
-      "coverage_catalog_sha256": "83e9bbb84e5478cfe8b50a45460a9b2e76216234a772519ce5e6433021545b28",
+      "coverage_catalog_sha256": "65caecc86a114201cba9566a600d8b53a3b1000c54fb6fc8911807d9fd8c94a7",
       "coverage": {
         "pointer_path": "data/business-coverage-views/current.json",
-        "pointer_sha256": "dbe15c414452409c6f3ef6ee11263476138d02f2fec9e3b4c19e307ecc58220b",
-        "manifest_path": "data/business-coverage-views/releases/national-business-coverage-views-20260911-040908332Z-f01c882a/manifest.json",
-        "manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
-        "release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a"
+        "pointer_sha256": "922bf3e4a483659727a72e953b226e1dcf48b8ad5ad92fbd555f1dc98174a9c1",
+        "manifest_path": "data/business-coverage-views/releases/national-business-coverage-views-20261112-025948835Z-76733954/manifest.json",
+        "manifest_sha256": "7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a",
+        "release_id": "national-business-coverage-views-20261112-025948835Z-76733954"
       },
       "registry": {
         "pointer_path": "data/business-registry/current.json",
-        "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
-        "manifest_path": "data/business-registry/releases/national-business-registry-20260911-022652067Z-1ec656c3/manifest.json",
-        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3"
+        "pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+        "manifest_path": "data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json",
+        "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+        "release_id": "national-business-registry-20261112-005851952Z-44f0a338"
       },
       "geography": {
         "pointer_path": "data/geography/current.json",
@@ -44,9 +44,9 @@
       "dependencies": [
         {
           "dataset_id": "national-business-registry",
-          "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+          "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
           "publisher_version": "2.15.0",
-          "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+          "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048"
         },
         {
           "dataset_id": "us-census-geography",
@@ -62,15 +62,15 @@
         },
         {
           "dataset_id": "national-business-entity-resolution",
-          "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+          "release_id": "business-entity-resolution-20261112-025152257Z-75c216bb",
           "publisher_version": "1.0.0",
-          "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff"
+          "manifest_sha256": "a5f2e82fe0cbe7d4ddb248f9c27660bb516ef7b23080d4e269fb1426554af881"
         },
         {
           "dataset_id": "national-business-entity-resolution-benchmark",
-          "release_id": "business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3",
+          "release_id": "business-entity-resolution-benchmark-sample-20261112-025637845Z-3c966daf",
           "publisher_version": "1.0.0",
-          "manifest_sha256": "d036a38d3808e59f1a35762dc980855fd3676d8ec75ab379c2e0c7968c2f484e"
+          "manifest_sha256": "78620bf22f6bf002aa5472ae1159a1be11d7d208fe525e2a9d3da982f79d35e9"
         },
         {
           "dataset_id": "census-nonemployer-baseline",
@@ -96,16 +96,16 @@
       },
       "zip_artifact": {
         "path": "views/zips.jsonl",
-        "bytes": 712218883,
-        "sha256": "b24a6dc7026a3bec96cea4cd4cb227aa58d11be9beebd633d8229ca5ee37a6dd",
+        "bytes": 714580381,
+        "sha256": "bbec4dc2b4ff79702b35c3e7dc937958fc4c82005260087b1dbcf3253646abb2",
         "artifact_type": "zip-coverage-view-jsonl",
         "record_count": 48194,
         "export_policy": "local-review-only"
       }
     },
     "artifact_count": 100,
-    "artifact_bytes": 6065062,
-    "artifact_inventory_sha256": "f937819a60e78a8c8923acfea92dab8efa1bc06ca478cee7c972eb2ba2889ce6",
+    "artifact_bytes": 6065087,
+    "artifact_inventory_sha256": "f9e5d28fee11c5cea68324dad6d13128198a118d978c25ad46995f82c52831d0",
     "artifact_inventory_hash_encoding": "SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order"
   },
   "claims": {

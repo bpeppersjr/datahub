@@ -7,6 +7,15 @@ export const LEGACY_PROFILE_REGISTRY_BINDING = Object.freeze({
   release_id: "national-business-registry-20260911-022652067Z-1ec656c3",
   manifest_sha256: "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
 });
+export const SUCCESSOR_LEGACY_PROFILE_REGISTRY_BINDING = Object.freeze({
+  dataset_id: "national-business-registry",
+  release_id: "national-business-registry-20261112-005851952Z-44f0a338",
+  manifest_sha256: "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+});
+export const LEGACY_PROFILE_REGISTRY_BINDINGS = Object.freeze([
+  LEGACY_PROFILE_REGISTRY_BINDING,
+  SUCCESSOR_LEGACY_PROFILE_REGISTRY_BINDING,
+]);
 
 const CURRENT_KEYS = ["schema_version", "profile_version", "profile_id", "zip_code", "site_entity_id", "establishment_entity_id", "organization_entity_id", "address", "normalized_address", "address_match_key_sha256", "names", "primary_name_match_key_sha256", "geocode", "external_identifiers", "source_status", "observed_at", "source", "export_policy"];
 const LEGACY_KEYS = CURRENT_KEYS.map(key => key === "geocode" ? "location" : key).sort();
@@ -18,6 +27,8 @@ const sha256 = value => createHash("sha256").update(value).digest("hex");
 const isRecord = value => value !== null && typeof value === "object" && !Array.isArray(value);
 const exactKeys = (value, keys) => isRecord(value) && Object.keys(value).sort().join("\u0000") === [...keys].sort().join("\u0000");
 const textOrNull = value => value === null || typeof value === "string";
+const matchesRetainedRegistryBinding = registryBinding => Boolean(registryBinding)
+  && LEGACY_PROFILE_REGISTRY_BINDINGS.some(binding => Object.entries(binding).every(([key, expected]) => registryBinding[key] === expected));
 function assertNoPolygonKeys(value, depth = 0) {
   if (depth > 10) throw new Error("Profile nesting exceeds its contract limit.");
   if (Array.isArray(value)) { for (const item of value) assertNoPolygonKeys(item, depth + 1); return; }
@@ -71,7 +82,7 @@ export function normalizeCoordinateGeocode(value) {
 }
 
 export function validateLegacyGeometryAssertion(value, registryBinding) {
-  if (!registryBinding || Object.entries(LEGACY_PROFILE_REGISTRY_BINDING).some(([key, expected]) => registryBinding[key] !== expected)) {
+  if (!matchesRetainedRegistryBinding(registryBinding)) {
     throw new Error("Legacy geometry assertion requires the exact retained registry release and manifest binding.");
   }
   return normalizeCoordinateGeocode(value);
@@ -88,7 +99,7 @@ export function normalizeBusinessLocationProfile(profile, registryBinding = null
   const current = profile.profile_version === BUSINESS_LOCATION_PROFILE_VERSION;
   if (!legacy && !current) throw new Error("Location profile version is unsupported.");
   if (!exactKeys(profile, legacy ? LEGACY_KEYS : CURRENT_KEYS)) throw new Error("Location profile keys do not match their versioned contract.");
-  if (legacy && (!registryBinding || Object.entries(LEGACY_PROFILE_REGISTRY_BINDING).some(([key, value]) => registryBinding[key] !== value))) {
+  if (legacy && !matchesRetainedRegistryBinding(registryBinding)) {
     throw new Error("Legacy profile compatibility requires the exact retained registry release and manifest binding.");
   }
   if (!/^location-profile:[a-f0-9]{32}$/.test(profile.profile_id ?? "") || !/^\d{5}$/.test(profile.zip_code ?? "")

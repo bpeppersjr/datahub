@@ -67,8 +67,8 @@ test('legacy retained address extensions are release-bound and CRS-unproven poin
     location: { type: 'Point', coordinates: [-66.5, 18.2] }, external_identifiers: [], source_status: null,
     observed_at: '2026-09-01T00:00:00.000Z', source: { source_id: 'fixture', source_release_id: 'fixture-release', source_record_id: 'fixture-record', ingest_run_id: 'run-1', transformation_version: 'fixture@1', policy_id: 'fixture' }, export_policy: 'local-review-only',
   };
-  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20260911-022652067Z-1ec656c3' };
-  const normalized = normalizeRetainedGeographyProfile(raw, manifest, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
+  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20261112-005851952Z-44f0a338' };
+  const normalized = normalizeRetainedGeographyProfile(raw, manifest, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048');
   assert.equal(normalized.address.country, undefined);
   assert.equal(normalized.address.state, 'PR');
   assert.equal(normalized.geocode, null);
@@ -76,7 +76,7 @@ test('legacy retained address extensions are release-bound and CRS-unproven poin
   assert.equal(raw.address.country, 'US'); // source fixture remains unchanged
   assert.throws(() => normalizeRetainedGeographyProfile(raw, manifest, '0'.repeat(64)), /Business entity geography relationship contract rejected/);
   const unknown = structuredClone(raw); unknown.address.unknown_region = 'USVI';
-  assert.throws(() => normalizeRetainedGeographyProfile(unknown, manifest, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'), /rejected/);
+  assert.throws(() => normalizeRetainedGeographyProfile(unknown, manifest, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048'), /rejected/);
 });
 
 test('only the exact retained DC output-CRS transformation adapter promotes legacy points', () => {
@@ -90,8 +90,8 @@ test('only the exact retained DC output-CRS transformation adapter promotes lega
     external_identifiers: [], source_status: null, observed_at: '2026-09-01T00:00:00.000Z',
     source: { source_id: 'dc-dlcp-active-basic-business-licenses', source_release_id: 'dc-release', source_record_id: 'dc-record', ingest_run_id: 'run-1', transformation_version: 'dc-basic-business-licenses@1.0.1', policy_id: 'dc-policy' }, export_policy: 'local-review-only',
   };
-  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20260911-022652067Z-1ec656c3' };
-  const normalized = normalizeRetainedGeographyProfile(raw, manifest, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
+  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20261112-005851952Z-44f0a338' };
+  const normalized = normalizeRetainedGeographyProfile(raw, manifest, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048');
   assert.deepEqual(normalized.geocode, { latitude: 38.91, longitude: -77.04 });
   assert.equal(normalized._geography_point_status, 'source-geocode-retained');
   const wrong = structuredClone(raw); wrong.source.transformation_version = 'future@9';
@@ -100,32 +100,32 @@ test('only the exact retained DC output-CRS transformation adapter promotes lega
 
 test('registered relationship summary preserves exact cohort and strict row-level assignment counts', async () => {
   const summary = await readBusinessEntityGeographyRelationshipSummary();
-  assert.equal(summary.release_id, 'business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7');
-  assert.equal(summary.manifest_sha256, '07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2');
-  assert.equal(summary.profile_count, 8011835);
-  assert.equal(summary.point_counts['assigned-single-county'], 372079);
-  assert.equal(summary.point_counts['unassignable-legacy-coordinate-crs-unproven'], 640383);
-  assert.equal(summary.point_counts['unassignable-coordinate-not-premise-point'], 22948);
-  assert.equal(summary.point_counts['missing-geocode'], 6976397);
-  assert.equal(summary.point_counts.unmatched, 21);
+  assert.equal(summary.release_id, 'business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00');
+  assert.equal(summary.manifest_sha256, '76e78c9b87f83a0cce24fe0604a4c2920c6e56578e4e1d6c3f16d0a82799c4cd');
+  assert.equal(summary.profile_count, 8011213);
+  assert.equal(summary.point_counts['assigned-single-county'], 994752);
+  assert.equal(summary.point_counts['unassignable-legacy-coordinate-crs-unproven'], 0);
+  assert.equal(summary.point_counts['unassignable-coordinate-not-premise-point'], 0);
+  assert.equal(summary.point_counts['missing-geocode'], 6976316);
+  assert.equal(summary.point_counts.unmatched, 40138);
   assert.equal(summary.point_counts.ambiguous, 7);
-  assert.equal(Object.values(summary.point_counts).reduce((total, value) => total + value, 0), 8011835);
-  assert.equal(Object.values(summary.state_point_counts).reduce((total, value) => total + value, 0), 372079);
-  assert.equal(Object.values(summary.county_point_counts).reduce((total, value) => total + value, 0), 372079);
-  assert.equal(995293 - summary.point_counts['assigned-single-county'], 623214);
+  assert.equal(Object.values(summary.point_counts).reduce((total, value) => total + value, 0), 8011213);
+  assert.equal(Object.values(summary.state_point_counts).reduce((total, value) => total + value, 0), 994752);
+  assert.equal(Object.values(summary.county_point_counts).reduce((total, value) => total + value, 0), 994752);
+  assert.equal(994752 - summary.point_counts['assigned-single-county'], 0);
 });
 
 test('runtime adapter is enabled only for the exact immutable registry release and manifest hash', () => {
-  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20260911-022652067Z-1ec656c3' };
-  assert.equal(businessEntityGeographyRelationshipMatchesRegistry(manifest, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'), true);
+  const manifest = { dataset_id: 'national-business-registry', release_id: 'national-business-registry-20261112-005851952Z-44f0a338' };
+  assert.equal(businessEntityGeographyRelationshipMatchesRegistry(manifest, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048'), true);
   assert.equal(businessEntityGeographyRelationshipMatchesRegistry(manifest, '0'.repeat(64)), false);
-  assert.equal(businessEntityGeographyRelationshipMatchesRegistry({ ...manifest, release_id: 'historical' }, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'), false);
+  assert.equal(businessEntityGeographyRelationshipMatchesRegistry({ ...manifest, release_id: 'historical' }, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048'), false);
 });
 
 test('selected ZIP2 relationship partition joins row-for-row to its pinned registry profiles', async () => {
   const config = JSON.parse(await readFile(path.join(APP_ROOT, 'config/datasets/national-business-registry.json'), 'utf8'));
   const manifestBytes = await readFile(path.join(APP_ROOT, config.current_release.manifest));
-  assert.equal(createHash('sha256').update(manifestBytes).digest('hex'), 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
+  assert.equal(createHash('sha256').update(manifestBytes).digest('hex'), '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048');
   const registry = JSON.parse(manifestBytes), sourceArtifact = registry.artifacts.find(item => item.path === 'resolution/location-profiles/zip2=00.jsonl.gz');
   const sourceBytes = await readFile(path.join(APP_ROOT, 'data/business-registry/releases', registry.release_id, sourceArtifact.path));
   assert.equal(sourceBytes.length, sourceArtifact.bytes);

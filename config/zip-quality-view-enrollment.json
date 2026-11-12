@@ -2,9 +2,9 @@
   "schema_version": "1.0.0",
   "cohort_id": "production-current",
   "pointer_path": "data/business-registry/current.json",
-  "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
-  "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-  "zip_artifact_sha256": "2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e",
-  "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+  "pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
+  "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+  "zip_artifact_sha256": "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8",
+  "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
   "purpose": "Immutable, read-only ZIP-quality view enrollment; not USPS authorization or operational-status evidence."
 }

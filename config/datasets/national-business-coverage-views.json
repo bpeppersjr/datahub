@@ -76,22 +76,22 @@
   "export_policy": "local-aggregate-review-required",
   "current_verified_release": {
     "output": "data/business-coverage-views/current.json",
-    "manifest": "data/business-coverage-views/releases/national-business-coverage-views-20260911-040908332Z-f01c882a/manifest.json",
-    "manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
-    "release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
+    "manifest": "data/business-coverage-views/releases/national-business-coverage-views-20261112-025948835Z-76733954/manifest.json",
+    "manifest_sha256": "7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a",
+    "release_id": "national-business-coverage-views-20261112-025948835Z-76733954",
     "publisher": {
       "id": "national-business-coverage-views",
       "version": "2.11.0"
     },
-    "created_at": "2026-09-11T04:09:08.332Z",
+    "created_at": "2026-11-12T02:59:48.835Z",
     "status": "published-partial-local-aggregate",
     "scope_authority": "The immutable release manifest is authoritative for complete source-specific coverage and limitations; this catalog stores exact headline totals only.",
     "dependencies": [
       {
         "dataset_id": "national-business-registry",
-        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
+        "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
         "publisher_version": "2.15.0",
-        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76"
+        "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048"
       },
       {
         "dataset_id": "us-census-geography",
@@ -107,15 +107,15 @@
       },
       {
         "dataset_id": "national-business-entity-resolution",
-        "release_id": "business-entity-resolution-20260911-040411512Z-e6812503",
+        "release_id": "business-entity-resolution-20261112-025152257Z-75c216bb",
         "publisher_version": "1.0.0",
-        "manifest_sha256": "46ebfc2e1077663897d1507df1dbe4c958940e69f671b335ed884e7e8da602ff"
+        "manifest_sha256": "a5f2e82fe0cbe7d4ddb248f9c27660bb516ef7b23080d4e269fb1426554af881"
       },
       {
         "dataset_id": "national-business-entity-resolution-benchmark",
-        "release_id": "business-entity-resolution-benchmark-sample-20260911-040724863Z-9844fbb3",
+        "release_id": "business-entity-resolution-benchmark-sample-20261112-025637845Z-3c966daf",
         "publisher_version": "1.0.0",
-        "manifest_sha256": "d036a38d3808e59f1a35762dc980855fd3676d8ec75ab379c2e0c7968c2f484e"
+        "manifest_sha256": "78620bf22f6bf002aa5472ae1159a1be11d7d208fe525e2a9d3da982f79d35e9"
       },
       {
         "dataset_id": "census-nonemployer-baseline",
@@ -125,22 +125,22 @@
       }
     ],
     "verified_artifact_count": 8,
-    "verified_bytes": 762989016,
+    "verified_bytes": 765351913,
     "national_views": 3,
     "state_views": 56,
     "county_views": 3235,
     "zip_views": 48194,
     "source_views": 30,
-    "gap_views": 28086,
-    "location_profiles_assessed": 8011835,
-    "geographic_evidence_assessed": 8025017,
+    "gap_views": 28087,
+    "location_profiles_assessed": 8011213,
+    "geographic_evidence_assessed": 8024395,
     "reporting_only_locations_assessed": 13182,
     "reporting_only_coordinate_assigned": 8942,
     "reporting_only_identity_matching_eligible": false,
-    "coordinate_assigned_profiles": 995293,
-    "profiles_without_valid_coordinate_assignment": 7016542,
-    "geographic_evidence_coordinate_assigned": 1004235,
-    "geographic_evidence_without_valid_coordinate_assignment": 7020782,
+    "coordinate_assigned_profiles": 994752,
+    "profiles_without_valid_coordinate_assignment": 7016461,
+    "geographic_evidence_coordinate_assigned": 1003694,
+    "geographic_evidence_without_valid_coordinate_assignment": 7020701,
     "spatial_zip_polygon_denominator_count": 33791,
     "zip_views_with_zcta_polygon": 33791,
     "zip_views_without_zcta_polygon": 14403,

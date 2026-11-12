@@ -544,10 +544,11 @@ test("serves governed category, geography, demographic, and percentage views", a
 
   const states = await store.getFeatures({ level: "states", categoryId: "retail-consumer", enhancerId: "business_count" });
   assert.equal(states.features.length, 2);
-  assert.equal(states.meta.point_assignment_release_id, 'business-entity-geography-relationship-99d70051979cb4d4e116b832994daef87f84ab919d6392f4fa9e98ea3798f8d7');
-  assert.equal(states.meta.point_assignment_manifest_sha256, '07e561938b2d027f0c1586e5db1a2b775f7680d486e75dfb4e99b399cc0bbaa2');
+  assert.equal(states.meta.point_assignment_release_id, 'business-entity-geography-relationship-a046ebc7280afa3acb86a38cd6b8f13fefc7b758179e9e41c65f6d5aaef2ad00');
+  assert.equal(states.meta.point_assignment_manifest_sha256, '76e78c9b87f83a0cce24fe0604a4c2920c6e56578e4e1d6c3f16d0a82799c4cd');
   assert.deepEqual(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assigned_source_profile_evidence_rows_by_source, {
-    'fdic-bankfind-current-structure': 1390, 'usda-snap-current-retailers': 4853,
+    'fdic-bankfind-current-structure': 1390, 'los-angeles-office-of-finance-active-businesses': 52,
+    'usda-fsis-active-mpi-directory': 99, 'usda-snap-current-retailers': 4853,
   });
   assert.equal(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assignment_cross_source_additive, false);
   assert.equal(states.features.find((feature) => feature.properties.geoid === '01').properties.point_assignment_release_id, states.meta.point_assignment_release_id);

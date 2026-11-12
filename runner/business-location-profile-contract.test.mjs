@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   BUSINESS_LOCATION_PROFILE_VERSION,
   LEGACY_PROFILE_REGISTRY_BINDING,
+  SUCCESSOR_LEGACY_PROFILE_REGISTRY_BINDING,
   LEGACY_PROFILE_VERSION,
   normalizeBusinessLocationProfile,
   validateLegacyGeometryAssertion,
@@ -94,6 +95,12 @@ test("legacy compatibility refuses a different registry release or manifest dige
   const legacy = profile(LEGACY_PROFILE_VERSION, null);
   assert.throws(() => normalizeBusinessLocationProfile(legacy, { ...binding, manifest_sha256: "0".repeat(64) }), /exact retained registry release/);
   assert.throws(() => normalizeBusinessLocationProfile(legacy, { ...binding, release_id: "other" }), /exact retained registry release/);
+});
+
+test("legacy compatibility admits the exact immutable November successor registry", () => {
+  const legacy = profile(LEGACY_PROFILE_VERSION, { type: "Point", coordinates: [-93, 41], coordinate_reference_system: "EPSG:4326" });
+  assert.deepEqual(normalizeBusinessLocationProfile(legacy, SUCCESSOR_LEGACY_PROFILE_REGISTRY_BINDING).geocode, { latitude: 41, longitude: -93 });
+  assert.throws(() => normalizeBusinessLocationProfile(legacy, { ...SUCCESSOR_LEGACY_PROFILE_REGISTRY_BINDING, manifest_sha256: "0".repeat(64) }), /exact retained registry release/);
 });
 
 test("legacy assertion geometry is point-only and bound to the exact immutable registry", () => {
