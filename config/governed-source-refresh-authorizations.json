@@ -110,7 +110,7 @@
       "approved_at": "2026-11-12T13:03:14.696Z",
       "approved_by": "repository-owner-approved-production-plan",
       "mode": "app-owned-automatic-full-snapshot-refresh",
-      "descriptor_evidence_sha256": "f2ed55f33d0a66f3fde7d7bf129b2297c7fc91f26a4236de28ffbe28b1a5b38f",
+        "descriptor_evidence_sha256": "3c991e5a82cd66d6dbb72f8be94f0ae4df3214f11cfc0980bc882535fa9262f4",
       "permissions": {
         "fresh_acquisition": true,
         "autonomous_acquisition": true,

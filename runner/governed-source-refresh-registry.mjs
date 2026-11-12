@@ -13,7 +13,7 @@ const rows = [
   ["AK","ak-active-business-licenses","ak-active-business-licenses","verifyAkActiveBusinessLicenses","config/governed-source-refresh-assessments/ak-active-business-licenses-2026-11-12.json",null,["scripts/run-ak-business-app.mjs","runner/ak-business-app.mjs","config/connectors/ak-active-business-licenses-app.json"],["scripts/run-ak-business-app.mjs"]],
   ["CO","co-business-registry","co-business-registry-good-standing-or-delinquent-organizations","verifyCoBusinessRegistry"],
   ["CT","ct-business-registry","ct-business-registry-active-organizations","verifyCtBusinessRegistry"],
-  ["DE","de-business-licenses","de-business-licenses-current","verifyDeBusinessLicenses"],
+  ["DE","de-business-licenses","de-business-licenses-current","verifyDeBusinessLicenses",null,null,["scripts/run-de-business-app.mjs","runner/de-business-app.mjs","config/connectors/de-business-licenses-app.json"],["scripts/run-de-business-app.mjs"]],
   ["FL","fl-business-registry","fl-business-registry-quarterly-active-entities","verifyFlBusinessRegistry"],
   ["IA","ia-business-registry","ia-business-registry-active-entities","verifyIaBusinessRegistry"],
   ["IL","il-business-registry","il-business-registry-active-organizations","verifyIllinoisBusinessRegistry"],

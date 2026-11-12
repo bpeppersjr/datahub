@@ -9,7 +9,7 @@ import { createDeExecutionDeadline } from "./de-execution-deadline.mjs";
 
 // Parsed JSON serialization pins are line-ending portable; source/start hashes bind raw bytes.
 export const DE_APP_CONTRACT_SHA256 = "3984cecec1eea7f6c269780777d3dfb8010b62248ea0891f270e100b5a03150c";
-const POLICY = "5499948df4455fb2f86da26186f8dda57ea712e417bc9b702dcfc6e0996ea36e";
+const POLICY = "a032cc8db654f63305e07510d7b1ed13449b595b09c4ccb9eee0f82c98cfce5e";
 const VERSION = "de-business-app@1.0.0";
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const fail = () => Object.assign(new Error("Delaware app evidence or execution rejected."), { code: "DE_APP_JOB" });
