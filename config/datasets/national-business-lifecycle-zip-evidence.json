@@ -1,0 +1,38 @@
+{
+  "schema_version": "national-business-lifecycle-zip-evidence-registration@1.0.0",
+  "dataset_id": "national-business-lifecycle-zip-evidence",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-business-lifecycle-zip-evidence-695c384cc80740a9b3c4c847a1301ec21f0f66cef789951c71c6957bf54e1f2f",
+    "manifest": "data/national-business-lifecycle-zip-evidence/releases/national-business-lifecycle-zip-evidence-695c384cc80740a9b3c4c847a1301ec21f0f66cef789951c71c6957bf54e1f2f/manifest.json",
+    "manifest_sha256": "f1d4959f62e0837441dd1bdd1af7271c8a9093d5fc172d9d046e997cfed3d33a",
+    "manifest_bytes": 25027,
+    "zip5_rows": 48194,
+    "positive_zip5_rows": 42267,
+    "profile_membership_count": 8011213,
+    "artifact_count": 102
+  },
+  "claims": {
+    "record_unit": "registry-location-profile-lifecycle-membership",
+    "dense_governed_zip_cohort": true,
+    "source_relative_lifecycle_evidence": true,
+    "non_numerator_sidecar": true,
+    "unique_business_count": null,
+    "active_business_count": null,
+    "current_operating_business_count": null,
+    "all_business_completeness": null,
+    "current_operation_verified": false,
+    "active_business_eligible": false,
+    "identity_resolution_applied": false,
+    "additive_across_sources": false,
+    "authoritative_current_usps_zip_denominator": null,
+    "zip4_joined": false,
+    "network_requests": 0,
+    "source_acquisition_performed": false,
+    "current_pointer_written": false,
+    "production_enrollment": false
+  },
+  "documentation": "docs/NATIONAL-BUSINESS-LIFECYCLE-ZIP-EVIDENCE.md"
+}

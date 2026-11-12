@@ -287,6 +287,8 @@
     "postal-migration:check": "node scripts/check-normalized-us-postal-migration.mjs",
     "registry:source-freshness:verify": "node scripts/verify-national-business-registry-source-freshness-audit.mjs",
     "business-temporal-lifecycle:verify": "node scripts/verify-national-business-temporal-lifecycle-reconciliation.mjs",
+    "business-lifecycle-zip:build": "node scripts/build-national-business-lifecycle-zip-evidence.mjs",
+    "business-lifecycle-zip:verify": "node scripts/verify-national-business-lifecycle-zip-evidence.mjs",
     "business-source-status-posture:verify": "node scripts/verify-national-business-source-status-posture.mjs",
     "business-co-registration-status-posture:verify": "node scripts/verify-national-business-co-registration-status-posture.mjs",
     "postal-cutover:plan": "node scripts/cutover-normalized-us-postal-migration.mjs plan",

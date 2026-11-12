@@ -41,6 +41,18 @@ next-env.d.ts
 # local job state and generated artifacts
 /data/*
 !/data/.gitkeep
+!/data/national-business-lifecycle-zip-evidence/
+/data/national-business-lifecycle-zip-evidence/*
+!/data/national-business-lifecycle-zip-evidence/releases/
+/data/national-business-lifecycle-zip-evidence/releases/*
+!/data/national-business-lifecycle-zip-evidence/releases/national-business-lifecycle-zip-evidence-695c384cc80740a9b3c4c847a1301ec21f0f66cef789951c71c6957bf54e1f2f/
+!/data/national-business-lifecycle-zip-evidence/releases/national-business-lifecycle-zip-evidence-695c384cc80740a9b3c4c847a1301ec21f0f66cef789951c71c6957bf54e1f2f/*
+!/data/retained-childcare-zip-evidence/
+/data/retained-childcare-zip-evidence/*
+!/data/retained-childcare-zip-evidence/releases/
+/data/retained-childcare-zip-evidence/releases/*
+!/data/retained-childcare-zip-evidence/releases/retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b/
+!/data/retained-childcare-zip-evidence/releases/retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b/*
 # Governed November broad-organization authorization release pairs.
 !/data/broad-organization-acquisition-backlog/
 /data/broad-organization-acquisition-backlog/*
