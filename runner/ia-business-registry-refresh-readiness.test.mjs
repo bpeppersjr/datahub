@@ -13,13 +13,35 @@ test("Iowa refresh readiness is deterministic, evidence-bound, and held", async 
   assert.equal(first.readinessStatus, "HOLD");
   assert.equal(first.dispatchAvailable, false);
   assert.equal(first.freshAcquisitionAuthorized, false);
+  assert.equal(first.autonomousAcquisitionAuthorized, false);
+  assert.equal(first.productionPointerChangeAuthorized, false);
   assert.equal(first.plan.networkRequestCount, 0);
   assert.equal(first.plan.allocationCount, 0);
   assert.equal(first.plan.operationCreated, false);
   assert.equal(first.plan.evidence.length, 6);
   assert.ok(first.plan.evidence.every(item => /^[a-f0-9]{64}$/.test(item.sha256)));
+  assert.equal(first.plan.evidence.find(item => item.kind === "assessment").path,
+    "config/state-business-source-existing-assessments/ia-2026-11-11.json");
+  assert.equal(first.observedAssessment.observedAt, "2026-11-11");
   assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,true);
   assert.equal(first.retainedRelease.releaseId,'ia-business-registry-20260903-004117245Z-8e4bf874');
+  assert.equal(first.retainedRelease.sourceModifiedAt, "2026-08-10T12:59:03.509Z");
+  assert.deepEqual(first.observedCatalog, {
+    datasetId: "554",
+    accessLevel: "public",
+    licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+    publisher: {
+      metadataUrl: "https://idh-be.iowa.gov/api/v1/datasets/554/",
+      modifiedAt: "2026-11-08T01:02:45.24117-06:00",
+      reportedRowCount: 351617,
+    },
+    federalHarvest: {
+      metadataUrl: "https://catalog.data.gov/dataset/active-iowa-business-entities",
+      modifiedAt: "2026-11-07T09:10:30.011658+00:00",
+      reportedRowCount: null,
+    },
+  });
+  assert.ok(first.plan.unresolvedGates.includes("replacement-deletion-reconciliation"));
 });
 
 test("managed Iowa preview allocates no operation and start fails closed before executor or receipt writer", async t => {
@@ -52,6 +74,11 @@ test("Iowa refresh API and UI remain closed and separate from generic industry s
   assert.match(server, /source-refresh-plans/);
   assert.match(server, /startSourceRefresh/);
   assert.match(card, /Preview refresh plan/);
+  assert.match(card, /Retained snapshot/);
+  assert.match(card, /Publisher catalog/);
+  assert.match(card, /publisher-reported rows/);
+  assert.match(card, /Data.gov harvest/);
+  assert.match(card, /row count unavailable/);
   assert.match(card, /<button className="primary-button" disabled/);
   assert.doesNotMatch(card, /source-refreshes/);
   assert.match(page, /IaBusinessRegistryRefreshStatusCard/);

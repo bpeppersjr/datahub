@@ -1,0 +1,65 @@
+{
+  "schema_version": "state-business-source-existing-assessment@1.0.0",
+  "assessment_id": "ia-existing-governed-source-2026-11-11",
+  "observed_at": "2026-11-11",
+  "state": { "abbreviation": "IA", "name": "Iowa" },
+  "decision": "existing-governed-source",
+  "controls": {
+    "official_primary_sources_only": true,
+    "record_requests": 0,
+    "downloads": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "source": {
+    "publisher": "Iowa Secretary of State",
+    "dataset_id": "554",
+    "retained_release_id": "ia-business-registry-20260903-004117245Z-8e4bf874",
+    "observed_catalog": {
+      "access_level": "public",
+      "license_url": "https://creativecommons.org/licenses/by/4.0/",
+      "publisher": {
+        "metadata_url": "https://idh-be.iowa.gov/api/v1/datasets/554/",
+        "modified_at": "2026-11-08T01:02:45.24117-06:00",
+        "reported_row_count": 351617
+      },
+      "federal_harvest": {
+        "metadata_url": "https://catalog.data.gov/dataset/active-iowa-business-entities",
+        "modified_at": "2026-11-07T09:10:30.011658+00:00",
+        "reported_row_count": null
+      }
+    }
+  },
+  "access": {
+    "classification": "anonymous-api",
+    "summary": "Official public CC BY 4.0 monthly bulk dataset. This assessment reviewed catalog metadata only."
+  },
+  "fields": "Corporation number, legal name, type, effective date and home-office address are usable. Registered-agent and other person-linked fields remain excluded.",
+  "status_semantics": "Active registration is maintained through biennial filing. Continuous operations, licensure, public access, solvency and storefront presence require separate evidence.",
+  "address_zip": "Home-office address, ZIP and publisher coordinates can be missing or stale. Premises require independent verification. ZIP5 and ZIP+4 remain separate.",
+  "temporal": "The retained source snapshot is dated August 10, 2026. Iowa's live catalog and metadata endpoint reported 351,617 rows for the November 8 update. The November 7 Data.gov harvest did not report a row count. Replacement and deletion reconciliation remains open.",
+  "authorization": {
+    "retained_release_reuse_eligible": true,
+    "fresh_acquisition_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "production_pointer_change_authorized": false,
+    "active_business_claim_authorized": false
+  },
+  "citations": [
+    { "url": "https://data.iowa.gov/catalog/dataset/554", "evidence": "Publisher catalog page lists 351,617 rows and displays November 8, 2026 at 07:02 AM as its last update." },
+    { "url": "https://idh-be.iowa.gov/api/v1/datasets/554/", "evidence": "Publisher metadata confirms dataset 554 is published, public and licensed under CC BY 4.0. It reports the precise November 8 timestamp and 351,617 rows." },
+    { "url": "https://catalog.data.gov/dataset/active-iowa-business-entities", "evidence": "The federal harvest identifies the same Iowa dataset, reports an earlier November 7 modification and supplies no row count." },
+    { "url": "https://sos.iowa.gov/businesses/business-faqs", "evidence": "Official biennial-report and active-status context." }
+  ],
+  "unresolved_gates": [
+    "newer-release-refresh-plan",
+    "replacement-deletion-reconciliation",
+    "personal-data-minimization",
+    "premises-verification",
+    "complete-business-denominator"
+  ],
+  "strongest_next_action": "Obtain separate acquisition authorization for a full snapshot. Verify its schema, count and hash, and reconcile replacements and deletions before seeking production pointer approval. Treat removals as source changes requiring review."
+}

@@ -9,7 +9,7 @@ const inputs = Object.freeze({
   policy: "config/source-policies/ia-business-registry.json",
   connector: "config/connectors/ia-business-registry.json",
   dataset: "config/datasets/ia-business-registry-active-entities.json",
-  assessment: "config/state-business-source-existing-assessments/ia-2026-09-22.json",
+  assessment: "config/state-business-source-existing-assessments/ia-2026-11-11.json",
 });
 
 const sha256 = value => createHash("sha256").update(value).digest("hex");
@@ -27,6 +27,17 @@ async function boundedJson(file,maximum) {
 
 async function governedJson(relative){return boundedJson(path.join(APP_ROOT,relative),1024*1024);}
 
+function catalogObservation(evidence, expectedUrl) {
+  if (!plainObject(evidence)
+    || evidence.metadata_url !== expectedUrl
+    || typeof evidence.modified_at !== "string"
+    || !Number.isFinite(Date.parse(evidence.modified_at))
+    || (evidence.reported_row_count !== null && (!Number.isSafeInteger(evidence.reported_row_count) || evidence.reported_row_count <= 0))) {
+    throw new Error("Governed Iowa catalog observation is incomplete or invalid.");
+  }
+  return { metadataUrl: evidence.metadata_url, modifiedAt: evidence.modified_at, reportedRowCount: evidence.reported_row_count };
+}
+
 export async function getIaBusinessRegistryRefreshReadiness() {
   const [policyEvidence, connectorEvidence, datasetEvidence, assessmentEvidence] = await Promise.all(Object.values(inputs).map(governedJson));
   const policy = policyEvidence.value;
@@ -39,9 +50,18 @@ export async function getIaBusinessRegistryRefreshReadiness() {
     || dataset.dataset_id !== "ia-business-registry-active-entities"
     || dataset.connector !== inputs.connector
     || dataset.source_policy !== inputs.policy
-    || assessment.assessment_id !== "ia-existing-governed-source-2026-09-22"
+    || assessment.schema_version !== "state-business-source-existing-assessment@1.0.0"
+    || assessment.assessment_id !== "ia-existing-governed-source-2026-11-11"
+    || assessment.observed_at !== "2026-11-11"
     || assessment.state?.abbreviation !== "IA"
     || assessment.source?.dataset_id !== "554") throw new Error("Governed Iowa refresh inputs do not match the fixed source contract.");
+
+  const catalog = assessment.source.observed_catalog;
+  if (catalog?.access_level !== "public" || catalog.license_url !== "https://creativecommons.org/licenses/by/4.0/") {
+    throw new Error("Governed Iowa catalog access or license differs from the reviewed source contract.");
+  }
+  const publisher = catalogObservation(catalog.publisher, "https://idh-be.iowa.gov/api/v1/datasets/554/");
+  const federalHarvest = catalogObservation(catalog.federal_harvest, "https://catalog.data.gov/dataset/active-iowa-business-entities");
 
   const authorization = assessment.authorization;
   const held = plainObject(authorization)
@@ -77,6 +97,13 @@ export async function getIaBusinessRegistryRefreshReadiness() {
       sourceRows: manifest.coverage.source_rows,
       activeEntitiesPublished: manifest.coverage.active_entities_published,
     },
+    observedCatalog: {
+      datasetId: assessment.source.dataset_id,
+      accessLevel: catalog.access_level,
+      licenseUrl: catalog.license_url,
+      publisher,
+      federalHarvest,
+    },
     observedAssessment: { assessmentId: assessment.assessment_id, observedAt: assessment.observed_at, decision: assessment.decision, retainedReleaseId: assessment.source.retained_release_id, catalogRetainedReleaseMatchesAssessment: configuredRetained.release_id === assessment.source.retained_release_id, currentRetainedReleaseMatchesAssessment: manifest.release_id===assessment.source.retained_release_id },
     plan: {
       planId: `ia-refresh-plan-${sha256(planSeed).slice(0, 20)}`,
@@ -86,7 +113,7 @@ export async function getIaBusinessRegistryRefreshReadiness() {
       allocationCount: 0,
       networkRequestCount: 0,
       operationCreated: false,
-      steps: ["revalidate fixed policy and connector", "compare a future full snapshot without interpreting row loss as closure", "reconcile replacement and deletion evidence", "require separate acquisition and pointer-change authorization"],
+      steps: ["revalidate publisher metadata, policy and connector", "obtain separate full-snapshot acquisition authorization", "verify schema, row count and content hash", "reconcile replacements and deletions before seeking production pointer approval"],
       unresolvedGates: [...assessment.unresolved_gates],
       evidence,
     },
