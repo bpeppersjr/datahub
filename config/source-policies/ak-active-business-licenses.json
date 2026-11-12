@@ -1,6 +1,6 @@
 {
   "policy_id": "ak-active-business-licenses",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Alaska Department of Commerce, Community, and Economic Development, Division of Corporations, Business and Professional Licensing",
   "ownership": "Official public Alaska business-license records made available as full CSV downloads by DCCED",
   "source_home": "https://www.commerce.alaska.gov/cbp/main/",
@@ -40,5 +40,7 @@
   "contains_personal_data": true,
   "personal_data_handling": "Business names can identify sole proprietors and reported physical addresses can be residences. Owners and all mailing fields are excluded before persistence. Raw PhysicalLine2 is excluded because it contains contact-like and unstructured values; only conservative unit designators may be retained.",
   "contains_secrets": false,
-  "reviewed_at": "2026-09-01"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Alaska DCCED publishes full business-license and NAICS database downloads as a public service and provides them as-is without accuracy or reliability warranties. Source Active status and a reported physical address do not independently establish continuous operation, public access, a verified operating premise, every Alaska business, ownership, or a complete location inventory. Record-level output remains local-review-only; owners, mailing fields, and contact-like PhysicalLine2 content are excluded before persistence."
 }

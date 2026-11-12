@@ -7,7 +7,7 @@ import { buildAkActiveBusinessLicenses, verifyAkActiveBusinessLicenses } from ".
 
 // Parsed JSON serialization pins are line-ending portable; source/start hashes bind raw bytes.
 export const AK_APP_CONTRACT_SHA256 = "ce5b8e425cb17d2362709ee40446fa9d943704a6d2d762cf10007df9379f96ed";
-const POLICY = "e5444e478e878f49c1f71f12dfefdfc1ed873e7af0b48a692108d488f2b50d38";
+const POLICY = "86aa1c54cc67877b9166f7c2b3b0005c343a8538fcc7689d8e9e59b353899451";
 const VERSION = "ak-business-app@1.0.0";
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/;
 const fail = () => Object.assign(new Error("Alaska app evidence or execution rejected."), { code: "AK_APP_JOB" });

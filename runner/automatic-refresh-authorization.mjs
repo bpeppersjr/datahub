@@ -19,7 +19,13 @@ export async function loadAutomaticRefreshAuthorizations(config, {
     || Object.keys(document).sort().join("|") !== "schema_version|sources") throw invalid("Automatic-refresh authorization contract has an unsupported schema.");
   const configured = Object.keys(config.sources).sort(), declared = Object.keys(document.sources).sort();
   if (configured.join("|") !== declared.join("|")) throw invalid("Automatic-refresh authorization contract does not exactly cover the industry source catalog.");
-  const governedByScript = new Map(Object.entries(GOVERNED_SOURCE_REFRESH_DESCRIPTORS).map(([id, descriptor]) => [descriptor.builder, id]));
+  const governedByScript = new Map();
+  for (const [id, descriptor] of Object.entries(GOVERNED_SOURCE_REFRESH_DESCRIPTORS)) {
+    for (const script of [descriptor.builder, ...(descriptor.automationScripts ?? [])]) {
+      if (governedByScript.has(script)) throw invalid(`Governed automatic-refresh script ${script} is ambiguous.`);
+      governedByScript.set(script, id);
+    }
+  }
   const result = [];
   for (const sourceId of configured) {
     const source = config.sources[sourceId], decision = document.sources[sourceId];

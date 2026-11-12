@@ -1,0 +1,37 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "ak-active-business-licenses-2026-11-12",
+  "source_id": "ak-active-business-licenses",
+  "dataset_id": "ak-active-business-licenses",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 2, "aggregate_requests": 0, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "2603d3007499c258f69d7ab176420626e01df72161992d07ccc16ea4e24ecd0d",
+    "aggregate_sha256": "d298725f4e1824c5bbbe4dba77974f0c5ead1206c3eef73eb2e60276a619db3f",
+    "aggregate_records": 2,
+    "aggregate_label": "current fixed CSV endpoints available",
+    "business_license_url": "https://www.commerce.alaska.gov/cbp/main/DbDownload/BusinessLicenseDownload",
+    "business_license_head_status": 200,
+    "business_license_content_length": 22836429,
+    "business_license_content_type": "text/csv",
+    "business_license_content_disposition": "attachment; filename=BusinessLicenseDownload.csv",
+    "naics_url": "https://www.commerce.alaska.gov/cbp/main/DbDownload/NaicsDownload",
+    "naics_head_status": 200,
+    "naics_content_length": 20738153,
+    "naics_content_type": "text/csv",
+    "naics_content_disposition": "attachment; filename=NaicsDownload.csv",
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "active_license_is_current_operation": false,
+    "reported_physical_address_is_verified_operating_premise": false,
+    "complete_all_alaska_businesses": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://www.commerce.alaska.gov/cbp/main/",
+    "https://www.commerce.alaska.gov/web/TermsofUsePolicy.aspx"
+  ],
+  "next_action": "Use only the authorization-bound Co*Tive operation or its bound receipt-producing Alaska app wrapper. Acquire the two fixed CSVs serially inside the five-minute observation window, enforce schema, response, privacy and NAICS conservation gates, independently verify the immutable release and receipt, and only then change the governed source pointer."
+}

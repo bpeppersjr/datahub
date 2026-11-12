@@ -15,7 +15,7 @@ export const AK_BUSINESS_LICENSE_SCHEMA_VERSION = "1.0.0";
 export const AK_BUSINESS_LICENSE_TRANSFORMATION_VERSION = "ak-active-business-licenses@1.0.1";
 export function validateAkAcquisitionConfiguration(connector, policy) {
   if (sha256(JSON.stringify(connector)) !== "c5930d1fe5c8d40bc0c4f3eb41b8f5634776f0d3c796cde6b53bfe9301ff8043"
-    || sha256(JSON.stringify(policy)) !== "e5444e478e878f49c1f71f12dfefdfc1ed873e7af0b48a692108d488f2b50d38") throw new Error("Alaska acquisition configuration drift requires review.");
+    || sha256(JSON.stringify(policy)) !== "86aa1c54cc67877b9166f7c2b3b0005c343a8538fcc7689d8e9e59b353899451") throw new Error("Alaska acquisition configuration drift requires review.");
 }
 export function assertAkAcquisitionDiskSpace(availableBytes) {
   if (typeof availableBytes !== "bigint" || availableBytes < 500_000_000n) throw new Error("Alaska acquisition requires at least 500 MB available disk space.");
