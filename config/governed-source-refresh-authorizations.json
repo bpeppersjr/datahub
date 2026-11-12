@@ -158,22 +158,6 @@
         "source_access_reviewed": true
       }
     },
-    "ia-business-registry": {
-      "schema_version": "governed-source-refresh-authorization@1.0.0",
-      "authorization_id": "ia-business-registry-production-20261112-01",
-      "source_id": "ia-business-registry",
-      "approved_at": "2026-11-12T12:52:33.531Z",
-      "approved_by": "repository-owner-approved-production-plan",
-      "mode": "app-owned-automatic-full-snapshot-refresh",
-      "descriptor_evidence_sha256": "f762cf6a709e60f8e2b26f6c4c8df6d368578ec04cd575e744e30e42b13f0bc0",
-      "permissions": {
-        "fresh_acquisition": true,
-        "autonomous_acquisition": true,
-        "production_pointer_change": true,
-        "terms_reviewed": true,
-        "source_access_reviewed": true
-      }
-    },
     "ny-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "ny-business-registry-production-20261112-01",

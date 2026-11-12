@@ -49,13 +49,13 @@ All outputs remain under `data/business-sources/ia-business-registry-active-enti
 
 ## Validated live release
 
-Release `ia-business-registry-20260903-004117245Z-8e4bf874` is the retained release selected by `current.json`. It is bound to the source refresh at `2026-08-10T12:59:03.509Z` and source release `ia-business-registry-2026-08-10-9654242df778d3bb`. Independent verification replayed all 347,200 archive rows against the selected-field snapshot and rehashed and parsed all 23 artifacts totaling 198,106,162 bytes.
+Release `ia-business-registry-20261112-225308995Z-188ec774` is the retained release selected by `current.json`. It is bound to source modification `2026-11-08T07:02:45.241Z` and source release `ia-business-registry-2026-11-08-421b396ff17f6be2`. Managed operation `bea4f24c-0cf3-4fe2-b840-1c0c3281bccd` used authorization `ia-business-registry-production-20261112-01`; independent verification replayed all 351,617 source rows against the selected-field snapshot and rehashed and parsed all 23 artifacts totaling 203,223,705 bytes. The manifest SHA-256 is `f26e37689c9663b80a80682c0115090c89b360ff061b9caf5c875c30d43814c1`.
 
-The snapshot publishes 347,200 active entity organizations with zero quarantined entities. Exactly 334,176 have an eligible U.S. home-office ZIP contribution, 330,664 preserve a complete source coordinate pair, and no coordinate pair was rejected as incomplete or invalid. The source contributes 9,901 distinct ZIPs; its complete Census-baseline/source union contains 38,176 ZIP rows. Physical-site and establishment counts remain `null`.
+The snapshot publishes 351,617 source-defined active entity organizations with zero quarantined entities. Exactly 338,686 have an eligible U.S. home-office ZIP contribution, 338,399 preserve a complete source coordinate pair, and no coordinate pair was rejected as incomplete or invalid. The source contributes 9,986 distinct ZIPs; its complete Census-baseline/source union contains 38,182 ZIP rows. Physical-site and establishment counts remain `null`.
 
 ## Refresh readiness in Co*Tive Collector
 
-The Data Operations page shows the retained August 10 snapshot alongside the catalog metadata observed on November 11, 2026. The deterministic preview revalidates the policy, connector, dataset configuration, assessment, `current.json` pointer, and its manifest. It produces a hash-bound plan with zero allocations, zero network requests, and no operation.
+The Data Operations page dispatched the authorization-bound refresh on November 12, 2026. The terminal managed receipt is `SUCCEEDED`, integrity verification is true, inspection is not required, and the source pointer changed only after verification. A later refresh requires a new current assessment and authorization; this completed receipt is not reusable authority.
 
 Iowa's public CC BY 4.0 catalog reports 351,617 rows and a November 8 update. The metadata endpoint gives the timestamp `2026-11-08T01:02:45.24117-06:00`. The November 7 Data.gov harvest gives `2026-11-07T09:10:30.011658+00:00` and supplies no row count. The review used metadata only. [Iowa Data Hub catalog](https://data.iowa.gov/catalog/dataset/554) · [Iowa metadata API](https://idh-be.iowa.gov/api/v1/datasets/554/) · [Data.gov harvest](https://catalog.data.gov/dataset/active-iowa-business-entities)
 
@@ -63,6 +63,8 @@ The official Iowa catalog, CC BY 4.0 license, registry FAQ, metadata transport, 
 
 A zero-record preflight returned HTTP 200 for the 3,518-byte metadata response, SHA-256 `31aba3482cb19a1b77821fd119b61e1dce524782ef49edcf823518a22ee332fe`. It reports 351,617 rows, source modification `2026-11-08T01:02:45.241170-06:00`, Public audience, Published status, monthly frequency, and CC BY 4.0. The manually validated one-hop columns redirect returned HTTP 200 with 982 bytes, SHA-256 `21fa1d7aa16f4d0d5821a08532ee090780e7bdf489c0fede4f05e381479a7355`, and 23 columns. Its governed selected-field fingerprint remains `4837441527d8ddcdf8e7e466f063ac037b34c168b484ecd28fad780d16f8b11e`. No entity rows or source archive were requested or retained by this review.
 
-The current catalog exceeds the retained 347,200-row snapshot by 4,417 rows. That establishes refresh value only; it is not net business creation, operation, closure, ownership, or completeness.
+The refreshed snapshot contains 4,417 more publisher rows than the preceding 347,200-row snapshot. That difference is not net business creation, operation, closure, ownership, or completeness.
 
 Authorization `ia-business-registry-production-20261112-01` permits Co*Tive—not Codex—to acquire the full selected snapshot, independently verify its immutable release, and change only this source's pointer after verification. The receipt binds the exact builder, verifier, connector, policy, and dataset bytes. The app must retain CC BY attribution and indicate changes; it must also preserve the excluded registered-agent fields and all active-registration, home-office, coordinate, premises, ownership, and completeness limitations.
+
+The current national registry, broad-organization ZIP evidence, exact-ZIP matrix, and federation remain pinned to their preceding immutable Iowa dependency until a separately planned national reconciliation succeeds. The source-pointer promotion alone does not silently rewrite those releases or their reported counts.

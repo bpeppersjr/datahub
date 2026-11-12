@@ -23,9 +23,10 @@ test("Iowa retained refresh readiness is deterministic, evidence-bound, and held
   assert.equal(first.plan.evidence.find(item => item.kind === "assessment").path,
     "config/state-business-source-existing-assessments/ia-2026-11-11.json");
   assert.equal(first.observedAssessment.observedAt, "2026-11-11");
-  assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,true);
-  assert.equal(first.retainedRelease.releaseId,'ia-business-registry-20260903-004117245Z-8e4bf874');
-  assert.equal(first.retainedRelease.sourceModifiedAt, "2026-08-10T12:59:03.509Z");
+  assert.equal(first.observedAssessment.currentRetainedReleaseMatchesAssessment,false);
+  assert.equal(first.observedAssessment.catalogRetainedReleaseMatchesAssessment,false);
+  assert.equal(first.retainedRelease.releaseId,'ia-business-registry-20261112-225308995Z-188ec774');
+  assert.equal(first.retainedRelease.sourceModifiedAt, "2026-11-08T07:02:45.241Z");
   assert.deepEqual(first.observedCatalog, {
     datasetId: "554",
     accessLevel: "public",
@@ -44,7 +45,7 @@ test("Iowa retained refresh readiness is deterministic, evidence-bound, and held
   assert.ok(first.plan.unresolvedGates.includes("replacement-deletion-reconciliation"));
 });
 
-test("managed Iowa preview is authorized without allocating an operation", async t => {
+test("consumed Iowa authorization returns preview to HOLD without allocating an operation", async t => {
   await mkdir(path.join(APP_ROOT, "data/tmp"), { recursive: true });
   const root = await mkdtemp(path.join(APP_ROOT, "data/tmp/ia-refresh-readiness-"));
   t.after(async () => rm(root, { recursive: true, force: true }));
@@ -56,11 +57,12 @@ test("managed Iowa preview is authorized without allocating an operation", async
   const before = await readdir(root);
   const plan = await service.sourceRefreshPlan({ sourceId: "ia-business-registry" });
   assert.equal(plan.operationCreated, false);
-  assert.equal(plan.status, "AUTHORIZED");
+  assert.equal(plan.status, "HOLD");
   assert.deepEqual(await readdir(root), before);
   assert.equal(executions, 0);
   assert.equal(writes, 0);
   assert.deepEqual(await service.list(), []);
+  await assert.rejects(service.startSourceRefresh({ sourceId: "ia-business-registry" }), /ACQUISITION_NOT_AUTHORIZED/);
   for (const input of [{}, { sourceId: "other" }, { sourceId: "ia-business-registry", extra: true }]) await assert.rejects(service.startSourceRefresh(input), error => error.statusCode === 400);
 });
 
