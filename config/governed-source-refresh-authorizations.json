@@ -248,6 +248,9 @@
     "vt-childcare": {
       "schema_version":"governed-source-refresh-authorization@1.0.0","authorization_id":"vt-childcare-production-20261112-01","source_id":"vt-childcare","approved_at":"2026-11-12T23:00:00.000Z","approved_by":"repository-owner-approved-production-plan","mode":"app-owned-automatic-full-snapshot-refresh","descriptor_evidence_sha256":"54df2a5f0bf11ad9ad06d1bee66f36c3d43cce1c5f6f731c065780d38234af32","permissions":{"fresh_acquisition":true,"autonomous_acquisition":true,"production_pointer_change":true,"terms_reviewed":true,"source_access_reviewed":true}
     },
+    "oh-childcare": {
+      "schema_version":"governed-source-refresh-authorization@1.0.0","authorization_id":"oh-childcare-production-20261112-01","source_id":"oh-childcare","approved_at":"2026-11-12T23:30:00.000Z","approved_by":"repository-owner-approved-production-plan","mode":"app-owned-automatic-full-snapshot-refresh","descriptor_evidence_sha256":"dccb7c6a9d2718c4600bed98a1197e21ae70512f66896eed7df8de21aa3e9baf","permissions":{"fresh_acquisition":true,"autonomous_acquisition":true,"production_pointer_change":true,"terms_reviewed":true,"source_access_reviewed":true}
+    },
     "or-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "or-business-registry-production-20261112-01",

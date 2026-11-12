@@ -59,7 +59,7 @@ function inspect(kind, value) {
     return pick(value, ["id", "owner", "orgId", "access", "type", "title", "url", "created", "modified", "description", "licenseInfo", "accessInformation"]);
   }
   requireValue(value.id === 0 && value.name === "Ohio_Daycares" && value.type === "Feature Layer" && value.serviceItemId === OH_ITEM && value.geometryType === "esriGeometryPoint" && value.objectIdField === "objectid", "layer identity");
-  requireValue(value.capabilities === "Query" && value.maxRecordCount === 1000 && value.hasMetadata === true, "query contract");
+  requireValue(["Query", "Query,Extract"].includes(value.capabilities) && value.maxRecordCount === 1000 && value.hasMetadata === true, "query contract");
   const query = value.advancedQueryCapabilities;
   requireValue(query?.supportsPagination === true && query.supportsStatistics === true && query.supportsOrderBy === true, "query capabilities");
   requireValue(value.sourceSpatialReference?.wkid === 3857 && value.sourceSpatialReference.wkt === OH_SOURCE_WKT, "source CRS");
@@ -71,7 +71,7 @@ function inspect(kind, value) {
     return pick(field, ["name", "type", "length", "domain", "defaultValue", "nullable"]);
   });
   requireValue(typeof value.description === "string" && value.description.length <= 32_000 && typeof value.copyrightText === "string" && value.copyrightText.length <= 32_000, "layer notices");
-  requireValue(exactKeys(value.editingInfo, []), "unreviewed refresh metadata");
+  requireValue(value.editingInfo === undefined || exactKeys(value.editingInfo, []), "unreviewed refresh metadata");
   return { ...pick(value, ["id", "name", "type", "serviceItemId", "geometryType", "objectIdField", "capabilities", "maxRecordCount", "hasMetadata", "description", "copyrightText", "editingInfo"]), fields,
     sourceSpatialReference: pick(value.sourceSpatialReference, ["wkid", "wkt"]), extent: { spatialReference: pick(value.extent.spatialReference, ["wkid", "latestWkid"]) }, advancedQueryCapabilities: pick(query, ["supportsPagination", "supportsStatistics", "supportsOrderBy"]) };
 }

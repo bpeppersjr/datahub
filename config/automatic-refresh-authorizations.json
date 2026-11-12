@@ -14,7 +14,7 @@
     "state-de-business-licenses": { "script": "scripts/run-de-business-app.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "de-business-licenses" },
     "state-mn-contractor-registrations": { "script": "scripts/build-mn-contractor-registrations.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-mn-residential-contractors": { "script": "scripts/build-mn-residential-contractors.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
-    "state-oh-childcare": { "script": "scripts/build-oh-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "state-oh-childcare": { "script": "scripts/build-oh-childcare.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "oh-childcare" },
     "state-tn-childcare": { "script": "scripts/build-tn-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-nj-childcare": { "script": "scripts/build-nj-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "state-ma-childcare": { "script": "scripts/build-ma-childcare.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
