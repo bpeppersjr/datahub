@@ -1,0 +1,14 @@
+{
+  "dataset_id": "md-childcare-licensed-center-candidates",
+  "schema_version": "1.0.0",
+  "title": "Maryland Licensed Child Care Center Source Candidates",
+  "status": "governed-refresh-authorized-no-current-release",
+  "description": "Privacy-scoped official Maryland licensed Child Care Center cohort retained as source candidates with dated temporal and identity limitations.",
+  "output": "data/business-sources/md-childcare-licensed-center-candidates",
+  "connector": "config/connectors/md-childcare.json",
+  "source_policy": "config/source-policies/md-childcare.json",
+  "coverage_claim": "Official rows matching the fixed Child Care Center predicate in the publisher's February 13, 2026 licensed-provider cohort; not a current-operation or all-business denominator.",
+  "identity_rule": "Preserve release-scoped OBJECTID and reported license evidence without cross-row or cross-source business merging.",
+  "geography_rule": "Retain reported ZIP5 and nullable provider point; ZIP4 stays separate and null. Non-ZCTA/private ZIP and missing geography remain explicit gaps; no business polygons are inferred.",
+  "current_verified_release": null
+}

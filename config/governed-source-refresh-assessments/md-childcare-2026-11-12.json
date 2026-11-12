@@ -1,0 +1,33 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "md-childcare-2026-11-12",
+  "source_id": "md-childcare",
+  "dataset_id": "md-childcare-licensed-center-candidates",
+  "observed_at": "2026-11-12",
+  "controls": {"metadata_requests":2,"aggregate_requests":2,"entity_row_requests":0,"records_downloaded":0,"production_changes":0},
+  "observation": {
+    "metadata_sha256": "401f48d35e3572d7801d21df315c93feea3055320da5198a128fd69afece9ae0",
+    "aggregate_sha256": "0a1e0558354f3c6a21f754e7fcd10fa7059ae4e5a18fbece1170e71a3d834e81",
+    "aggregate_records": 1772,
+    "aggregate_label": "publisher rows matching literal Child Care Center category",
+    "paired_aggregate_results_equal": true,
+    "publisher_cohort_date": "2026-02-13",
+    "item_modified_at": "2026-05-27T19:48:49.000Z",
+    "layer_data_last_edit_at": "2026-05-27T19:48:44.252Z",
+    "item_access": "public",
+    "explicit_distribution_notice_retained": true,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "licensed_cohort_membership_is_current_operation": false,
+    "reported_address_or_point_is_verified_operating_site": false,
+    "complete_all_maryland_childcare_businesses": false,
+    "row_delta_is_net_business_creation": false,
+    "record_level_public_export_authorized": false
+  },
+  "citations": [
+    "https://www.arcgis.com/sharing/rest/content/items/3d31d1b53831477ea54ff6020f64219f?f=json",
+    "https://services.arcgis.com/njFNhDsUCentVYJW/ArcGIS/rest/services/ChildCare_All_Active_Providers_May_20_2024/FeatureServer/0?f=json"
+  ],
+  "next_action": "Use only the authorization-bound serial Co*Tive app. Recheck item, layer schema and paired center counts before and after selected-field acquisition; preserve the dated cohort and unchanged item metadata; independently verify acquired and normalized releases before advancing the governed pointer."
+}
