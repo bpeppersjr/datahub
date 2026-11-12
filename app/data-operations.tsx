@@ -12,6 +12,7 @@ import CmsSnfPecosStatusCard, {type CmsSnfPecosStatus} from './cms-snf-pecos-sta
 import IaBusinessRegistryRefreshStatusCard, {type IaBusinessRegistryRefreshStatus} from './ia-business-registry-refresh-status';
 import OrBusinessRegistryRefreshStatusCard, {type OrBusinessRegistryRefreshStatus} from './or-business-registry-refresh-status';
 import NyBusinessRegistryRefreshStatusCard, {type NyBusinessRegistryRefreshStatus} from './ny-business-registry-refresh-status';
+import GovernedSourceRefreshStatusCard, {type GovernedSourceRefreshStatus} from './governed-source-refresh-status';
 import RetainedBusinessRefreshStatusCard, {type RetainedBusinessRefreshStatus} from './retained-business-refresh-status';
 import BroadOrganizationAuthorizationPacket from './broad-organization-authorization-packet';
 import BroadOrganizationAuthorizationProgram from './broad-organization-authorization-program';
@@ -257,6 +258,7 @@ export default function DataOperations() {
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     {catalog?.governedSourceServices?.filter((source):source is RetainedBusinessRefreshStatus=>['co-business-registry','ct-business-registry','de-business-licenses','fl-business-registry','pa-business-registry'].includes(source.sourceId)).map(status=><RetainedBusinessRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
+    {catalog?.governedSourceServices?.filter((source):source is GovernedSourceRefreshStatus=>['il-business-registry','tx-active-sales-tax-permits','wa-lni-active-contractor-licenses'].includes(source.sourceId)).map(status=><GovernedSourceRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />

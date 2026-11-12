@@ -40,3 +40,11 @@ The retained layer is admitted under `tx-active-sales-tax-permit-outlet-evidence
 - [Texas Active Sales Tax Permit Holders](https://data.texas.gov/d/jrea-zgmq)
 - [Texas Comptroller open-records guidance](https://comptroller.texas.gov/about/policies/open-records/)
 - [Texas Comptroller privacy and security policy](https://comptroller.texas.gov/about/policies/privacy.php)
+
+## Governed app refresh authorization — November 12, 2026
+
+The official Texas metadata, anonymous aggregate transport, Public Domain designation, and Comptroller open-data guidance were reviewed again on 2026-11-12. Metadata returned HTTP 200 with 38,987 bytes, SHA-256 `21a2ff9311d09e45de857c93845bc4409faeca766c644e18dab0d44f52c35e06`, and reports a published source update at `2026-11-07T09:33:06.000Z`. All 19 catalog columns remain present and the governed selected-field fingerprint is unchanged at `b2039787509c10501ff1dfe2c4f2b72fb51218c61f98b783cd155ace31a30d77`.
+
+A count-only SODA query returned HTTP 200 with 23 bytes, SHA-256 `c9b7cddbbc294ac1028b3b38ac6018d43f931af7b73a33821dcd84bcfc36d322`, reporting 893,487 active-permit rows. No entity rows were requested or retained by this review. The 8,209-row increase over the retained 885,278-row source snapshot establishes refresh value only; it is not net business creation, current operation, closure, ownership, premises verification, or completeness.
+
+Authorization `tx-active-sales-tax-permits-production-20261112-01` permits Co*Tive—not Codex—to acquire the selected permit snapshot, independently verify its immutable release, and change only this source's pointer after verification. The authorization binds the exact builder, verifier, connector, policy, dataset, and dated preflight assessment. Record-level output remains local-review-only, taxpayer mailing fields remain excluded, and permit evidence cannot be promoted to all-business or independently verified operating-site evidence.

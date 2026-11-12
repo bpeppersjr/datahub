@@ -13,13 +13,14 @@ const rows = [
   ["NY","ny-business-registry","ny-business-registry-active-entities","verifyNyBusinessRegistry"],
   ["OR","or-business-registry","or-business-registry-active-registrations","verifyOrBusinessRegistry"],
   ["PA","pa-business-registry","pa-business-registry-active-registrations","verifyPaBusinessRegistry"],
-  ["TX","tx-active-sales-tax-permits","tx-active-sales-tax-outlets","verifyTxActiveSalesTaxPermits"],
+  ["TX","tx-active-sales-tax-permits","tx-active-sales-tax-outlets","verifyTxActiveSalesTaxPermits","config/governed-source-refresh-assessments/tx-active-sales-tax-permits-2026-11-12.json"],
   ["WA","wa-lni-active-contractor-licenses","wa-lni-active-contractor-organizations","verifyWaLniActiveContractors"],
 ];
 
-export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntries(rows.map(([state,sourceId,datasetId,verifierExport])=>[sourceId,Object.freeze({
+export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntries(rows.map(([state,sourceId,datasetId,verifierExport,assessment])=>[sourceId,Object.freeze({
   state,sourceId,datasetId,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,verifierExport,
   outputRoot:`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,
+  ...(assessment?{assessment}:{}),
 })])));
 export const GOVERNED_SOURCE_REFRESH_SOURCE_IDS = Object.freeze(rows.map(([,sourceId])=>sourceId));
 
@@ -45,6 +46,17 @@ function validateAuthorizationRegistry(value){
   return value;
 }
 
+function validateAssessment(value,descriptor){
+  const top=["schema_version","assessment_id","source_id","dataset_id","observed_at","controls","observation","claims","citations","next_action"];
+  if(!exact(value,top)||value.schema_version!=="governed-source-refresh-assessment@1.0.0"||value.source_id!==descriptor.sourceId||value.dataset_id!==descriptor.datasetId
+    ||typeof value.assessment_id!=="string"||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(value.assessment_id)||typeof value.observed_at!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value.observed_at)
+    ||!exact(value.controls,["metadata_requests","aggregate_requests","entity_row_requests","records_downloaded","production_changes"])||value.controls.metadata_requests!==1||value.controls.aggregate_requests!==1||value.controls.entity_row_requests!==0||value.controls.records_downloaded!==0||value.controls.production_changes!==0
+    ||!value.observation||typeof value.observation!=="object"||Array.isArray(value.observation)||typeof value.observation.metadata_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.metadata_sha256)||typeof value.observation.aggregate_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.aggregate_sha256)||!Number.isSafeInteger(value.observation.aggregate_records)||value.observation.aggregate_records<1
+    ||!exact(value.claims,["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"])||Object.values(value.claims).some(item=>item!==false)
+    ||!Array.isArray(value.citations)||value.citations.length<1||value.citations.some(item=>typeof item!=="string"||!item.startsWith("https://"))||typeof value.next_action!=="string"||value.next_action.length<1)throw new Error(`Governed refresh assessment is invalid for ${descriptor.sourceId}.`);
+  return value;
+}
+
 function authorizationBinding(sourceId,evidence,registry){
   const receipt=registry.authorizations[sourceId];
   if(receipt===undefined)return null;
@@ -63,17 +75,19 @@ function authorizationBinding(sourceId,evidence,registry){
 export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=APP_ROOT,authorizationRegistry=AUTHORIZATION_REGISTRY}={}){
   const descriptor=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];if(!descriptor)throw new Error("Unsupported governed source refresh.");
   const root=path.resolve(appRoot);if(root!==appRoot)throw new Error("Governed refresh root must be absolute and canonical.");
-  const entries=await Promise.all([descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset].map(relative=>fixedFile(root,relative)));
+  const paths=[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset,...(descriptor.assessment?[descriptor.assessment]:[])];
+  const entries=await Promise.all(paths.map(relative=>fixedFile(root,relative)));
   const connector=JSON.parse(entries[2].bytes),policy=JSON.parse(entries[3].bytes),dataset=JSON.parse(entries[4].bytes);
   if(connector.connector_id!==sourceId||connector.source_policy!==descriptor.policy||policy.policy_id!==sourceId
     ||dataset.dataset_id!==descriptor.datasetId||dataset.connector!==descriptor.connector||dataset.source_policy!==descriptor.policy
     ||!entries[0].bytes.toString("utf8").includes(`../runner/${sourceId}.mjs`)
     ||!entries[1].bytes.toString("utf8").includes(`export async function ${descriptor.verifierExport}`))throw new Error("Governed source refresh binding drifted from its fixed contract.");
-  const evidence=[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset].map((relative,index)=>({path:relative,sha256:entries[index].sha256,bytes:entries[index].bytes.length}));
+  const assessment=descriptor.assessment?validateAssessment(JSON.parse(entries[5].bytes),descriptor):null;
+  const evidence=paths.map((relative,index)=>({path:relative,sha256:entries[index].sha256,bytes:entries[index].bytes.length}));
   const authorizationRead=await fixedFile(root,authorizationRegistry),registry=validateAuthorizationRegistry(JSON.parse(authorizationRead.bytes));
   if(Object.keys(registry.authorizations).some(id=>!GOVERNED_SOURCE_REFRESH_DESCRIPTORS[id]))throw new Error("Governed refresh authorization registry names an unsupported source.");
   const authorization=authorizationBinding(sourceId,evidence,registry);
-  return Object.freeze({...descriptor,status:authorization?"AUTHORIZED":"HOLD",dispatchAvailable:Boolean(authorization),freshAcquisitionAuthorized:Boolean(authorization),autonomousAcquisitionAuthorized:Boolean(authorization),productionPointerChangeAuthorized:Boolean(authorization),authorization,
+  return Object.freeze({...descriptor,status:authorization?"AUTHORIZED":"HOLD",dispatchAvailable:Boolean(authorization),freshAcquisitionAuthorized:Boolean(authorization),autonomousAcquisitionAuthorized:Boolean(authorization),productionPointerChangeAuthorized:Boolean(authorization),authorization,observedAssessment:assessment?{assessmentId:assessment.assessment_id,observedAt:assessment.observed_at,aggregateRecords:assessment.observation.aggregate_records,nextAction:assessment.next_action}:null,
     sourceUseNotice:typeof policy.required_application_notice==="string"&&policy.required_application_notice.length>0?policy.required_application_notice:null,
     authorizationRegistry:{path:authorizationRegistry,sha256:authorizationRead.sha256,bytes:authorizationRead.bytes.length},evidence});
 }

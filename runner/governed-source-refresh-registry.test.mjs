@@ -25,16 +25,16 @@ test("eleven governed refresh descriptors bind exact builders, verifiers, datase
   assert.deepEqual(GOVERNED_SOURCE_REFRESH_SOURCE_IDS,Object.keys(expected));
   for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){
     const binding=await validateGovernedSourceRefreshDescriptor(sourceId),[state,datasetId,verifierExport]=expected[sourceId];
-    const productionAuthorized=["co-business-registry","ct-business-registry","de-business-licenses","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry"].includes(sourceId);
+    const productionAuthorized=["co-business-registry","ct-business-registry","de-business-licenses","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry","tx-active-sales-tax-permits"].includes(sourceId);
     assert.deepEqual({state:binding.state,datasetId:binding.datasetId,verifierExport:binding.verifierExport,builder:binding.builder,verifier:binding.verifier,outputRoot:binding.outputRoot,connector:binding.connector,policy:binding.policy,dataset:binding.dataset,status:binding.status,dispatchAvailable:binding.dispatchAvailable},
       {state,datasetId,verifierExport,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,outputRoot:`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,status:productionAuthorized?"AUTHORIZED":"HOLD",dispatchAvailable:productionAuthorized});
-    assert.equal(binding.evidence.length,5);assert.ok(binding.evidence.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)&&item.bytes>0));
+    assert.equal(binding.evidence.length,sourceId==="tx-active-sales-tax-permits"?6:5);assert.ok(binding.evidence.every(item=>/^[a-f0-9]{64}$/.test(item.sha256)&&item.bytes>0));
   }
 });
 
 async function fixture(t,sourceId){
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-registry-"));t.after(()=>rm(root,{recursive:true,force:true}));
-  const d=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];for(const relative of [d.builder,d.verifier,d.connector,d.policy,d.dataset]){const target=path.join(root,...relative.split("/"));await mkdir(path.dirname(target),{recursive:true});await cp(path.join(APP_ROOT,...relative.split("/")),target);}
+  const d=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];for(const relative of [d.builder,d.verifier,d.connector,d.policy,d.dataset,...(d.assessment?[d.assessment]:[])]){const target=path.join(root,...relative.split("/"));await mkdir(path.dirname(target),{recursive:true});await cp(path.join(APP_ROOT,...relative.split("/")),target);}
   await mkdir(path.join(root,"config"),{recursive:true});await writeFile(path.join(root,"config/governed-source-refresh-authorizations.json"),JSON.stringify({schema_version:"governed-source-refresh-authorizations@1.0.0",authorizations:{}}));
   return {root,d};
 }
@@ -63,6 +63,15 @@ test("governed refresh validation rejects connector, policy and dataset pin drif
   });}
 });
 
+test("Texas authorization is bound to the current aggregate assessment",async t=>{
+  const f=await fixture(t,"tx-active-sales-tax-permits"),hold=await validateGovernedSourceRefreshDescriptor("tx-active-sales-tax-permits",{appRoot:f.root}),registryFile=path.join(f.root,"config/governed-source-refresh-authorizations.json");
+  await writeFile(registryFile,JSON.stringify({schema_version:"governed-source-refresh-authorizations@1.0.0",authorizations:{"tx-active-sales-tax-permits":{schema_version:"governed-source-refresh-authorization@1.0.0",authorization_id:"tx-assessment-test",source_id:"tx-active-sales-tax-permits",approved_at:"2026-11-12T13:00:00.000Z",approved_by:"test-reviewer",mode:"app-owned-automatic-full-snapshot-refresh",descriptor_evidence_sha256:createHash("sha256").update(JSON.stringify(hold.evidence)).digest("hex"),permissions:{fresh_acquisition:true,autonomous_acquisition:true,production_pointer_change:true,terms_reviewed:true,source_access_reviewed:true}}}}));
+  assert.equal((await validateGovernedSourceRefreshDescriptor("tx-active-sales-tax-permits",{appRoot:f.root})).status,"AUTHORIZED");
+  const file=path.join(f.root,...f.d.assessment.split("/")),value=JSON.parse(await readFile(file,"utf8"));
+  value.observation.aggregate_records+=1;await writeFile(file,JSON.stringify(value));
+  await assert.rejects(validateGovernedSourceRefreshDescriptor("tx-active-sales-tax-permits",{appRoot:f.root}),/authorization receipt is invalid/);
+});
+
 test("governed refresh validation rejects escaping and linked paths",async t=>{
   await assert.rejects(validateGovernedSourceRefreshDescriptor("co-business-registry",{appRoot:"."}),/absolute and canonical/);
   const f=await fixture(t,"co-business-registry"),outside=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-outside-"));t.after(()=>rm(outside,{recursive:true,force:true}));
@@ -73,9 +82,15 @@ test("governed refresh validation rejects escaping and linked paths",async t=>{
 test("unauthorized managed plans remain HOLD and allocate nothing before rejecting",async t=>{
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/governed-refresh-managed-"));t.after(()=>rm(root,{recursive:true,force:true}));let executions=0,writes=0;
   const service=new ManagedOperations({root,executor:async()=>{executions++;},receiptWriter:async()=>{writes++;}});t.after(()=>service.close());await service.ready;const before=await readdir(root);
-  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const authorized=["co-business-registry","ct-business-registry","de-business-licenses","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry"].includes(sourceId),plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,authorized?"AUTHORIZED":"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
+  for(const sourceId of GOVERNED_SOURCE_REFRESH_SOURCE_IDS){const authorized=["co-business-registry","ct-business-registry","de-business-licenses","ia-business-registry","ny-business-registry","or-business-registry","pa-business-registry","tx-active-sales-tax-permits"].includes(sourceId),plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.status,authorized?"AUTHORIZED":"HOLD");assert.equal(plan.operationCreated,false);assert.equal(plan.allocationCount,0);assert.equal(plan.networkRequestCount,0);assert.equal(plan.implementation.builder,`scripts/build-${sourceId}.mjs`);
     if(!authorized)await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
   assert.deepEqual(await readdir(root),before);assert.equal(executions,0);assert.equal(writes,0);assert.deepEqual(await service.list(),[]);
+});
+
+test("descriptor-only governed sources are visible and authorization-gated in Data Operations",async()=>{
+  const [page,card]=await Promise.all([readFile(new URL("../app/data-operations.tsx",import.meta.url),"utf8"),readFile(new URL("../app/governed-source-refresh-status.tsx",import.meta.url),"utf8")]);
+  assert.match(page,/GovernedSourceRefreshStatusCard/);for(const id of ["il-business-registry","tx-active-sales-tax-permits","wa-lni-active-contractor-licenses"])assert.match(page,new RegExp(id));
+  assert.match(card,/source-refreshes/);assert.match(card,/disabled=\{!authorized\|\|disabled\|\|busy\}/);assert.match(card,/No current governed assessment bound/);assert.match(card,/not an all-business denominator/);
 });
 
 test("an authorized managed source refresh is app-owned and independently verified",async t=>{

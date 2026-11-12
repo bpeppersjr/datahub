@@ -1,6 +1,6 @@
 {
   "policy_id": "tx-active-sales-tax-permits",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Texas Comptroller of Public Accounts",
   "ownership": "Official public active sales-tax permit records published through the State of Texas Open Data Portal",
   "source_home": "https://data.texas.gov/d/jrea-zgmq",
@@ -36,10 +36,12 @@
     "phone_email_owner_officer_and_registered_agent_fields": "not-present-in-selected-source"
   },
   "attribution": "Source: Texas Comptroller of Public Accounts, Active Sales Tax Permit Holders, via data.texas.gov.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Texas publishes Active Sales Tax Permit Holders as Public Domain raw open data. Permit status, taxpayer/outlet identities, reported physical addresses, and NAICS remain publisher assertions; they do not establish continuous operation, public access, a verified occupied premise, ownership, or every business operating in Texas. Record-level output remains local-review-only.",
   "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
   "redistribution": "Aggregate counts may be redistributed with Texas Comptroller attribution, source refresh timestamp, source checksum, provenance, and tax-permit limitations. Record-level normalized data remains local-review-only pending privacy review even though the source catalog marks the dataset Public Domain.",
   "contains_personal_data": true,
   "personal_data_handling": "Taxpayer and outlet names can identify sole proprietors, and source physical addresses can be residences. Taxpayer mailing-address fields are excluded at query time; selected source and normalized record-level artifacts remain local, while only aggregate coverage is public by default.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-31"
+  "reviewed_at": "2026-11-12"
 }

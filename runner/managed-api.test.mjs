@@ -254,6 +254,12 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(typeof newYorkRefresh.sourceUseNotice, "string");
   assert.equal(newYorkRefresh.retainedRelease.organizationsPublished, 4273072);
   assert.equal(catalog.collectionSources.some(source => source.id === "ny-business-registry"), false);
+  const texasRefresh = catalog.governedSourceServices.find(service => service.sourceId === "tx-active-sales-tax-permits");
+  assert.equal(texasRefresh.readinessStatus, "AUTHORIZED");
+  assert.equal(texasRefresh.dispatchAvailable, true);
+  assert.equal(texasRefresh.observedAssessment.assessmentId, "tx-active-sales-tax-permits-2026-11-12");
+  assert.equal(texasRefresh.observedAssessment.aggregateRecords, 893487);
+  assert.equal(typeof texasRefresh.sourceUseNotice, "string");
 
   const refreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "ia-business-registry" } });
   assert.equal(refreshPlanResponse.status, 200);
@@ -324,7 +330,8 @@ test("managed refresh schedule API rejects sources without reviewed automatic-re
   const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
   const catalog = await (await request(fixture.base, "/api/data-operations/catalog")).json();
   assert.equal(catalog.automaticRefreshSources.length, 28);
-  assert.ok(catalog.automaticRefreshSources.every((source) => source.automaticRefreshAuthorized === false && typeof source.reasonCode === "string"));
+  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 1);
+  assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-tx-sales-tax").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-ca-childcare").reasonCode, "AUTOMATIC_REFRESH_NOT_REVIEWED");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-wa-contractors").governedSourceId, "wa-lni-active-contractor-licenses");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-tx-sales-tax").governedSourceId, "tx-active-sales-tax-permits");
