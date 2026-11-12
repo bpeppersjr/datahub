@@ -13,6 +13,7 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(admin, /Save maintenance selection/);
   assert.match(admin, /does not authorize acquisition, start downloads, prove coverage, or change production enrollment/);
   assert.match(admin, /an all-business denominator is not required/);
+  assert.match(admin, /does not require every entity to have coordinates, every ZIP to have population/);
   assert.match(admin, /expectedRevision/);
   assert.match(admin, /If-Match/);
   assert.match(server, /bodyJson\(request, 16 \* 1024\)/);
@@ -36,7 +37,8 @@ test("administration persists maintenance intent without authorization claims", 
   assert.match(server, /maintenanceCollections/);
   assert.match(admin, /Florida retail\/consumer source readiness/);
   assert.match(admin, /Provider rows: not acquired/);
-  assert.match(admin, /not Florida retail-business coverage/);
+  assert.match(admin, /Observed aggregate scope/);
+  assert.match(admin, /Missing entity geocodes and a universal business denominator do not invalidate/);
   assert.match(server, /\/api\/administration\/fl-retail-source-readiness/);
   assert.match(admin, /2020–2024 ACS ZCTA demographics/);
   assert.match(admin, /Plan verified · Network authorization pending/);

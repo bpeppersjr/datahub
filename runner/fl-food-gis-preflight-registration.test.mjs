@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { APP_ROOT } from "./paths.mjs";
 import { verifyFlFoodGisPreflight } from "./fl-food-gis-preflight.mjs";
-import { readFlFoodGisPreflightRegistration, validateFlFoodFeTypeAssessmentForTest, validateFlFoodGisPreflightRegistrationForTest } from "./fl-food-gis-preflight-registration.mjs";
+import { readFlFoodGisPreflightRegistration, validateFlFoodFeTypeAssessmentForTest, validateFlFoodFeTypeDistributionForTest, validateFlFoodGisPreflightRegistrationForTest } from "./fl-food-gis-preflight-registration.mjs";
 
 const registrationPath = path.join(APP_ROOT, "config/datasets/fl-food-gis-preflight-evidence.json");
 
@@ -34,16 +34,38 @@ test("registered Florida retail metadata prerequisite replays exact canonical re
   assert.equal(verified.claims.providerRowsAcquired, false);
   assert.equal(verified.claims.currentOperationsVerified, false);
   const view = await readFlFoodGisPreflightRegistration();
-  assert.equal(view.schema_version, "fl-food-gis-preflight-registration-status@1.1.0");
+  assert.equal(view.schema_version, "fl-food-gis-preflight-registration-status@1.2.0");
   assert.equal(view.metadata_contract_validated, true);
   assert.equal(view.provider_rows_acquired, false);
   assert.equal(view.source_rows, null);
   assert.equal(view.claims.network_requests, 0);
   assert.equal(view.classification.confirmed_code_count, 4);
+  assert.equal(view.classification.observed_code_count, 70);
+  assert.equal(view.classification.observed_aggregate_rows, 47059);
+  assert.equal(view.classification.confirmed_mapping_rows, 16309);
   assert.deepEqual(view.classification.confirmed_codes.map(row => row.code), ["111", "122", "123", "124"]);
+  assert.deepEqual(view.classification.confirmed_codes.map(row => row.aggregate_rows), [2387, 2634, 6594, 4694]);
   assert.equal(view.classification.complete_codebook_verified, false);
   assert.equal(view.classification.unresolved_gate_count, 7);
   assert.match(view.classification.assessment_sha256, /^[a-f0-9]{64}$/);
+});
+
+test("Florida FE_TYPE distribution retains only a checksum-pinned aggregate", async () => {
+  const distribution = JSON.parse(await readFile(path.join(APP_ROOT, "config/source-assessments/fl-food-fe-type-distribution-2026-11-12.json"), "utf8"));
+  assert.doesNotThrow(() => validateFlFoodFeTypeDistributionForTest(distribution));
+  assert.equal(distribution.rows.reduce((sum, row) => sum + row.row_count, 0), 47059);
+  assert.deepEqual(distribution.claims, { aggregate_only: true, provider_rows_returned: 0, names_returned: false, addresses_returned: false, contacts_returned: false, geometry_returned: false, response_body_retained: false, complete_codebook_verified: false, current_operations_verified: false, record_acquisition_authorized: false, production_admission: false, business_completeness: null });
+  for (const mutate of [
+    value => { value.claims.provider_rows_returned = 1; },
+    value => { value.claims.complete_codebook_verified = true; },
+    value => { value.total_rows += 1; },
+    value => { value.rows[0].row_count += 1; },
+    value => { [value.rows[0], value.rows[1]] = [value.rows[1], value.rows[0]]; },
+    value => { value.request.response_sha256 = "0".repeat(64); },
+  ]) {
+    const changed = structuredClone(distribution); mutate(changed);
+    assert.throws(() => validateFlFoodFeTypeDistributionForTest(changed), /classification distribution/);
+  }
 });
 
 test("Florida FE_TYPE assessment preserves a partial publisher-evidenced crosswalk", async () => {
