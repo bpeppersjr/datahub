@@ -23,7 +23,7 @@ test('National Status renders national units, evidence reach, source reviews, se
 test('summary and selected-state failures are isolated and malformed data never displays inferred counts',async()=>{
   const h=harness(async url=>{if(url.endsWith('summary'))throw Error('private path');return structuredClone(state)});h.render();await flush();const output=text(h.render());assert.match(output,/Existing Industry Status remains available/);assert.match(output,/NJ · nine/);assert.match(output,/Source date:/);assert.doesNotMatch(output,/private path|48,194 ZIP5 cohort/);h.close();
   const h2=harness(async url=>url.endsWith('summary')?structuredClone(summary):({...state,industries:[]}));h2.render();await flush();const output2=text(h2.render());assert.match(output2,/48,194 ZIP5/);assert.match(output2,/evidence reach remains unknown/);h2.close();
-  const composition=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(composition,/<OperationalMaintenanceIntent\/><NationalStatusPanel state=\{state\}\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/>/);
+  const composition=await readFile(new URL('../app/workspace-views.tsx',import.meta.url),'utf8');assert.match(composition,/<OperationalMaintenanceIntent state=\{state\}\/><NationalStatusPanel state=\{state\}\/><OperationalIndustryCrosswalkStatus state=\{state\}\/><EpaOperationalIndustryStatus state=\{state\}\/>/);
 });
 test('state changes abort old requests and stale results cannot replace new selection',async()=>{
   let resolve;const signals=[];

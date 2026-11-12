@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { EventEmitter } from "node:events";
 import { cp, link, lstat, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -10,16 +11,38 @@ import { loadZipDenominatorDeltaReviewView } from "./zip-denominator-delta-revie
 import { zipDenominatorDeltaReviewHttp } from "./zip-denominator-delta-review-http.mjs";
 
 const APP_ROOT = fileURLToPath(new URL("..", import.meta.url));
-const MANIFEST = fileURLToPath(new URL("../data/zip-denominator-delta-review/releases/zip-denominator-delta-review-20260923223658573-e72836b8/manifest.json", import.meta.url));
+const CONFIG = JSON.parse(await readFile(path.join(APP_ROOT, "config", "datasets", "zip-denominator-delta-review.json"), "utf8"));
+const MANIFEST = path.join(APP_ROOT, CONFIG.manifest_path);
+const digest = bytes => createHash("sha256").update(bytes).digest("hex");
 
-test("replays the exact immutable current-versus-prior delta", async () => {
+test("replays the registered November-versus-prior delta and conserves the gap cohort", async () => {
   const verified = await verifyZipDenominatorDeltaReview(MANIFEST);
+  assert.equal(verified.release_id, CONFIG.release_id);
+  assert.equal(verified.manifest_sha256, CONFIG.manifest_sha256);
+  assert.equal(verified.artifact_sha256, CONFIG.artifact_sha256);
+  assert.equal(verified.artifact.production.release_id, "national-business-registry-20261112-005851952Z-44f0a338");
   assert.equal(verified.artifact.production.key_count, 48194);
   assert.equal(verified.artifact.prior_candidate.key_count, 48190);
   assert.deepEqual(verified.artifact.local_review_drilldown.map((row) => row.zip5), ["01065", "01385", "02363", "45730"]);
   assert.equal(verified.artifact.delta.by_source.ma_childcare_centers, 3);
   assert.equal(verified.artifact.delta.by_source.oh_childcare_centers, 1);
   assert.equal(verified.artifact.claims.usps_operational_denominator_verified, false);
+  for (const key of ["authoritative_current_usps_zip_denominator", "valid_usps_zip_count", "business_count", "current_operating_business_count", "completeness_percent"]) assert.equal(verified.artifact.claims[key], null);
+  const { retained_release: cohort } = JSON.parse(await readFile(path.join(APP_ROOT, "config", "datasets", "zip-denominator-gap-cohort.json"), "utf8"));
+  const summaryBytes = await readFile(path.join(APP_ROOT, path.dirname(cohort.manifest), "summary.json"));
+  assert.equal(digest(summaryBytes), cohort.summary_sha256);
+  const summary = JSON.parse(summaryBytes);
+  assert.equal(verified.artifact.production.pointer_sha256, summary.bindings.registry_pointer_sha256);
+  assert.equal(verified.artifact.production.manifest_sha256, summary.bindings.registry_manifest_sha256);
+  assert.equal(verified.artifact.production.artifact_sha256, summary.bindings.registry_zip_artifact_sha256);
+  assert.equal(verified.artifact.prior_candidate.artifact_sha256, summary.bindings.postal_candidate_zip_artifact_sha256);
+  assert.deepEqual(verified.artifact.local_review_drilldown.map(row => row.zip5), summary.exact_production_only_vs_postal_candidate);
+});
+
+test("the September delta remains immutable history", async () => {
+  const manifest = path.join(APP_ROOT, "data", "zip-denominator-delta-review", "releases", "zip-denominator-delta-review-20260923223658573-e72836b8", "manifest.json");
+  assert.equal(digest(await readFile(manifest)), "75c33020e1c9ad6fe33534cfd2e1789fadf25d5baeacccb35a53eca653b24316");
+  assert.equal(digest(await readFile(path.join(path.dirname(manifest), "delta-review.json"))), "e72836b8d4457a06bafba36fcf5905570a871d21bc301742acd5fc5998dd59b9");
 });
 
 test("view binds selection and exposes local review only", async () => {
@@ -134,8 +157,8 @@ test("builder publishes atomically, refuses collision, and cleans failed staging
 
 test("cohort snapshots are held through replay and detect replacement races", async () => {
   const source = await readFile(new URL("./zip-denominator-delta-review.mjs", import.meta.url), "utf8");
-  assert.match(source, /const snapshots=await acquireSnapshots\(root\)/);
-  assert.match(source, /finally\{await releaseSnapshots\(snapshots\);\}/);
+  assert.match(source, /const snapshots = await acquireSnapshots\(root\)/);
+  assert.match(source, /finally \{\s*await releaseSnapshots\(snapshots\);/);
   assert.match(source, /same\(item\.identity,after\)/);
   assert.match(source, /same\(after,current\)/);
   assert.match(source, /realpath\(item\.file\)!==item\.file/);

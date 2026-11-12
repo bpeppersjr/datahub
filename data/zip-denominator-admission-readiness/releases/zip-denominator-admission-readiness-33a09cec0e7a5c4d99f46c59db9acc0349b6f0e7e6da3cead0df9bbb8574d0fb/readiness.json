@@ -1,0 +1,178 @@
+{
+  "bindings": {
+    "cohort_artifact": {
+      "bytes": 83379683,
+      "path": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d/cohort.jsonl",
+      "sha256": "cb3ba83b13d3a7d91442c00fbbfb239d5de25e7116cec6f97c87aec82dcd3a3c"
+    },
+    "cohort_manifest": {
+      "bytes": 1014,
+      "path": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d/manifest.json",
+      "sha256": "30a5027eb2cce3c21ed5f01743419559eb8739bf0498c6b6cd9570a1ecafe2b1"
+    },
+    "cohort_registration": {
+      "bytes": 1272,
+      "path": "config/datasets/zip-denominator-gap-cohort.json",
+      "sha256": "2fc0dc3d81adf82e8f5a7ce80d4827c208c9b6b4623f52f30fbfed4987a32f6f"
+    },
+    "cohort_summary": {
+      "bytes": 2661,
+      "path": "data/zip-denominator-gap-cohort/releases/zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d/summary.json",
+      "sha256": "757a88ef3384899164c1a35c39a1cd4be6b2fff05d3731f5e74365167c8d4cfd"
+    },
+    "configuration": {
+      "bytes": 2242,
+      "path": "config/zip-denominator-admission-readiness.json",
+      "sha256": "03f41ea8feb48f4c1b4c5446c5d5d5ace0c4d027376ba10501eea989283fd6af"
+    },
+    "prerequisite_contracts": {
+      "licensed_city_state": {
+        "admission_contract": {
+          "bytes": 2401,
+          "path": "config/connectors/usps-city-state-admission.json",
+          "sha256": "060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067"
+        },
+        "candidate_contract": {
+          "bytes": 2383,
+          "path": "config/connectors/usps-city-state-operational-denominator-candidate.json",
+          "sha256": "fd1e083f4baee5e8d7944dda333c6f757d67a425cbebd1cac7be26fae656cffd"
+        },
+        "dataset_contract": {
+          "bytes": 1144,
+          "path": "config/datasets/usps-city-state-operational-denominator-candidate.json",
+          "sha256": "01f633315d96037140bbc52476a666f287ceb662c692bbd401e811ea6752f7f6"
+        },
+        "policy_contract": {
+          "bytes": 1194,
+          "path": "config/source-policies/usps-city-state-operational-denominator-candidate.json",
+          "sha256": "a3598581594e14134d9f0b9432cdc010efa1f3058f86470852af4dc8e79c756c"
+        }
+      },
+      "postalpro_area_district": {
+        "connector_contract": {
+          "bytes": 3188,
+          "path": "config/connectors/usps-operational-zip-assignments.json",
+          "sha256": "959968b2e7a225de5d27499a049b5389c00f63b69abd1cb4c95f1e05ec2052ff"
+        },
+        "dataset_contract": {
+          "bytes": 1709,
+          "path": "config/datasets/usps-operational-zip-assignments.json",
+          "sha256": "230ce87462d926397220c41efc4dc4eed633d2592acae3141e6971403ef1419f"
+        },
+        "policy_contract": {
+          "bytes": 2068,
+          "path": "config/source-policies/usps-operational-zip-assignments.json",
+          "sha256": "2bbdb2d556a6762838a4f43a7e697cc4e86d63bdf0acd24229b8f282ff07c107"
+        },
+        "production_adapter": {
+          "bytes": 3865,
+          "path": "runner/usps-operational-zip-production-input.mjs",
+          "sha256": "75a0a2201215304ab089943f697a490ef2123bf4b7b8c2e4d649b93bf7012524"
+        }
+      }
+    },
+    "registry_manifest": {
+      "bytes": 372910,
+      "path": "data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/manifest.json",
+      "sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048"
+    },
+    "registry_pointer": {
+      "bytes": 276,
+      "path": "data/business-registry/current.json",
+      "sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb"
+    },
+    "registry_zip_artifact": {
+      "bytes": 503302415,
+      "path": "data/business-registry/releases/national-business-registry-20261112-005851952Z-44f0a338/derived/zip-coverage.jsonl",
+      "record_count": 48194,
+      "sha256": "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8"
+    }
+  },
+  "blockers": [
+    "missing-authorized-authoritative-usps-zip-artifact",
+    "missing-governed-production-eligible-usps-permission-evidence",
+    "authoritative-current-usps-denominator-unverified"
+  ],
+  "claims": {
+    "acquisition_performed": false,
+    "authoritative_current_usps_zip_denominator": null,
+    "business_count": null,
+    "completeness_percent": null,
+    "current_operating_business_count": null,
+    "current_pointer_written": false,
+    "deliverability_classified": false,
+    "network_requests": 0,
+    "production_enrollment": false,
+    "production_execution": false,
+    "valid_usps_zip_count": null,
+    "zcta_treated_as_usps": false,
+    "zip_validity_classified": false
+  },
+  "dataset_id": "zip-denominator-admission-readiness",
+  "observed_at": "2026-11-12T10:02:00.798Z",
+  "prerequisite_routes": {
+    "licensed_city_state": {
+      "candidate_only": true,
+      "missing_inputs": [
+        "licensed-city-state-projection",
+        "city-state-admission-manifest",
+        "license-or-permission-reference",
+        "four-zip-class-declaration",
+        "reviewed-status-semantics-map",
+        "verified-city-state-candidate-release"
+      ],
+      "observed_paths": {
+        "admissions": {
+          "path": "data/zip-validity/usps-city-state/admissions",
+          "present": false
+        },
+        "candidates": {
+          "path": "data/zip-validity/usps-city-state-denominator/releases",
+          "present": false
+        }
+      },
+      "production_admission_implemented": false,
+      "requires": [
+        "operator-managed-licensed-projection",
+        "exact-sha256-and-bytes",
+        "source-month-and-version",
+        "permission-reference",
+        "standard-po-box-unique-military-declarations",
+        "explicit-reviewed-status-mapping"
+      ],
+      "status": "missing-required-inputs"
+    },
+    "postalpro_area_district": {
+      "missing_inputs": [
+        "postalpro-current-pointer",
+        "usps-written-permission-evidence",
+        "exact-source-month-release"
+      ],
+      "observed_path": {
+        "path": "data/zip-validity/usps-operational-zips/current.json",
+        "present": false
+      },
+      "production_requires": [
+        "verified-immutable-usps-operational-release",
+        "usps-written-permission",
+        "governed-permission-reference",
+        "exact-source-month",
+        "fresh-production-plan"
+      ],
+      "status": "missing-required-inputs"
+    }
+  },
+  "publication_mode": "pointer-free-local-review-only",
+  "retained_zip_evidence": {
+    "denominator_only": 199,
+    "denominator_only_outside_zcta": 41,
+    "explicit_placeholder": 1,
+    "record_level_source_contribution": 47995,
+    "rows": 48194,
+    "same_code_census_zcta": 33791,
+    "source_contributed_outside_zcta": 14361,
+    "usps_unverified": 48194
+  },
+  "schema_version": "zip-denominator-admission-readiness@1.0.0",
+  "status": "blocked-on-authorized-authoritative-input"
+}

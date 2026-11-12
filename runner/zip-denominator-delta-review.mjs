@@ -5,6 +5,8 @@ import { APP_ROOT } from "./paths.mjs";
 import { auditZipDenominators } from "./zip-denominator-audit.mjs";
 const DATASET = "zip-denominator-delta-review";
 const VERSION = "zip-denominator-delta-review@1.0.0";
+const MAX_METADATA_BYTES = 4_000_000;
+const MAX_ZIP_ARTIFACT_BYTES = 1_073_741_824;
 const sha = (v) => createHash("sha256").update(v).digest("hex");
 const bytes = (v) => Buffer.from(`${JSON.stringify(v)}\n`);
 const fail = () => {
@@ -12,20 +14,70 @@ const fail = () => {
 };
 const same=(a,b)=>a.dev===b.dev&&a.ino===b.ino&&a.size===b.size&&a.mtimeNs===b.mtimeNs&&a.ctimeNs===b.ctimeNs&&a.nlink===b.nlink;
 export async function stableRead(file){file=path.resolve(file);if(await realpath(file)!==file)fail();const handle=await open(file,"r");try{const before=await handle.stat({bigint:true});if(!before.isFile()||before.nlink!==1n)fail();const value=await handle.readFile();const after=await handle.stat({bigint:true}),current=await lstat(file,{bigint:true});if(!same(before,after)||!same(after,current)||await realpath(file)!==file)fail();return{value,bytes:value.length,sha256:sha(value),identity:after};}finally{await handle.close();}}
-async function held(file){file=path.resolve(file);if(await realpath(file)!==file)fail();const handle=await open(file,"r");try{const identity=await handle.stat({bigint:true});if(!identity.isFile()||identity.nlink!==1n)fail();const value=await handle.readFile();return{file,handle,identity,value,sha256:sha(value)}}catch(error){await handle.close().catch(()=>{});throw error;}}
-async function cohortSnapshot(root,pointerRel){const pointer=await held(path.join(root,pointerRel));let manifest;try{const p=JSON.parse(pointer.value);manifest=await held(path.resolve(path.dirname(pointer.file),p.manifest));const m=JSON.parse(manifest.value),decl=m.artifacts.find(a=>a.path==='derived/zip-coverage.jsonl'&&a.artifact_type==='registry-zip-coverage-jsonl');if(!decl)fail();const artifact=await held(path.join(path.dirname(manifest.file),decl.path));return{pointer,manifest,artifact}}catch(error){await pointer.handle.close().catch(()=>{});await manifest?.handle.close().catch(()=>{});throw error;}}
-async function acquireSnapshots(root){const first=await cohortSnapshot(root,"data/business-registry/current.json");try{return[first,await cohortSnapshot(root,"data/migrations/normalized-us-postal-fields-v1/downstream/business-registry/current.json")]}catch(error){await releaseSnapshots([first]).catch(()=>{});throw error;}}
+async function held(file, { expectedBytes } = {}) {
+  file = path.resolve(file);
+  if (await realpath(file) !== file) fail();
+  const handle = await open(file, "r");
+  try {
+    const identity = await handle.stat({ bigint: true });
+    if (!identity.isFile() || identity.nlink !== 1n || identity.size <= 0n) fail();
+    if (expectedBytes !== undefined) {
+      if (!Number.isSafeInteger(expectedBytes) || expectedBytes > MAX_ZIP_ARTIFACT_BYTES || identity.size !== BigInt(expectedBytes)) fail();
+      // The audit streams the artifact and verifies its exact hash. Keep the
+      // file identity held through replay without buffering another copy.
+      return { file, handle, identity };
+    }
+    if (identity.size > BigInt(MAX_METADATA_BYTES)) fail();
+    const value = await handle.readFile();
+    if (BigInt(value.length) !== identity.size) fail();
+    return { file, handle, identity, value, sha256: sha(value) };
+  } catch (error) {
+    await handle.close().catch(() => {});
+    throw error;
+  }
+}
+
+async function cohortSnapshot(root, pointerRel, expected) {
+  const pointer = await held(path.join(root, pointerRel));
+  let manifest;
+  try {
+    if (pointer.sha256 !== expected.pointer_sha256) fail();
+    const selection = JSON.parse(pointer.value);
+    if (selection.release_id !== expected.release_id || selection.manifest !== `releases/${expected.release_id}/manifest.json`) fail();
+    manifest = await held(path.resolve(path.dirname(pointer.file), selection.manifest));
+    if (manifest.sha256 !== expected.manifest_sha256) fail();
+    const declaration = JSON.parse(manifest.value).artifacts?.find(item => item.path === "derived/zip-coverage.jsonl" && item.artifact_type === "registry-zip-coverage-jsonl");
+    if (declaration?.sha256 !== expected.artifact_sha256) fail();
+    const artifact = await held(path.join(path.dirname(manifest.file), declaration.path), { expectedBytes: declaration.bytes });
+    return { pointer, manifest, artifact };
+  } catch (error) {
+    await pointer.handle.close().catch(() => {});
+    await manifest?.handle.close().catch(() => {});
+    throw error;
+  }
+}
+
+async function acquireSnapshots(root) {
+  const production = await cohortSnapshot(root, "data/business-registry/current.json", EXPECTED.production);
+  try {
+    const candidate = await cohortSnapshot(root, "data/migrations/normalized-us-postal-fields-v1/downstream/business-registry/current.json", EXPECTED.candidate);
+    return [production, candidate];
+  } catch (error) {
+    await releaseSnapshots([production]).catch(() => {});
+    throw error;
+  }
+}
 async function writeExact(file,value){const handle=await open(file,"wx");let primary;try{await handle.writeFile(value);await handle.sync();}catch(error){primary=error;throw error;}finally{try{await handle.close();}catch(error){if(!primary)throw error;}}}
 async function releaseSnapshots(snapshots){let invalid=false;for(const snapshot of snapshots)for(const item of Object.values(snapshot)){try{const after=await item.handle.stat({bigint:true}),current=await lstat(item.file,{bigint:true});if(!same(item.identity,after)||!same(after,current)||await realpath(item.file)!==item.file)invalid=true;}catch{invalid=true;}finally{try{await item.handle.close();}catch{invalid=true;}}}if(invalid)fail();}
 const EXPECTED = {
   production: {
-    release_id: "national-business-registry-20260911-022652067Z-1ec656c3",
+    release_id: "national-business-registry-20261112-005851952Z-44f0a338",
     pointer_sha256:
-      "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de",
+      "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb",
     manifest_sha256:
-      "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
+      "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
     artifact_sha256:
-      "2bd91afb013e99203ccea4c6cd9e8d3182d4071918ab34d27bcdd8ad3344006e",
+      "7297d1cd1e5e0b1ea15faffda452a157f09ed16b04c40423bd5254c03fda1ab8",
   },
   candidate: {
     release_id: "national-business-registry-20260907-140848014Z-9b1fdcb8",
@@ -37,10 +89,21 @@ const EXPECTED = {
       "e8a1ac5f1b87c79e3c5f4b550c025f638f19a19bef6301d514589c501d54f4c2",
   },
 };
+
+async function replayCurrent(root) {
+  const snapshots = await acquireSnapshots(root);
+  try {
+    return await auditZipDenominators({ appRoot: root, includeRows: true, includeZipLists: true });
+  } finally {
+    await releaseSnapshots(snapshots);
+  }
+}
+
 function derive(report, createdAt) {
   if (
     report.overall_contract_status !== "passed" ||
-    report.audit_mode !== "read-only"
+    report.audit_mode !== "read-only" ||
+    report.claim_boundary.valid_usps_zip_denominator_complete !== false
   )
     fail();
   const production = report.cohorts.find(row => row.cohort_id === "production-current");
@@ -118,7 +181,7 @@ function derive(report, createdAt) {
         ]),
       ),
       same_code_zcta_added: details.filter(
-        (row) => row.zcta_membership === "in-denominator",
+        (row) => row.zcta_membership === "included",
       ).length,
       placeholder_added: details.filter((row) => row.placeholder).length,
       usps_unverified_added: details.filter(
@@ -136,6 +199,11 @@ function derive(report, createdAt) {
       state_inferred: false,
       zip_invalidity_asserted: false,
       usps_operational_denominator_verified: false,
+      authoritative_current_usps_zip_denominator: null,
+      valid_usps_zip_count: null,
+      business_count: null,
+      current_operating_business_count: null,
+      completeness_percent: null,
       admission_authorized: false,
       network_requests: 0,
       current_pointer_changed: false,
@@ -143,17 +211,20 @@ function derive(report, createdAt) {
     },
   };
 }
+
+function releaseFor(createdAt, digest) {
+  return `${DATASET}-${createdAt.replace(/[^0-9]/g, "").slice(0, 17)}-${digest.slice(0, 8)}`;
+}
+
 export async function buildZipDenominatorDeltaReview({
   root = APP_ROOT,
   asOf = new Date(),
 } = {}) {
   root = await realpath(path.resolve(root));
-  const snapshots=await acquireSnapshots(root);
-  let report;try{report=await auditZipDenominators({appRoot:root,includeRows:true,includeZipLists:true});}finally{await releaseSnapshots(snapshots);}
-  if(snapshots[0].pointer.sha256!==EXPECTED.production.pointer_sha256||snapshots[0].manifest.sha256!==EXPECTED.production.manifest_sha256||snapshots[0].artifact.sha256!==EXPECTED.production.artifact_sha256||snapshots[1].pointer.sha256!==EXPECTED.candidate.pointer_sha256||snapshots[1].manifest.sha256!==EXPECTED.candidate.manifest_sha256||snapshots[1].artifact.sha256!==EXPECTED.candidate.artifact_sha256)fail();
+  const report = await replayCurrent(root);
   const artifact = derive(report, asOf.toISOString());
   const artifactBytes = bytes(artifact);
-  const releaseId = `${DATASET}-${artifact.created_at.replace(/[^0-9]/g, "").slice(0, 17)}-${sha(artifactBytes).slice(0, 8)}`;
+  const releaseId = releaseFor(artifact.created_at, sha(artifactBytes));
   const releases = path.join(root, "data", DATASET, "releases");
   await mkdir(releases, { recursive: true });
   const releasesStat = await lstat(releases);
@@ -231,12 +302,11 @@ export async function verifyZipDenominatorDeltaReview(
   )
     fail();
   const artifact = JSON.parse(artifactProof.value);
-  const snapshots=await acquireSnapshots(root);
-  let report;try{report=await auditZipDenominators({appRoot:root,includeRows:true,includeZipLists:true});}finally{await releaseSnapshots(snapshots);}
-  if(snapshots[0].pointer.sha256!==EXPECTED.production.pointer_sha256||snapshots[0].manifest.sha256!==EXPECTED.production.manifest_sha256||snapshots[0].artifact.sha256!==EXPECTED.production.artifact_sha256||snapshots[1].pointer.sha256!==EXPECTED.candidate.pointer_sha256||snapshots[1].manifest.sha256!==EXPECTED.candidate.manifest_sha256||snapshots[1].artifact.sha256!==EXPECTED.candidate.artifact_sha256)fail();
+  if (artifact.production?.release_id !== EXPECTED.production.release_id || artifact.created_at !== manifest.created_at ||
+    !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(artifact.created_at) || releaseFor(artifact.created_at, artifactProof.sha256) !== manifest.release_id) fail();
+  const report = await replayCurrent(root);
   if (
-    JSON.stringify(artifact) !==
-    JSON.stringify(derive(report, artifact.created_at))
+    !artifactProof.value.equals(bytes(derive(report, artifact.created_at)))
   )
     fail();
   return {

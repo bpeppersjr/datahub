@@ -8,7 +8,8 @@ const administration = await readFile(new URL('../app/administration.tsx', impor
 test('industry status keeps maintenance intent separate from retained evidence', () => {
   assert.match(source, /governed crosswalk below relates compatible retained source dimensions/);
   assert.match(source, /Unavailable or unresolved evidence remains unknown rather than zero/i);
-  assert.match(source, /<OperationalMaintenanceIntent\/>/);
+  assert.match(source, /<OperationalMaintenanceIntent state=\{state\}\/>/);
+  assert.match(source, /nine operational segments regardless of selection/);
   assert.match(source, /<OperationalIndustryCrosswalkStatus state=\{state\}\/>/);
   assert.match(source, /<ExactZipIndustryNationalSummary \/>/);
   assert.doesNotMatch(source, /nine operational maintenance segments and 39 governed source dimensions/);
@@ -38,9 +39,10 @@ test('nonblocking geography states remain visible without unsupported classifica
 });
 
 test('Administration retains explicit persisted maintenance controls', () => {
-  assert.match(administration, /Choose which industry programs Co\*Tive should maintain/);
+  assert.match(administration, /aria-label="Industries selected for maintenance"/);
   assert.match(administration, /Select all/);
   assert.match(administration, /Select none/);
   assert.match(administration, /expectedRevision/);
-  assert.match(administration, /maintenance intent/i);
+  assert.match(administration, /"If-Match":/);
+  assert.match(administration, /saved selection sets defaults for collection and refresh planning/);
 });

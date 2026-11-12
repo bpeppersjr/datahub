@@ -20,6 +20,16 @@ const IMPLEMENTATION = ['runner/ut-childcare-normalized-release.mjs', 'runner/ut
   'config/connectors/ut-childcare-centers-normalization.json'];
 const hash = value => createHash('sha256').update(value).digest('hex');
 const LOADED_PINS = Object.fromEntries(IMPLEMENTATION.map(file => [file, hash(readFileSync(path.join(APP_ROOT, file)))]));
+const RETAINED_CONFIGURATION = Object.freeze({
+  'runner/ut-childcare-normalized-release.mjs': 'dff683019c0349f9c28b25c3a8550fefc2852cfe93e83bbd356e8d33cedd8f4e',
+  'runner/ut-childcare-normalization.mjs': '1ece2629a05d10160c43ae7413e951c3e18dd8da7bb27723d26633595207dbf5',
+  'runner/ut-childcare-retained-origin.mjs': '6c884b4f3138766804566c30a22f17b425dc4f364bbe5522d41a7695d916376c',
+  'runner/normalized-us-postal-code.mjs': '40d1bebf054796c1a7a5206e74f089c66f5c6082810bf8da277399bc5362cdf9',
+  'runner/mn-construction-retained-selection.mjs': '273f65ef9bfb61e848e9eb04a73336bcfe043643ffd1b03ece1da8af908a70a7',
+  'config/source-policies/ut-childcare-centers-internal.json': 'a66756ac350dddb66b677b91fb2a4c08d0c60d8c77a28ecb6227a6c408b37d2f',
+  'config/connectors/ut-childcare-centers-normalization.json': '304e9caab6c3161adad94929f9244f2e6f85080ea8f4ed922ef6c78dd79259c5',
+});
+const RETAINED_RUN_ID = '6aaca68b-f0cc-4ada-a301-0ada860574b8';
 const encode = value => Buffer.from(JSON.stringify(value) + '\n');
 const check = value => { if (!value) throw Error('Utah normalized release rejected.'); };
 const time = value => typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
@@ -95,7 +105,13 @@ async function inspect(manifestPath, signal, temporary = false) {
     artifacts.push({path: file, bytes: measured.bytes, sha256: measured.sha256, records: index});
     snapshots.set(file, measured);
   }
-  check(same(manifest, manifestFor(runId, manifest.processed_at, origin.verification, config, normalized.summary, artifacts)));
+  // The retained September release predates a later hardening-only revision of
+  // the shared bounded JSON reader. Replaying every source row with the current
+  // reader must still reproduce the retained artifacts byte-for-byte; only that
+  // exact run may retain its historical implementation inventory.
+  const manifestConfiguration = runId === RETAINED_RUN_ID && same(manifest.configuration, RETAINED_CONFIGURATION)
+    ? RETAINED_CONFIGURATION : config;
+  check(same(manifest, manifestFor(runId, manifest.processed_at, origin.verification, manifestConfiguration, normalized.summary, artifacts)));
   check(same((await readdir(directory)).sort(), [...Object.keys(LIMITS), name].sort()));
   const finalMeter = {};
   check(same(await readJson(manifestPath, 100_000, signal, finalMeter), manifest) && meter.sha256 === finalMeter.sha256

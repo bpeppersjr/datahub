@@ -6,20 +6,31 @@ import test from "node:test";
 import { APP_ROOT } from "./paths.mjs";
 import { buildZipDenominatorAdmissionReadiness, inspectZipDenominatorAdmissionReadiness, verifyZipDenominatorAdmissionReadiness } from "./zip-denominator-admission-readiness.mjs";
 
+const readJson = async relative => JSON.parse(await fs.readFile(path.join(APP_ROOT, relative), "utf8"));
+const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+
 test("inspection replays exact retained ZIP cohort and exposes both fail-closed prerequisite routes", async () => {
-  const result = await inspectZipDenominatorAdmissionReadiness({ now: () => new Date("2026-10-03T12:00:00.000Z") });
+  const result = await inspectZipDenominatorAdmissionReadiness({ now: () => new Date("2026-11-12T10:00:00.000Z") });
   assert.equal(result.status, "blocked-on-authorized-authoritative-input");
   assert.deepEqual(result.retained_zip_evidence, { rows: 48194, record_level_source_contribution: 47995, denominator_only: 199, same_code_census_zcta: 33791, source_contributed_outside_zcta: 14361, denominator_only_outside_zcta: 41, explicit_placeholder: 1, usps_unverified: 48194 });
   assert.deepEqual(result.prerequisite_routes.postalpro_area_district.missing_inputs, ["postalpro-current-pointer", "usps-written-permission-evidence", "exact-source-month-release"]);
   assert.deepEqual(result.prerequisite_routes.licensed_city_state.missing_inputs, ["licensed-city-state-projection", "city-state-admission-manifest", "license-or-permission-reference", "four-zip-class-declaration", "reviewed-status-semantics-map", "verified-city-state-candidate-release"]);
   assert.equal(result.prerequisite_routes.licensed_city_state.production_admission_implemented, false);
   assert.deepEqual(result.claims, { authoritative_current_usps_zip_denominator: null, valid_usps_zip_count: null, business_count: null, current_operating_business_count: null, completeness_percent: null, zip_validity_classified: false, deliverability_classified: false, zcta_treated_as_usps: false, network_requests: 0, acquisition_performed: false, current_pointer_written: false, production_enrollment: false, production_execution: false });
+  const { retained_release: cohort } = await readJson("config/datasets/zip-denominator-gap-cohort.json");
+  assert.equal(result.bindings.cohort_manifest.sha256, cohort.manifest_sha256);
+  assert.equal(result.bindings.cohort_summary.sha256, cohort.summary_sha256);
+  assert.equal(result.bindings.cohort_artifact.sha256, cohort.cohort_sha256);
+  const summary = await readJson(result.bindings.cohort_summary.path);
+  assert.equal(result.bindings.registry_pointer.sha256, summary.bindings.registry_pointer_sha256);
+  assert.equal(result.bindings.registry_manifest.sha256, summary.bindings.registry_manifest_sha256);
+  assert.equal(result.bindings.registry_zip_artifact.sha256, summary.bindings.registry_zip_artifact_sha256);
 });
 
 test("build publishes one immutable pointer-free release and verifier rejects artifact tamper", async (t) => {
   const output = path.join(APP_ROOT, "data", "tmp", `zip-admission-readiness-${randomUUID()}`);
   t.after(() => fs.rm(output, { recursive: true, force: true }));
-  const result = await buildZipDenominatorAdmissionReadiness({ outputRoot: output, now: () => new Date("2026-10-03T12:01:00.000Z") });
+  const result = await buildZipDenominatorAdmissionReadiness({ outputRoot: output, now: () => new Date("2026-11-12T10:01:00.000Z") });
   assert.equal(result.manifest.current_pointer, null);
   assert.equal(result.manifest.network_requests, 0);
   assert.equal(result.readiness.claims.authoritative_current_usps_zip_denominator, null);
@@ -32,7 +43,7 @@ test("build publishes one immutable pointer-free release and verifier rejects ar
 });
 
 test("immutable identity refuses a duplicate release without changing registered bytes", async (t) => {
-  const output = path.join(APP_ROOT, "data", "tmp", `zip-admission-readiness-duplicate-${randomUUID()}`), now = () => new Date("2026-10-03T12:02:00.000Z");
+  const output = path.join(APP_ROOT, "data", "tmp", `zip-admission-readiness-duplicate-${randomUUID()}`), now = () => new Date("2026-11-12T10:02:00.000Z");
   t.after(() => fs.rm(output, { recursive: true, force: true }));
   const first = await buildZipDenominatorAdmissionReadiness({ outputRoot: output, now });
   const before = await fs.readFile(first.manifest_path);
@@ -50,7 +61,6 @@ test("registered release retains exact bytes and null claims and replays against
   const registrationPath = path.join(APP_ROOT, "config", "datasets", "zip-denominator-admission-readiness.json");
   let registration;
   try { registration = JSON.parse(await fs.readFile(registrationPath, "utf8")); } catch (error) { if (error.code === "ENOENT") return; throw error; }
-  const digest=bytes=>createHash('sha256').update(bytes).digest('hex');
   const manifestPath=path.join(APP_ROOT, registration.retained_release.manifest),manifestBytes=await fs.readFile(manifestPath),manifest=JSON.parse(manifestBytes);
   const artifactBytes=await fs.readFile(path.join(path.dirname(manifestPath),'readiness.json')),artifact=JSON.parse(artifactBytes);
   assert.equal(digest(manifestBytes),registration.retained_release.manifest_sha256);
@@ -75,4 +85,13 @@ test("superseded historical release remains immutable and fails current-contract
   assert.equal(artifact.bindings.prerequisite_contracts.licensed_city_state.admission_contract.sha256,"1b05b3b9dd2757fe859f40e57fae8b4986f5ee2efaafd185e12cd14b1ecb103a");
   assert.equal(artifact.claims.authoritative_current_usps_zip_denominator,null);
   await assert.rejects(verifyZipDenominatorAdmissionReadiness(manifestPath),/retained input replay/);
+});
+
+test("the October admission readiness release remains immutable history", async () => {
+  const release = "zip-denominator-admission-readiness-54a4c37b3f9f2b0169fa02eb87fa74dc2ae38689106b1bd5f92b48f35a89f33e";
+  const manifestPath = path.join(APP_ROOT, "data", "zip-denominator-admission-readiness", "releases", release, "manifest.json");
+  const manifest = await fs.readFile(manifestPath);
+  assert.equal(digest(manifest), "2f2bad833eedc0cff2b170386c648fcfa13953b3e002d556156fc99fbbb1bfdf");
+  assert.equal(digest(await fs.readFile(path.join(path.dirname(manifestPath), "readiness.json"))), release.split("-").at(-1));
+  await assert.rejects(verifyZipDenominatorAdmissionReadiness(manifestPath), /retained input replay/);
 });

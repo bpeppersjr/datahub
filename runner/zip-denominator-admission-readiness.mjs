@@ -12,6 +12,7 @@ const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const stableObject = (value) => Array.isArray(value) ? value.map(stableObject) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, stableObject(value[key])])) : value;
 const jsonBytes = (value) => Buffer.from(`${JSON.stringify(stableObject(value), null, 2)}\n`);
 const identity = (value) => `${value.dev}:${value.ino}:${value.size}:${value.mtimeNs ?? value.mtimeMs}:${value.ctimeNs ?? value.ctimeMs}`;
+const claims = Object.freeze({ authoritative_current_usps_zip_denominator: null, valid_usps_zip_count: null, business_count: null, current_operating_business_count: null, completeness_percent: null, zip_validity_classified: false, deliverability_classified: false, zcta_treated_as_usps: false, network_requests: 0, acquisition_performed: false, current_pointer_written: false, production_enrollment: false, production_execution: false });
 
 function inside(root, candidate, label) {
   check(typeof candidate === "string" && candidate.length > 0, `${label} path`);
@@ -78,11 +79,18 @@ export async function inspectZipDenominatorAdmissionReadiness(options = {}) {
   check(config.schema_version === "zip-denominator-admission-readiness-config@1.0.0" && config.dataset_id === "zip-denominator-admission-readiness" && config.publication_mode === "immutable-local-review-only-pointer-free", "configuration identity");
   const registrationRead = await readJson(inside(root, config.cohort_registration, "cohort registration"), MAX_JSON, "cohort registration", signal), registration = registrationRead.value;
   const cohort = registration.retained_release;
-  check(cohort?.release_id === config.expected.cohort_release_id && cohort.manifest_sha256 === config.expected.cohort_manifest_sha256 && cohort.cohort_sha256 === config.expected.cohort_sha256 && cohort.rows === config.expected.cohort_rows, "cohort registration pin");
+  check(registration.dataset_id === "zip-denominator-gap-cohort" && registration.release_only === true && registration.runtime_pointer === null && registration.production_enrollment === false && registration.national_denominator_enrollment === false, "cohort registration boundary");
+  check(cohort?.release_id === config.expected.cohort_release_id && cohort.manifest_sha256 === config.expected.cohort_manifest_sha256 && cohort.summary_sha256 === config.expected.cohort_summary_sha256 && cohort.cohort_sha256 === config.expected.cohort_sha256 && cohort.rows === config.expected.cohort_rows, "cohort registration pin");
+  check(cohort.manifest === `data/zip-denominator-gap-cohort/releases/${cohort.release_id}/manifest.json`, "cohort manifest path");
   const cohortManifestRead = await readJson(inside(root, cohort.manifest, "cohort manifest"), MAX_JSON, "cohort manifest", signal), cohortManifest = cohortManifestRead.value;
-  check(cohortManifestRead.sha256 === cohort.manifest_sha256 && cohortManifest.release_id === cohort.release_id && cohortManifest.current_pointer === null && cohortManifest.network_requests === 0 && cohortManifest.production_enrollment === false, "cohort manifest");
+  check(cohortManifestRead.sha256 === cohort.manifest_sha256 && cohortManifest.release_id === cohort.release_id && cohortManifest.publication_mode === "pointer-free" && cohortManifest.current_pointer === null && cohortManifest.network_requests === 0 && cohortManifest.production_enrollment === false && cohortManifest.production_execution === false && cohortManifest.artifacts?.length === 2, "cohort manifest");
   const cohortArtifact = cohortManifest.artifacts?.find((item) => item.path === "cohort.jsonl");
-  check(cohortArtifact?.record_count === 48194 && cohortArtifact.sha256 === cohort.cohort_sha256, "cohort artifact declaration");
+  const summaryArtifact = cohortManifest.artifacts.find((item) => item.path === "summary.json");
+  check(cohortArtifact?.record_count === cohort.rows && cohortArtifact.sha256 === cohort.cohort_sha256 && summaryArtifact?.record_count === 1 && summaryArtifact.sha256 === cohort.summary_sha256, "cohort artifact declarations");
+  const summaryRel = path.posix.join(path.posix.dirname(cohort.manifest), summaryArtifact.path);
+  const summaryRead = await readJson(inside(root, summaryRel, "cohort summary"), MAX_JSON, "cohort summary", signal), summary = summaryRead.value;
+  check(summaryRead.sha256 === summaryArtifact.sha256 && summaryRead.bytes === summaryArtifact.bytes && summary.counts?.rows === cohort.rows, "cohort summary pin");
+  check(summary.claims?.authoritative_current_usps_zip_denominator === null && summary.claims?.business_count === null && summary.claims?.current_operating_business_count === null && summary.claims?.completeness_percent === null, "cohort summary null claims");
   const cohortFile = path.join(path.dirname(inside(root, cohort.manifest, "cohort manifest")), cohortArtifact.path);
   const cohortRead = await readStable(cohortFile, MAX_COHORT, "cohort artifact", signal);
   check(cohortRead.sha256 === cohortArtifact.sha256 && cohortRead.bytes === cohortArtifact.bytes, "cohort artifact pin");
@@ -105,7 +113,8 @@ export async function inspectZipDenominatorAdmissionReadiness(options = {}) {
   const registryManifestRead = await readJson(inside(root, manifestRel, "registry manifest"), MAX_JSON, "registry manifest", signal), registryManifest = registryManifestRead.value;
   check(registryManifestRead.sha256 === config.expected.registry_manifest_sha256 && registryManifest.release_id === pointer.release_id && registryManifest.usps_reconciliation == null, "registry manifest pin or USPS reconciliation");
   const zipArtifact = registryManifest.artifacts?.find((item) => item.path === "derived/zip-coverage.jsonl");
-  check(zipArtifact?.sha256 === config.expected.registry_zip_artifact_sha256 && zipArtifact.record_count === config.expected.registry_zip_rows, "registry ZIP artifact pin");
+  check(zipArtifact?.sha256 === config.expected.registry_zip_artifact_sha256 && zipArtifact.record_count === config.expected.registry_zip_rows && zipArtifact.record_count === cohort.rows, "registry ZIP artifact pin");
+  check(summary.bindings?.registry_pointer_sha256 === pointerRead.sha256 && summary.bindings?.registry_manifest_sha256 === registryManifestRead.sha256 && summary.bindings?.registry_zip_artifact_sha256 === zipArtifact.sha256, "cohort and registry lineage");
   const contractPins = {};
   for (const [route, values] of Object.entries(config.prerequisite_contracts)) {
     contractPins[route] = {};
@@ -118,14 +127,14 @@ export async function inspectZipDenominatorAdmissionReadiness(options = {}) {
   const cityMissing = [...(!cityAdmission.present ? ["licensed-city-state-projection", "city-state-admission-manifest", "license-or-permission-reference", "four-zip-class-declaration"] : []), ...(!cityCandidate.present ? ["reviewed-status-semantics-map", "verified-city-state-candidate-release"] : [])];
   return {
     schema_version: READINESS_SCHEMA, dataset_id: "zip-denominator-admission-readiness", observed_at: (options.now ?? (() => new Date()))().toISOString(), status: "blocked-on-authorized-authoritative-input", publication_mode: "pointer-free-local-review-only",
-    bindings: { configuration: pin(configRel, configRead), cohort_registration: pin(config.cohort_registration, registrationRead), cohort_manifest: pin(cohort.manifest, cohortManifestRead), cohort_artifact: pin(relativeToApp(cohortFile), cohortRead), registry_pointer: pin(config.registry_pointer, pointerRead), registry_manifest: pin(manifestRel, registryManifestRead), registry_zip_artifact: { path: path.posix.join(path.posix.dirname(manifestRel), zipArtifact.path), bytes: zipArtifact.bytes, sha256: zipArtifact.sha256, record_count: zipArtifact.record_count }, prerequisite_contracts: contractPins },
+    bindings: { configuration: pin(configRel, configRead), cohort_registration: pin(config.cohort_registration, registrationRead), cohort_manifest: pin(cohort.manifest, cohortManifestRead), cohort_summary: pin(summaryRel, summaryRead), cohort_artifact: pin(relativeToApp(cohortFile), cohortRead), registry_pointer: pin(config.registry_pointer, pointerRead), registry_manifest: pin(manifestRel, registryManifestRead), registry_zip_artifact: { path: path.posix.join(path.posix.dirname(manifestRel), zipArtifact.path), bytes: zipArtifact.bytes, sha256: zipArtifact.sha256, record_count: zipArtifact.record_count }, prerequisite_contracts: contractPins },
     retained_zip_evidence: { rows: 48194, record_level_source_contribution: 47995, denominator_only: 199, same_code_census_zcta: 33791, source_contributed_outside_zcta: 14361, denominator_only_outside_zcta: 41, explicit_placeholder: 1, usps_unverified: 48194 },
     prerequisite_routes: {
       postalpro_area_district: { status: postalMissing.length ? "missing-required-inputs" : "unverified-input-present", observed_path: postalPointer, missing_inputs: postalMissing, production_requires: ["verified-immutable-usps-operational-release", "usps-written-permission", "governed-permission-reference", "exact-source-month", "fresh-production-plan"] },
       licensed_city_state: { status: cityMissing.length ? "missing-required-inputs" : "unverified-inputs-present", observed_paths: { admissions: cityAdmission, candidates: cityCandidate }, missing_inputs: cityMissing, candidate_only: true, production_admission_implemented: false, requires: ["operator-managed-licensed-projection", "exact-sha256-and-bytes", "source-month-and-version", "permission-reference", "standard-po-box-unique-military-declarations", "explicit-reviewed-status-mapping"] }
     },
     blockers: ["missing-authorized-authoritative-usps-zip-artifact", "missing-governed-production-eligible-usps-permission-evidence", "authoritative-current-usps-denominator-unverified"],
-    claims: { authoritative_current_usps_zip_denominator: null, valid_usps_zip_count: null, business_count: null, current_operating_business_count: null, completeness_percent: null, zip_validity_classified: false, deliverability_classified: false, zcta_treated_as_usps: false, network_requests: 0, acquisition_performed: false, current_pointer_written: false, production_enrollment: false, production_execution: false }
+    claims,
   };
 }
 
@@ -154,7 +163,7 @@ export async function verifyZipDenominatorAdmissionReadiness(manifestPath, optio
   const artifactRead = await readJson(path.join(path.dirname(manifestFile), "readiness.json"), MAX_JSON, "readiness artifact", options.signal), artifact = artifactRead.value, declared = manifest.artifacts[0];
   check(artifactRead.bytes === declared.bytes && artifactRead.sha256 === declared.sha256 && manifest.release_id === `zip-denominator-admission-readiness-${declared.sha256}`, "artifact identity");
   check(artifact.schema_version === READINESS_SCHEMA && artifact.status === "blocked-on-authorized-authoritative-input" && artifact.retained_zip_evidence?.rows === 48194 && artifact.retained_zip_evidence?.usps_unverified === 48194, "readiness identity");
-  check(artifact.claims?.authoritative_current_usps_zip_denominator === null && artifact.claims?.valid_usps_zip_count === null && artifact.claims?.completeness_percent === null && artifact.claims?.zip_validity_classified === false && artifact.claims?.network_requests === 0 && artifact.claims?.production_execution === false, "readiness claim boundary");
+  check(jsonBytes(artifact.claims).equals(jsonBytes(claims)), "readiness claim boundary");
   check(Array.isArray(artifact.prerequisite_routes?.postalpro_area_district?.missing_inputs) && Array.isArray(artifact.prerequisite_routes?.licensed_city_state?.missing_inputs) && artifact.prerequisite_routes?.licensed_city_state?.candidate_only === true && artifact.prerequisite_routes?.licensed_city_state?.production_admission_implemented === false, "prerequisite routes");
   const current = await inspectZipDenominatorAdmissionReadiness({ root, now: () => new Date(manifest.created_at), signal: options.signal });
   check(JSON.stringify(stableObject(artifact.bindings)) === JSON.stringify(stableObject(current.bindings)) && JSON.stringify(stableObject(artifact.retained_zip_evidence)) === JSON.stringify(stableObject(current.retained_zip_evidence)), "retained input replay");

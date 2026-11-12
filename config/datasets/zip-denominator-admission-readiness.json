@@ -7,10 +7,10 @@
   "production_enrollment": false,
   "national_denominator_enrollment": false,
   "retained_release": {
-    "release_id": "zip-denominator-admission-readiness-54a4c37b3f9f2b0169fa02eb87fa74dc2ae38689106b1bd5f92b48f35a89f33e",
-    "manifest": "data/zip-denominator-admission-readiness/releases/zip-denominator-admission-readiness-54a4c37b3f9f2b0169fa02eb87fa74dc2ae38689106b1bd5f92b48f35a89f33e/manifest.json",
-    "manifest_sha256": "2f2bad833eedc0cff2b170386c648fcfa13953b3e002d556156fc99fbbb1bfdf",
-    "readiness_sha256": "54a4c37b3f9f2b0169fa02eb87fa74dc2ae38689106b1bd5f92b48f35a89f33e",
+    "release_id": "zip-denominator-admission-readiness-33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb",
+    "manifest": "data/zip-denominator-admission-readiness/releases/zip-denominator-admission-readiness-33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb/manifest.json",
+    "manifest_sha256": "65d1d5e9e63cde664af27c4a04179866703322bbf88154f415aef0c82d9d0519",
+    "readiness_sha256": "33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb",
     "rows": 48194
   },
   "claims": {

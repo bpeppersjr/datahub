@@ -8,9 +8,9 @@ The PostalPro Area/District route requires a verified immutable release, an exac
 
 The readiness artifact exposes missing inputs as machine-readable arrays. Its authoritative denominator, valid-ZIP count, business count, current-operation count, and completeness percentage remain null. Publication uses only retained local inputs and produces no runtime pointer.
 
-Registered release: `zip-denominator-admission-readiness-54a4c37b3f9f2b0169fa02eb87fa74dc2ae38689106b1bd5f92b48f35a89f33e`; manifest SHA-256 `2f2bad833eedc0cff2b170386c648fcfa13953b3e002d556156fc99fbbb1bfdf`.
+The registered November release is `zip-denominator-admission-readiness-33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb`. Its manifest SHA-256 is `65d1d5e9e63cde664af27c4a04179866703322bbf88154f415aef0c82d9d0519` and its readiness SHA-256 is `33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb`.
 
-The registered replacement binds the current licensed City State admission contract SHA-256 `060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067` and passes full retained-input replay. It supersedes the historical drifted registration without changing its immutable bytes. The replacement remains blocked, pointer-free, local-review-only evidence: no USPS source was acquired, no validity or deliverability classification was made, and no production state changed.
+The release binds the November business registry and the manifest, summary, and exact row artifact from `zip-denominator-gap-cohort-20261112095233801-71dcb2b90b6d`. The verifier checks that the cohort summary and readiness report refer to the same registry pointer, manifest, and ZIP artifact. It also binds the licensed City State admission contract SHA-256 `060fac00a236e4a59f638edf9302e191309247f3234778e0128730699f2c3067`. Earlier readiness releases remain immutable historical observations. The blocked status applies to USPS denominator admission only.
 
 ```powershell
 node scripts/build-zip-denominator-admission-readiness.mjs

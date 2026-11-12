@@ -26,6 +26,16 @@ test('UT normalized release rejects unknown options and pre-cancel', async () =>
   await assert.rejects(buildUtChildcareNormalizedRelease({signal: AbortSignal.abort()}), {name: 'AbortError'});
   await assert.rejects(verifyUtChildcareNormalizedRelease('relative/manifest.json'), /verification failed/);
 });
+test('UT retained September release replays under its exact historical implementation inventory', async () => {
+  const manifest = path.join(APP_ROOT, 'data/business-sources/ut-childcare/normalized/6aaca68b-f0cc-4ada-a301-0ada860574b8/manifest.json');
+  const result = await verifyUtChildcareNormalizedRelease(manifest);
+  assert.equal(result.manifest_sha256, '1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43');
+  assert.equal(result.summary.accepted_records, 422);
+  assert.equal(result.artifacts.find(row => row.path === 'normalized.jsonl')?.sha256,
+    '6212861a181acbf3560da6b51bfb926a4b499bbd6077b67046cd8418e413fe6b');
+  assert.equal(result.claims.current_operations_verified, false);
+  assert.equal(result.claims.public_export_authorized, false);
+});
 test('UT source-linked normalized release replays records, rejects tampering and conserves internal gaps',
   {skip: process.env.DATAHUB_TEST_APP_PDF !== '1'}, async () => {
     const result = await buildUtChildcareNormalizedRelease();

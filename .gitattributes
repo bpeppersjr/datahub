@@ -31,3 +31,9 @@ config/schemas/national-goal-evidence-federation.schema.json text eol=lf
 config/source-policies/national-goal-evidence-federation.json text eol=lf
 data/zip-source-native-status-distribution/releases/** -text -diff
 config/datasets/zip-source-native-status-distribution-v20261003.json text eol=lf
+data/zip-denominator-admission-readiness/releases/** text eol=lf
+data/zip-denominator-delta-review/releases/** text eol=lf
+config/zip-denominator-admission-readiness.json text eol=lf
+config/datasets/zip-denominator-gap-cohort.json text eol=lf
+config/datasets/zip-denominator-delta-review.json text eol=lf
+config/schemas/zip-denominator-delta-review.schema.json text eol=lf

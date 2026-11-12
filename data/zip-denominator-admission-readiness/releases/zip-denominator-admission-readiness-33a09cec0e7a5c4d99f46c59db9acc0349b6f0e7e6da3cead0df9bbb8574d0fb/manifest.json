@@ -1,0 +1,21 @@
+{
+  "acquisition_performed": false,
+  "artifacts": [
+    {
+      "bytes": 6939,
+      "path": "readiness.json",
+      "record_count": 1,
+      "sha256": "33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb"
+    }
+  ],
+  "created_at": "2026-11-12T10:02:00.798Z",
+  "current_pointer": null,
+  "dataset_id": "zip-denominator-admission-readiness",
+  "network_requests": 0,
+  "production_enrollment": false,
+  "production_execution": false,
+  "publication_mode": "pointer-free",
+  "release_id": "zip-denominator-admission-readiness-33a09cec0e7a5c4d99f46c59db9acc0349b6f0e7e6da3cead0df9bbb8574d0fb",
+  "schema_version": "zip-denominator-admission-readiness-manifest@1.0.0",
+  "status": "immutable-local-review-release"
+}
