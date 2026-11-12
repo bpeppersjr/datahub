@@ -1,0 +1,367 @@
+{
+  "schema_version": "ca-childcare-arcgis-preflight-receipt@1.0.0",
+  "status": "official-arcgis-metadata-and-aggregates-validated-migration-hold",
+  "observed_at": "2026-11-12T15:43:48.636Z",
+  "item": {
+    "id": "db31b0884a074cff9260facb3f2ade45",
+    "owner": "david.hasan_CDSS",
+    "org_id": "XLPEppdz2H9dOiqp",
+    "title": "Community Care Licensing Facilities",
+    "type": "Feature Service",
+    "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer",
+    "access": "public",
+    "created_at": "2025-03-12T19:00:52.000Z",
+    "modified_at": "2026-07-22T16:01:38.000Z",
+    "snippet": "This view layer created based on Master_CCL_County_Intersect AGOL. The View excludes all Children's Residential Program, and Child Care Program: Family Child Care Homes (FCCHs). "
+  },
+  "service": {
+    "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer",
+    "capabilities": "Query,Extract",
+    "max_record_count": 1000,
+    "layer_id": 0,
+    "layer_name": "Master_CCL_County_Intersect_2023"
+  },
+  "layer": {
+    "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0",
+    "geometry_type": "esriGeometryPoint",
+    "object_id_field": "ObjectId",
+    "capabilities": "Query,Extract",
+    "max_record_count": 1000,
+    "last_edit_at": "2026-11-10T19:52:03.498Z",
+    "fields": [
+      {
+        "name": "FAC_LATITUDE",
+        "type": "esriFieldTypeString",
+        "length": 256,
+        "nullable": true
+      },
+      {
+        "name": "FAC_LONGITUDE",
+        "type": "esriFieldTypeString",
+        "length": 256,
+        "nullable": true
+      },
+      {
+        "name": "FAC_NBR",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "TYPE",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "PROGRAM_TYPE",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "STATUS",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "CLIENT_SERVED",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "CAPACITY",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "NAME",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "RES_STREET_ADDR",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "RES_CITY",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "RES_STATE",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "RES_ZIP_CODE",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "FAC_PHONE_NBR",
+        "type": "esriFieldTypeDouble",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "FAC_CO_NBR",
+        "type": "esriFieldTypeInteger",
+        "length": null,
+        "nullable": true
+      },
+      {
+        "name": "COUNTY",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "FAC_DO_DESC",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "FAC_TYPE_DESC",
+        "type": "esriFieldTypeString",
+        "length": 4000,
+        "nullable": true
+      },
+      {
+        "name": "ObjectId",
+        "type": "esriFieldTypeOID",
+        "length": null,
+        "nullable": false
+      }
+    ]
+  },
+  "counts": {
+    "all_program_rows": 37897,
+    "program_type_counts": [
+      {
+        "row_count": 16762,
+        "PROGRAM_TYPE": "ADULT AND SENIOR"
+      },
+      {
+        "row_count": 13265,
+        "PROGRAM_TYPE": "CHILD CARE"
+      },
+      {
+        "row_count": 7870,
+        "PROGRAM_TYPE": "CHILDRENS RESIDENTIAL"
+      }
+    ],
+    "status_code_counts": [
+      {
+        "row_count": 30447,
+        "STATUS": 3
+      },
+      {
+        "row_count": 609,
+        "STATUS": 4
+      },
+      {
+        "row_count": 100,
+        "STATUS": 5
+      },
+      {
+        "row_count": 501,
+        "STATUS": 6
+      },
+      {
+        "row_count": 6240,
+        "STATUS": 12
+      }
+    ],
+    "childcare_rows": 13265,
+    "childcare_facility_type_status_counts": [
+      {
+        "row_count": 7864,
+        "FAC_TYPE_DESC": "DAY CARE CENTER",
+        "STATUS": 3
+      },
+      {
+        "row_count": 100,
+        "FAC_TYPE_DESC": "DAY CARE CENTER",
+        "STATUS": 4
+      },
+      {
+        "row_count": 19,
+        "FAC_TYPE_DESC": "DAY CARE CENTER",
+        "STATUS": 5
+      },
+      {
+        "row_count": 206,
+        "FAC_TYPE_DESC": "DAY CARE CENTER",
+        "STATUS": 6
+      },
+      {
+        "row_count": 4,
+        "FAC_TYPE_DESC": "DC CENTER - ILL CHIL",
+        "STATUS": 3
+      },
+      {
+        "row_count": 1859,
+        "FAC_TYPE_DESC": "INFANT CENTER",
+        "STATUS": 3
+      },
+      {
+        "row_count": 42,
+        "FAC_TYPE_DESC": "INFANT CENTER",
+        "STATUS": 4
+      },
+      {
+        "row_count": 7,
+        "FAC_TYPE_DESC": "INFANT CENTER",
+        "STATUS": 5
+      },
+      {
+        "row_count": 57,
+        "FAC_TYPE_DESC": "INFANT CENTER",
+        "STATUS": 6
+      },
+      {
+        "row_count": 1443,
+        "FAC_TYPE_DESC": "SCHOOL-AGE DC CENTER",
+        "STATUS": 3
+      },
+      {
+        "row_count": 17,
+        "FAC_TYPE_DESC": "SCHOOL-AGE DC CENTER",
+        "STATUS": 4
+      },
+      {
+        "row_count": 6,
+        "FAC_TYPE_DESC": "SCHOOL-AGE DC CENTER",
+        "STATUS": 5
+      },
+      {
+        "row_count": 58,
+        "FAC_TYPE_DESC": "SCHOOL-AGE DC CENTER",
+        "STATUS": 6
+      },
+      {
+        "row_count": 1513,
+        "FAC_TYPE_DESC": "SINGLE CHILD CARE CE",
+        "STATUS": 3
+      },
+      {
+        "row_count": 26,
+        "FAC_TYPE_DESC": "SINGLE CHILD CARE CE",
+        "STATUS": 4
+      },
+      {
+        "row_count": 2,
+        "FAC_TYPE_DESC": "SINGLE CHILD CARE CE",
+        "STATUS": 5
+      },
+      {
+        "row_count": 42,
+        "FAC_TYPE_DESC": "SINGLE CHILD CARE CE",
+        "STATUS": 6
+      }
+    ],
+    "childcare_completeness": {
+      "row_count": 13265,
+      "zip_non_null": 13245,
+      "address_non_null": 13265,
+      "latitude_non_null": 13265,
+      "longitude_non_null": 13265
+    }
+  },
+  "scope": {
+    "item_claims_childrens_residential_excluded": true,
+    "aggregate_childrens_residential_rows": 7870,
+    "item_aggregate_scope_conflict": true,
+    "family_child_care_homes_excluded": true,
+    "raw_status_code_meanings_verified": false,
+    "childcare_filter": "PROGRAM_TYPE = 'CHILD CARE'",
+    "provider_rows_returned": 0
+  },
+  "requests": [
+    {
+      "url": "https://www.arcgis.com/sharing/rest/content/items/db31b0884a074cff9260facb3f2ade45?f=json",
+      "method": "GET",
+      "response_bytes": 2603,
+      "response_sha256": "80fdff0aa7464e908ad059bff3c442fbad262a71125c37719a4d9b559e233508",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer?f=json",
+      "method": "GET",
+      "response_bytes": 3221,
+      "response_sha256": "6fb4695cdffcf95de9b28864d094adf0a19d7d5e8938af13e886b70b54dca9d8",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0?f=json",
+      "method": "GET",
+      "response_bytes": 13924,
+      "response_sha256": "dd81ff17cd073d2ac23ca549d7e5d08c4c9b73deb2da30e38090777b7a7e94cc",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0/query?where=1%3D1&returnCountOnly=true&f=json",
+      "method": "GET",
+      "response_bytes": 15,
+      "response_sha256": "e2b4c3c308f971f667fa313db68501212564711ca2351f3952b0e8f4aa1da9dd",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0/query?where=1%3D1&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22ObjectId%22%2C%22outStatisticFieldName%22%3A%22row_count%22%7D%5D&groupByFieldsForStatistics=PROGRAM_TYPE&orderByFields=PROGRAM_TYPE&returnGeometry=false&f=json",
+      "method": "GET",
+      "response_bytes": 718,
+      "response_sha256": "f1d08dc7fcd8fc4ea743d39dbb464163a5c63b2e36b446dba283491bf192e1de",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0/query?where=1%3D1&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22ObjectId%22%2C%22outStatisticFieldName%22%3A%22row_count%22%7D%5D&groupByFieldsForStatistics=STATUS&orderByFields=STATUS&returnGeometry=false&f=json",
+      "method": "GET",
+      "response_bytes": 711,
+      "response_sha256": "7fc8a052ff33abf78de387692fccf73f7bb23612dd91972944ecf223ed48eafc",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0/query?where=PROGRAM_TYPE%3D%27CHILD+CARE%27&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22ObjectId%22%2C%22outStatisticFieldName%22%3A%22row_count%22%7D%5D&groupByFieldsForStatistics=FAC_TYPE_DESC%2CSTATUS&orderByFields=FAC_TYPE_DESC%2CSTATUS&returnGeometry=false&f=json",
+      "method": "GET",
+      "response_bytes": 1993,
+      "response_sha256": "8dbc23da18f262160d507aabf4d451e70052c1e957ce5e20ea6c980a70bc153d",
+      "provider_rows_returned": 0
+    },
+    {
+      "url": "https://services.arcgis.com/XLPEppdz2H9dOiqp/arcgis/rest/services/CDSS_CCL_Facilities/FeatureServer/0/query?where=PROGRAM_TYPE%3D%27CHILD+CARE%27&outStatistics=%5B%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22ObjectId%22%2C%22outStatisticFieldName%22%3A%22row_count%22%7D%2C%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22RES_ZIP_CODE%22%2C%22outStatisticFieldName%22%3A%22zip_non_null%22%7D%2C%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22RES_STREET_ADDR%22%2C%22outStatisticFieldName%22%3A%22address_non_null%22%7D%2C%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22FAC_LATITUDE%22%2C%22outStatisticFieldName%22%3A%22latitude_non_null%22%7D%2C%7B%22statisticType%22%3A%22count%22%2C%22onStatisticField%22%3A%22FAC_LONGITUDE%22%2C%22outStatisticFieldName%22%3A%22longitude_non_null%22%7D%5D&returnGeometry=false&f=json",
+      "method": "GET",
+      "response_bytes": 1077,
+      "response_sha256": "53b66ebda68cc76b02d2839914b292015ca4e192714b272fd4ecaf582923e10d",
+      "provider_rows_returned": 0
+    }
+  ],
+  "unresolved_gates": [
+    "item-aggregate-scope-conflict",
+    "numeric-status-codebook",
+    "legacy-to-arcgis-row-reconciliation",
+    "family-child-care-home-current-source",
+    "selected-field-privacy-review",
+    "automatic-refresh-migration"
+  ],
+  "claims": {
+    "provider_rows_requested": 0,
+    "provider_rows_returned": 0,
+    "names_addresses_coordinates_or_phones_returned": 0,
+    "current_operations_verified": false,
+    "statewide_childcare_completeness": null,
+    "automatic_refresh_authorized": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

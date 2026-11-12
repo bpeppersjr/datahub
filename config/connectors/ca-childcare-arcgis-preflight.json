@@ -1,0 +1,14 @@
+{
+  "connector_id":"ca-childcare-arcgis-preflight","version":"1.0.0","description":"Zero-provider-row metadata and aggregate reconciliation for the California CDSS Community Care Licensing ArcGIS migration.",
+  "lifecycle":["preflight","plan","acquire","validate","normalize","reconcile","quality gate","publish","finalize"],
+  "configuration_schema":{"type":"object","additionalProperties":false,"properties":{}},"named_secret_references":[],
+  "input_artifact_types":["official-arcgis-item-metadata","official-arcgis-service-metadata","official-arcgis-layer-metadata","official-arcgis-aggregate-counts"],
+  "output_artifact_types":["ca-childcare-arcgis-preflight-receipt","ca-childcare-arcgis-preflight-manifest"],
+  "allowed_hosts":["www.arcgis.com","services.arcgis.com"],"redirect_policy":"Reject redirects; fixed public item, service, layer and aggregate query URLs only.",
+  "provider_budget_key":"ca-childcare-cdss-arcgis-preflight","resource_class":"bounded-zero-row-state-industry-preflight",
+  "execution_limits":{"max_parallel_requests":1,"maximum_requests":8,"maximum_response_bytes":100000,"request_timeout_ms":20000,"maximum_attempts":1},
+  "retry":"No retry.","checkpoint":"Retain only validated metadata and aggregate responses after all eight fixed requests conserve.",
+  "idempotency":"Each observation is immutable; repeated runs create distinct UUID receipts.","cancellation":"Cooperative request cancellation and owned-staging cleanup.",
+  "source_policy":"config/source-policies/ca-childcare-arcgis-preflight.json","retention_profile":"Metadata and aggregate counts only; no provider rows, names, addresses, coordinates or phone values.",
+  "produced_entities":["arcgis-migration-aggregate-assessment"],"produced_identifiers":["arcgis-item-id","arcgis-layer-id","raw-publisher-status-code","publisher-facility-type"]
+}

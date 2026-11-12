@@ -227,7 +227,7 @@ export async function stateAccessView({
     publisherStatusReadiness = await caStatusReadinessLoader({ root });
     check(
       publisherStatusReadiness?.schema_version ===
-        "ca-childcare-status-readiness-view@1.2.0" &&
+        "ca-childcare-status-readiness-view@1.3.0" &&
         publisherStatusReadiness.state === "CA" &&
         publisherStatusReadiness.industry === "childcare" &&
         publisherStatusReadiness.publisher_rows === 39184 &&
@@ -238,6 +238,9 @@ export async function stateAccessView({
         publisherStatusReadiness.migration?.current_distribution ===
           "ArcGIS GeoService" &&
         publisherStatusReadiness.migration?.automatic_refresh_authorized === false &&
+        publisherStatusReadiness.migration?.arcgis_all_program_rows === 37897 &&
+        publisherStatusReadiness.migration?.arcgis_childcare_rows === 13265 &&
+        publisherStatusReadiness.migration?.arcgis_family_child_care_homes_excluded === true &&
         publisherStatusReadiness.temporal.current_operation_verified ===
           false &&
         publisherStatusReadiness.claims?.provider_rows_acquired === 0 &&

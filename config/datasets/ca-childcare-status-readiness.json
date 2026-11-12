@@ -1,11 +1,12 @@
 {
-  "schema_version": "ca-childcare-status-readiness-registration@1.1.0",
+  "schema_version": "ca-childcare-status-readiness-registration@1.2.0",
   "dataset_id": "ca-cdss-childcare-status-readiness",
   "manifests": {
     "catalog": {"path":"data/business-sources/ca-childcare/preflights/ca-childcare-preflight-1bd53340-a28d-44e6-83a6-73d26f46412f/manifest.json","sha256":"1c858507623b656bb2ae6d550a95003fe36374bff99c689d264ff953f85d9128"},
     "schema": {"path":"data/business-sources/ca-childcare/schema-preflights/ca-childcare-schema-preflight-84ef9148-d41f-4cbb-8ebf-65d4746313df/manifest.json","sha256":"b97a0ae9430e26025c17f4eda23b2785b993c4f1ece45b411c960105ccb0fff1"},
     "status": {"path":"data/business-sources/ca-childcare/status-preflights/ca-childcare-status-preflight-85aa87aa-b30f-4449-920f-36683aade1d1/manifest.json","sha256":"9bb1a89947e0912029ab933b04d337df1ff344dd0ffbba599389d9e655ea3649"},
-    "geography": {"path":"data/business-sources/ca-childcare/geography-preflights/ca-childcare-geography-preflight-9894ca94-f658-4f58-bb43-62806ef08b9a/manifest.json","sha256":"2c73ed32910ef6d0125d3abdb25576c890144d6d85350d188804a8b7506a019e"}
+    "geography": {"path":"data/business-sources/ca-childcare/geography-preflights/ca-childcare-geography-preflight-9894ca94-f658-4f58-bb43-62806ef08b9a/manifest.json","sha256":"2c73ed32910ef6d0125d3abdb25576c890144d6d85350d188804a8b7506a019e"},
+    "arcgis": {"path":"data/business-sources/ca-childcare/arcgis-preflights/ca-childcare-arcgis-preflight-de7391d3-818d-4eca-9809-a2632ae13375/manifest.json","sha256":"098611d04e1b71a1e09b8c80ff1d5caad152fcc633b049078f5e15d4122f2e20"}
   },
   "production_enrollment": false,
   "claims": {

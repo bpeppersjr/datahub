@@ -1,0 +1,20 @@
+{
+  "schema_version": "ca-childcare-arcgis-preflight-manifest@1.0.0",
+  "run_id": "de7391d3-818d-4eca-9809-a2632ae13375",
+  "status": "immutable-zero-provider-row-migration-hold",
+  "receipt": {
+    "path": "receipt.json",
+    "bytes": 11958,
+    "sha256": "0ef57493260c2997ad85dd7e14022aa8d473d9be2b3f6d562ea7ccd7784987f1"
+  },
+  "claims": {
+    "provider_rows_requested": 0,
+    "provider_rows_returned": 0,
+    "names_addresses_coordinates_or_phones_returned": 0,
+    "current_operations_verified": false,
+    "statewide_childcare_completeness": null,
+    "automatic_refresh_authorized": false,
+    "production_admission": false,
+    "current_pointer_written": false
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "policy_id":"ca-childcare-arcgis-preflight","version":"1.0.0","publisher":"California Department of Social Services / ArcGIS Online",
+  "ownership":"Official public metadata and aggregate query evidence for the Community Care Licensing Facilities migration.",
+  "source_dataset":"https://www.arcgis.com/sharing/rest/content/items/db31b0884a074cff9260facb3f2ade45","terms_url":"https://data.ca.gov/@california-department-of-social-services/community-care-licensing-facilities",
+  "allowed_use":["fixed public item, service and layer metadata","aggregate counts grouped by program, raw status code and facility type"],
+  "prohibited_use":["provider rows or identifiers","names, addresses, coordinates or phone values","inventing numeric status meanings","treating the unified layer as a complete family-home or statewide business denominator","production admission or automatic provider-row refresh"],
+  "export_policy":"public-aggregate-with-source-limitations","attribution":"California Department of Social Services.",
+  "retention":"Retain immutable metadata and aggregate receipts with checksums.","redistribution":"Aggregate metadata only under catalog public-use/CC BY notice.",
+  "contains_personal_data":false,"contains_secrets":false,"record_acquisition_authorized":false,"production_admission_authorized":false,
+  "semantic_boundary":"PROGRAM_TYPE and FAC_TYPE_DESC are publisher labels. STATUS remains an unmapped numeric code. Item-text and aggregate-scope conflicts remain explicit."
+}
