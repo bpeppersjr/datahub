@@ -4,6 +4,7 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import { APP_ROOT } from "./paths.mjs";
 
 const rows = [
+  ["US","fdic-bankfind","fdic-bankfind","verifyFdicBankfind","config/governed-source-refresh-assessments/fdic-bankfind-2026-11-12.json"],
   ["CO","co-business-registry","co-business-registry-good-standing-or-delinquent-organizations","verifyCoBusinessRegistry"],
   ["CT","ct-business-registry","ct-business-registry-active-organizations","verifyCtBusinessRegistry"],
   ["DE","de-business-licenses","de-business-licenses-current","verifyDeBusinessLicenses"],
@@ -48,11 +49,13 @@ function validateAuthorizationRegistry(value){
 
 function validateAssessment(value,descriptor){
   const top=["schema_version","assessment_id","source_id","dataset_id","observed_at","controls","observation","claims","citations","next_action"];
+  const controls=descriptor.sourceId==="fdic-bankfind"?[0,2]:[1,1];
+  const claimKeys=descriptor.sourceId==="tx-active-sales-tax-permits"?["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="wa-lni-active-contractor-licenses"?["active_license_is_current_operation","reported_mailing_address_is_verified_premise","complete_all_washington_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="fdic-bankfind"?["active_institution_is_current_operation","current_location_is_verified_public_premise","complete_all_financial_businesses","index_delta_is_net_business_creation","complete_all_us_businesses"]:[];
   if(!exact(value,top)||value.schema_version!=="governed-source-refresh-assessment@1.0.0"||value.source_id!==descriptor.sourceId||value.dataset_id!==descriptor.datasetId
     ||typeof value.assessment_id!=="string"||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(value.assessment_id)||typeof value.observed_at!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value.observed_at)
-    ||!exact(value.controls,["metadata_requests","aggregate_requests","entity_row_requests","records_downloaded","production_changes"])||value.controls.metadata_requests!==1||value.controls.aggregate_requests!==1||value.controls.entity_row_requests!==0||value.controls.records_downloaded!==0||value.controls.production_changes!==0
+    ||!exact(value.controls,["metadata_requests","aggregate_requests","entity_row_requests","records_downloaded","production_changes"])||value.controls.metadata_requests!==controls[0]||value.controls.aggregate_requests!==controls[1]||value.controls.entity_row_requests!==0||value.controls.records_downloaded!==0||value.controls.production_changes!==0
     ||!value.observation||typeof value.observation!=="object"||Array.isArray(value.observation)||typeof value.observation.metadata_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.metadata_sha256)||typeof value.observation.aggregate_sha256!=="string"||!/^[a-f0-9]{64}$/.test(value.observation.aggregate_sha256)||!Number.isSafeInteger(value.observation.aggregate_records)||value.observation.aggregate_records<1
-    ||!exact(value.claims,descriptor.sourceId==="tx-active-sales-tax-permits"?["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="wa-lni-active-contractor-licenses"?["active_license_is_current_operation","reported_mailing_address_is_verified_premise","complete_all_washington_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:[])||Object.values(value.claims).some(item=>item!==false)
+    ||!exact(value.claims,claimKeys)||Object.values(value.claims).some(item=>item!==false)
     ||!Array.isArray(value.citations)||value.citations.length<1||value.citations.some(item=>typeof item!=="string"||!item.startsWith("https://"))||typeof value.next_action!=="string"||value.next_action.length<1)throw new Error(`Governed refresh assessment is invalid for ${descriptor.sourceId}.`);
   return value;
 }

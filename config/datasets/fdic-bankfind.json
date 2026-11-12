@@ -9,5 +9,17 @@
   "source_policy": "config/source-policies/fdic-bankfind.json",
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "FDIC-insured active institutions and their current indexed locations only; not all financial businesses or all U.S. businesses.",
+  "current_verified_release": {
+    "release_id": "fdic-bankfind-20260903-002249065Z-364b6a13",
+    "source_release_id": "fdic-bankfind-5710a083e3b49f87",
+    "source_updated_at": "2026-08-28T11:57:32.000Z",
+    "active_institutions": 4238,
+    "source_locations": 78087,
+    "accepted_current_us_locations": 77285,
+    "excluded_foreign_locations": 802,
+    "source_zip_codes": 18018,
+    "zip_union_records": 37856,
+    "complete_all_financial_businesses": false
+  },
   "documentation": "docs/FDIC-BANKFIND.md"
 }

@@ -1,6 +1,16 @@
 {
   "schema_version": "governed-source-refresh-authorizations@1.0.0",
   "authorizations": {
+    "fdic-bankfind": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "fdic-bankfind-production-20261112-01",
+      "source_id": "fdic-bankfind",
+      "approved_at": "2026-11-12T13:30:00.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "3175be49b3373cda03bd92a8dfe681da0e78f6fe585a41ffb3c13f88af3e6588",
+      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
+    },
     "co-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "co-business-registry-production-20261112-01",

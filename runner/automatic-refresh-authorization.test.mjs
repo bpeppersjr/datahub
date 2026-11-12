@@ -7,12 +7,13 @@ import { loadIndustryConfig, industryPlanFingerprint } from "./industry-segments
 import { loadAutomaticRefreshAuthorizations } from "./automatic-refresh-authorization.mjs";
 import { ManagedOperations } from "./managed-operations.mjs";
 
-test("automatic-refresh contract covers every industry source and authorizes reviewed Texas and Washington", async () => {
+test("automatic-refresh contract covers every industry source and authorizes reviewed FDIC, Texas and Washington", async () => {
   const config = await loadIndustryConfig(), decisions = await loadAutomaticRefreshAuthorizations(config);
   assert.equal(decisions.length, Object.keys(config.sources).length);
-  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,2);
+  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,3);
   assert.equal(decisions.find((item)=>item.sourceId==="state-tx-sales-tax").automaticRefreshAuthorized,true);
   assert.deepEqual(decisions.filter((item) => item.governedSourceId).map((item) => [item.sourceId, item.governedSourceId, item.reasonCode]), [
+    ["national-fdic-bankfind", "fdic-bankfind", "REVIEWED_AUTOMATIC_REFRESH"],
     ["state-tx-sales-tax", "tx-active-sales-tax-permits", "REVIEWED_AUTOMATIC_REFRESH"],
     ["state-wa-contractors", "wa-lni-active-contractor-licenses", "REVIEWED_AUTOMATIC_REFRESH"],
   ]);
@@ -23,7 +24,7 @@ test("reviewed governed authorization can enable app-owned dispatch while HOLD a
   t.after(() => rm(root, { recursive: true, force: true }));
   const source = JSON.parse(await readFile(path.join(APP_ROOT, "config/automatic-refresh-authorizations.json"), "utf8"));
   const file = path.join(root, "authorized.json"); await writeFile(file, `${JSON.stringify(source)}\n`);
-  const authorizedBinding = async (sourceId) => ["tx-active-sales-tax-permits","wa-lni-active-contractor-licenses"].includes(sourceId)
+  const authorizedBinding = async (sourceId) => ["fdic-bankfind","tx-active-sales-tax-permits","wa-lni-active-contractor-licenses"].includes(sourceId)
     ? ({ sourceId, status: "AUTHORIZED", dispatchAvailable: true, freshAcquisitionAuthorized: true,
       autonomousAcquisitionAuthorized: true, productionPointerChangeAuthorized: true })
     : ({ sourceId, status: "HOLD", dispatchAvailable: false, freshAcquisitionAuthorized: false,

@@ -1,6 +1,6 @@
 {
   "policy_id": "fdic-bankfind",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Federal Deposit Insurance Corporation",
   "ownership": "United States federal government public bank structure data",
   "source_home": "https://banks.data.fdic.gov/bankfind-suite/",
@@ -26,5 +26,7 @@
   "redistribution": "Allowed with FDIC attribution, pinned index metadata, provenance, temporal scope, and coverage limitations retained.",
   "contains_personal_data": false,
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "FDIC BankFind is public federal bank-structure data and currently requires no API key. ACTIVE institution and current indexed-location membership remain publisher assertions; they do not establish current operation, public access, current hours, every service, or every financial business. Foreign offices are excluded from the U.S. location layer, and source indexes may change between weekly editions."
 }

@@ -5,7 +5,7 @@ import {runnerJson} from './runner-client';
 import type {Operation} from './data-operation-model';
 import type {RetainedBusinessRefreshPlan} from './retained-business-refresh-status';
 
-export type GovernedSourceRefreshStatus={sourceId:'il-business-registry'|'tx-active-sales-tax-permits'|'wa-lni-active-contractor-licenses';state:string;label:string;readinessStatus:'HOLD'|'AUTHORIZED';dispatchAvailable:boolean;freshAcquisitionAuthorized:boolean;autonomousAcquisitionAuthorized:boolean;productionPointerChangeAuthorized:boolean;sourceUseNotice?:string|null;observedAssessment:null|{assessmentId:string;observedAt:string;aggregateRecords:number;nextAction:string};plan:RetainedBusinessRefreshPlan;nextAction:string};
+export type GovernedSourceRefreshStatus={sourceId:'fdic-bankfind'|'il-business-registry'|'tx-active-sales-tax-permits'|'wa-lni-active-contractor-licenses';state:string;label:string;readinessStatus:'HOLD'|'AUTHORIZED';dispatchAvailable:boolean;freshAcquisitionAuthorized:boolean;autonomousAcquisitionAuthorized:boolean;productionPointerChangeAuthorized:boolean;sourceUseNotice?:string|null;observedAssessment:null|{assessmentId:string;observedAt:string;aggregateRecords:number;nextAction:string};plan:RetainedBusinessRefreshPlan;nextAction:string};
 
 export default function GovernedSourceRefreshStatusCard({status,disabled=false,onOperation}:{status:GovernedSourceRefreshStatus;disabled?:boolean;onOperation?:(operation:Operation)=>void}){
   const [plan,setPlan]=useState<RetainedBusinessRefreshPlan|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),authorized=status.dispatchAvailable&&status.readinessStatus==='AUTHORIZED';

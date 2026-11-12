@@ -41,7 +41,7 @@ type Catalog = {
   export: { categories: string[]; fields: string[]; formats: string[]; policyModes: string[] };
   credentialExport?:{exportType:string;fields:string[];requiredFields:string[];formats:string[];policyModes:string[];recordUnit:string};
   retainedSourceAdoptions?:Array<{sourceId:string;action:string}>;
-  governedSourceServices?:Array<CmsSnfPecosStatus|IaBusinessRegistryRefreshStatus|OrBusinessRegistryRefreshStatus|NyBusinessRegistryRefreshStatus|RetainedBusinessRefreshStatus>;
+  governedSourceServices?:Array<CmsSnfPecosStatus|IaBusinessRegistryRefreshStatus|OrBusinessRegistryRefreshStatus|NyBusinessRegistryRefreshStatus|RetainedBusinessRefreshStatus|GovernedSourceRefreshStatus>;
 };
 type Plan = {
   taskCount: number; maxConcurrency: number; warnings: string[];
@@ -258,7 +258,7 @@ export default function DataOperations() {
     <OrBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is OrBusinessRegistryRefreshStatus=>source.sourceId==='or-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     <NyBusinessRegistryRefreshStatusCard status={catalog?.governedSourceServices?.find((source):source is NyBusinessRegistryRefreshStatus=>source.sourceId==='ny-business-registry')} disabled={locked||busy||!!connectionError} onOperation={remember}/>
     {catalog?.governedSourceServices?.filter((source):source is RetainedBusinessRefreshStatus=>['co-business-registry','ct-business-registry','de-business-licenses','fl-business-registry','pa-business-registry'].includes(source.sourceId)).map(status=><RetainedBusinessRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
-    {catalog?.governedSourceServices?.filter((source):source is GovernedSourceRefreshStatus=>['il-business-registry','tx-active-sales-tax-permits','wa-lni-active-contractor-licenses'].includes(source.sourceId)).map(status=><GovernedSourceRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
+    {catalog?.governedSourceServices?.filter((source):source is GovernedSourceRefreshStatus=>['fdic-bankfind','il-business-registry','tx-active-sales-tax-permits','wa-lni-active-contractor-licenses'].includes(source.sourceId)).map(status=><GovernedSourceRefreshStatusCard key={status.sourceId} status={status} disabled={locked||busy||!!connectionError} onOperation={remember}/>)}
     <OvertureReadiness />
     <OvertureNormalization operations={operations} disabled={locked || busy || !!connectionError || !catalog} onOperation={remember} />
     <ProductionRuns />

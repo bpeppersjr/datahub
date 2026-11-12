@@ -1,0 +1,35 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "fdic-bankfind-2026-11-12",
+  "source_id": "fdic-bankfind",
+  "dataset_id": "fdic-bankfind",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 0, "aggregate_requests": 2, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "663a892ed35ede9f63af5964bee30e4e4763a6b88e520c69aedfea8457a29018",
+    "aggregate_sha256": "a8946d171ec5e903dd9fb677852fc711c9a2b9c89c57f07dac816e95afdf365b",
+    "aggregate_records": 78011,
+    "institution_url": "https://api.fdic.gov/banks/institutions?filters=ACTIVE%3A1&fields=CERT&sort_by=CERT&sort_order=ASC&limit=0&offset=0&format=json",
+    "institution_http_status": 200,
+    "institution_response_bytes": 222,
+    "institution_index_name": "institutions_20261106100008",
+    "institution_index_created_at": "2026-11-06T13:05:30Z",
+    "active_institution_records": 4212,
+    "location_url": "https://api.fdic.gov/banks/locations?fields=UNINUM&sort_by=UNINUM&sort_order=ASC&limit=0&offset=0&format=json",
+    "location_http_status": 200,
+    "location_response_bytes": 215,
+    "location_index_name": "locations_20261106100008",
+    "location_index_created_at": "2026-11-06T12:54:15Z",
+    "location_records": 78011,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "active_institution_is_current_operation": false,
+    "current_location_is_verified_public_premise": false,
+    "complete_all_financial_businesses": false,
+    "index_delta_is_net_business_creation": false,
+    "complete_all_us_businesses": false
+  },
+  "citations": ["https://api.fdic.gov/banks/docs/", "https://api.fdic.gov/banks/institutions", "https://api.fdic.gov/banks/locations"],
+  "next_action": "Use only the authorization-bound Co*Tive operation; pin both current indexes, reconcile exact totals, verify every artifact and exclusion, and publish atomically before changing the FDIC source pointer."
+}

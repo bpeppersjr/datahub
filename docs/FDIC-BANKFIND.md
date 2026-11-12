@@ -34,3 +34,9 @@ Main-office flag, office name, established date, service-type code and descripti
 ## ZIP coverage
 
 `derived/zip-coverage.jsonl` preserves the Census ZBP/ZCTA union and adds any five-digit U.S. ZIP reported with a U.S. state in the FDIC snapshot. Counts distinguish main offices from branches. ZIPs with no FDIC record remain visible as source-specific gaps; absence does not mean no business. Current USPS validity remains unverified pending an authoritative denominator.
+
+## Governed refresh authorization on November 12, 2026
+
+Two metadata-only API queries used `limit=0`, returned no entity rows, and changed no production data. The current FDIC indexes reported 4,212 `ACTIVE:1` institutions and 78,011 indexed locations. The institution index was created at `2026-11-06T13:05:30Z`; the location index was created at `2026-11-06T12:54:15Z`.
+
+The resulting assessment and reviewed source policy are hash-bound to the governed full-snapshot operation. Co*Tive may refresh this nationwide source once for all states and then partition retained evidence locally. Publication remains conditional on pinning both indexes, exact count reconciliation, foreign-office exclusion, artifact verification and atomic pointer replacement. The current index totals are not an all-bank, all-financial-business or all-business denominator, and changes between editions are not net business creation.
