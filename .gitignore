@@ -65,6 +65,8 @@ next-env.d.ts
 /data/national-business-lifecycle-industry-zip-evidence/releases/*
 !/data/national-business-lifecycle-industry-zip-evidence/releases/national-business-lifecycle-industry-zip-evidence-8a9763b1079338e092dddad0dd7fbabd2b20918faf9daee9976373371438f208/
 !/data/national-business-lifecycle-industry-zip-evidence/releases/national-business-lifecycle-industry-zip-evidence-8a9763b1079338e092dddad0dd7fbabd2b20918faf9daee9976373371438f208/*
+!/data/national-business-lifecycle-industry-zip-evidence/releases/national-business-lifecycle-industry-zip-evidence-b35d710da5b241737dde2b0fb0f6663510af489df49acb45c12364958b987c3b/
+!/data/national-business-lifecycle-industry-zip-evidence/releases/national-business-lifecycle-industry-zip-evidence-b35d710da5b241737dde2b0fb0f6663510af489df49acb45c12364958b987c3b/*
 !/data/retained-childcare-zip-evidence/
 /data/retained-childcare-zip-evidence/*
 !/data/retained-childcare-zip-evidence/releases/

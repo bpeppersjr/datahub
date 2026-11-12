@@ -177,9 +177,11 @@ export async function verifyNationalBusinessLifecycleIndustryZipEvidence(manifes
 
 export async function verifyRegisteredNationalBusinessLifecycleIndustryZipEvidence({ root = APP_ROOT } = {}) {
   root = path.resolve(root); const registration = await json(inside(root, `config/datasets/${DATASET}.json`), 1_000_000), value = registration.value;
-  check(value.schema_version === `${DATASET}-registration@1.0.0` && value.dataset_id === DATASET && value.runtime_pointer === null && value.production_enrollment === false && JSON.stringify(value.claims) === JSON.stringify(claims()), "registration contract");
-  const verified = await verifyNationalBusinessLifecycleIndustryZipEvidence(inside(root, value.retained_release.manifest), { root });
-  check(verified.release_id === value.retained_release.release_id && verified.manifest_sha256 === value.retained_release.manifest_sha256 && verified.artifact_count === value.retained_release.artifact_count && verified.compressed_bytes === value.retained_release.compressed_bytes, "registered pins"); return verified;
+  check([`${DATASET}-registration@1.0.0`, `${DATASET}-registration@1.1.0`].includes(value.schema_version) && value.dataset_id === DATASET && value.runtime_pointer === null && value.production_enrollment === false, "registration contract");
+  const retained = value.schema_version.endsWith("@1.0.0") ? value.retained_release : value.retained_releases?.find(item => item.release_id === "national-business-lifecycle-industry-zip-evidence-8a9763b1079338e092dddad0dd7fbabd2b20918faf9daee9976373371438f208");
+  check(retained && retained.selected !== true, "historical v1 retained release");
+  const verified = await verifyNationalBusinessLifecycleIndustryZipEvidence(inside(root, retained.manifest), { root });
+  check(verified.release_id === retained.release_id && verified.manifest_sha256 === retained.manifest_sha256 && verified.artifact_count === retained.artifact_count && verified.compressed_bytes === retained.compressed_bytes, "registered pins"); return verified;
 }
 
 export const lifecycleIndustryZipClaimsForTest = claims;
