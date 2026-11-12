@@ -1,0 +1,29 @@
+{
+  "schema_version": "registry-embedded-dependency-catalog@1.0.0",
+  "registry_release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+  "registry_manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+  "dependencies": [
+    {"dataset_id":"cms-nppes-managed-source","release_id":"NPPES_Data_Dissemination_August_2026_V2","evidence_kind":"source_metadata_sha256","evidence_sha256":"c0bb9ab99575ba5e54da682f8a6d8b70b8a8f2f7da133a298bfd18323a77becc","dependency_sha256":"fb14e64234fb3425d9ec2d7a3521dc3d23d3fb78fbec27053f6fd0332b4f0325"},
+    {"dataset_id":"co-cdec-childcare-centers","release_id":"co-childcare-acquisition-2d96fc62-8e64-4cab-bf11-f0f8d2c308ee","evidence_kind":"manifest_sha256","evidence_sha256":"1002e00d83cb65dae82e3225a373581d05cf43774cdb0c87fd538180558e302b","dependency_sha256":"088d55f32ebd5edeb2a4a88bfac5265f026914c6d096de2f6051a1cbcef42677"},
+    {"dataset_id":"ct-oec-childcare-centers","release_id":"ct-childcare-acquisition-7c67a938-74df-4df7-af75-13eb84cd11d4","evidence_kind":"manifest_sha256","evidence_sha256":"940bdcaafc39fc891f90723035f4746ddcdc7bed543d47ebb6636676b4aa2bb8","dependency_sha256":"f8ff7cf9d8ccb4ec7e768304c5cd36cfa7c67b6a283ff17244cf0bf90b994209"},
+    {"dataset_id":"ia-childcare-centers","release_id":"ia-childcare-acquisition-3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1","evidence_kind":"manifest_sha256","evidence_sha256":"f39c2acd1ef07aa075bd45565e29f331a7ef0811bec24fe478ecd5f1ea812acd","dependency_sha256":"b3beef6c610a2818fe891bb1b1d5b4414dd9de26fea73a867c20cb53040cb616"},
+    {"dataset_id":"ma-licensed-center-based-childcare","release_id":"ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6","evidence_kind":"manifest_sha256","evidence_sha256":"c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc","dependency_sha256":"8637c826b7be4900294385c038a660d337225ed84482b0d387fe452ceec82ec3"},
+    {"dataset_id":"md-msde-childcare-centers","release_id":"md-childcare-acquisition-12ca8594-fdc1-4b60-9f2e-6d4c0e2ca706","evidence_kind":"manifest_sha256","evidence_sha256":"15affff53cc2e1ba3cac0066a72f8fcb75716c8a7610236db4a440c841c0c50b","dependency_sha256":"97c259998657768a4007f9e1202f3fb9968ea4526c2b285aaca35a4f35c23d83"},
+    {"dataset_id":"mn-construction-credential-reporting","release_id":"30cd9c0e-0a8d-467c-b416-150453e1513f","evidence_kind":"manifest_sha256","evidence_sha256":"558182417940580140fbc4640e80ac177b6a9c1886a435f06ae8130b1f258b75","dependency_sha256":"721e8bc415350109e00597b1f7061fcadabf8db1946b49e0d57ededba99c1c65"},
+    {"dataset_id":"nj-licensed-childcare-centers","release_id":"nj-childcare-c79b679e-3267-4238-b4c6-6b43dbef9812","evidence_kind":"manifest_sha256","evidence_sha256":"b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e","dependency_sha256":"7c0999b3bc79b98a36c3e7a0cd5c50fd501e7ecbfb22d43e4479ee866f39dc46"},
+    {"dataset_id":"oh-dcy-publisher-open-childcare-centers","release_id":"oh-childcare-c253c884-2048-47f9-8d7f-5ed29531acee","evidence_kind":"manifest_sha256","evidence_sha256":"e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171","dependency_sha256":"279129e93db95eda399fa7da2f685051cec9be9b972f6c2b162a466f43b4749c"},
+    {"dataset_id":"pa-dhs-childcare-centers","release_id":"pa-childcare-acquisition-2195b750-4238-4bac-b660-8ac12cb2cce9","evidence_kind":"manifest_sha256","evidence_sha256":"0bed669a79c7074aa3782949be25564f300a22bc7287995ea10ebef2546b0be5","dependency_sha256":"bae51054984299053dd88d1b1aed879e9b3a652df553f11e463b845fe290feb1"},
+    {"dataset_id":"tn-dhs-active-childcare-centers","release_id":"tn-childcare-recovered-307bc79c-4f4f-4c77-a349-73dfd9fb1801","evidence_kind":"manifest_sha256","evidence_sha256":"98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d","dependency_sha256":"9166bac23f9b8a5266d6001c922a61cbdc9895a5645313b48c1e963b6a8f1c01"},
+    {"dataset_id":"ut-dlbc-childcare-centers","release_id":"ut-childcare-pdf-85af831248bac41ffae8eef23145ce8935d58d31c66ce92caa3c99519358e8fa","evidence_kind":"manifest_sha256","evidence_sha256":"1ff46a94e79a75629707438492f0caa6e9cbc8961fa282748406d38f0c2aec43","dependency_sha256":"0dc8e7a2cc19f1c9f0978642526f1d9ab5aff84dca74584ef1632ea6d6c596e3"},
+    {"dataset_id":"vt-cdd-childcare-centers","release_id":"vt-childcare-acquisition-c56ad1bb-a80d-4612-b7f5-f97f0a4037e0","evidence_kind":"manifest_sha256","evidence_sha256":"76db6d145ed227f5bca80281d2727a1953d1df59a724a602c11b115467c1c166","dependency_sha256":"190262d864529118a6f4f9e0d67e588dbb1267174b4e399fbe8c2ad671375d19"}
+  ],
+  "claims": {
+    "pointer_free": true,
+    "current_operation_verified": false,
+    "automatic_refresh_authorized": false,
+    "production_authority_granted": false,
+    "business_completeness": null,
+    "network_requests": 0,
+    "runtime_writes": 0
+  }
+}
