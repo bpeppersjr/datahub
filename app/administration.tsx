@@ -5,10 +5,10 @@ import { runnerJson } from "./runner-client";
 
 type Industry = { id: string; label: string };
 type CaReadiness = {
-  schema_version: "ca-childcare-status-readiness-view@1.1.0";
+  schema_version: "ca-childcare-status-readiness-view@1.2.0";
   state: "CA";
   industry: "childcare";
-  status: "verified-aggregate-publisher-readiness";
+  status: "verified-aggregate-publisher-readiness-migration-hold";
   publisher_rows: number;
   publisher_status_counts: Record<
     "CLOSED" | "INACTIVE" | "LICENSED" | "ON PROBATION" | "PENDING",
@@ -16,12 +16,14 @@ type CaReadiness = {
   >;
   publisher_open_status_candidate_rows: number;
   temporal: {
+    catalog_last_updated: "2026-11-11";
     publisher_file_date: "2025-05-25";
     preflight_observed_at: string;
-    posture: "publisher-file-date-retained-catalog-backend-disagreement-unresolved";
+    posture: "arcgis-current-distribution-legacy-ckan-file-date-conflict-automatic-refresh-hold";
     current_operation_verified: false;
   };
-  source: { run_id: string; manifest_sha256: string };
+  migration: {current_distribution:"ArcGIS GeoService";arcgis_item_id:string;legacy_backend_still_listed:true;existing_app_backend:"legacy-ckan-datastore";automatic_refresh_authorized:false;next_action:string};
+  source: {manifests:Record<"catalog"|"schema"|"status"|"geography",{path:string;sha256:string}>};
   claims: {
     provider_rows_acquired: 0;
     current_operations_verified: false;
@@ -558,6 +560,7 @@ function validCaReadiness(input: unknown): input is CaReadiness {
       "publisher_status_counts",
       "publisher_open_status_candidate_rows",
       "temporal",
+      "migration",
       "source",
       "claims",
       "semantics",
@@ -566,10 +569,10 @@ function validCaReadiness(input: unknown): input is CaReadiness {
     return false;
   const value = input as CaReadiness;
   if (
-    value.schema_version !== "ca-childcare-status-readiness-view@1.1.0" ||
+    value.schema_version !== "ca-childcare-status-readiness-view@1.2.0" ||
     value.state !== "CA" ||
     value.industry !== "childcare" ||
-    value.status !== "verified-aggregate-publisher-readiness" ||
+    value.status !== "verified-aggregate-publisher-readiness-migration-hold" ||
     !exact(value.publisher_status_counts, [...caStatuses]) ||
     !caStatuses.every(
       (key) =>
@@ -584,20 +587,22 @@ function validCaReadiness(input: unknown): input is CaReadiness {
       value.publisher_status_counts.LICENSED +
         value.publisher_status_counts["ON PROBATION"] ||
     !exact(value.temporal, [
+      "catalog_last_updated",
       "publisher_file_date",
       "preflight_observed_at",
       "posture",
       "current_operation_verified",
     ]) ||
+    value.temporal.catalog_last_updated !== "2026-11-11" ||
     value.temporal.publisher_file_date !== "2025-05-25" ||
     new Date(value.temporal.preflight_observed_at).toISOString() !==
       value.temporal.preflight_observed_at ||
     value.temporal.posture !==
-      "publisher-file-date-retained-catalog-backend-disagreement-unresolved" ||
+      "arcgis-current-distribution-legacy-ckan-file-date-conflict-automatic-refresh-hold" ||
     value.temporal.current_operation_verified !== false ||
-    !exact(value.source, ["run_id", "manifest_sha256"]) ||
-    !/^[a-f0-9-]{36}$/.test(value.source.run_id) ||
-    !/^[a-f0-9]{64}$/.test(value.source.manifest_sha256) ||
+    !exact(value.migration,["current_distribution","arcgis_item_id","legacy_backend_still_listed","existing_app_backend","automatic_refresh_authorized","next_action"]) ||
+    value.migration.current_distribution!=="ArcGIS GeoService" || value.migration.arcgis_item_id!=="db31b0884a074cff9260facb3f2ade45" || value.migration.legacy_backend_still_listed!==true || value.migration.existing_app_backend!=="legacy-ckan-datastore" || value.migration.automatic_refresh_authorized!==false || !value.migration.next_action ||
+    !exact(value.source,["manifests"]) || !exact(value.source.manifests,["catalog","schema","status","geography"]) || Object.values(value.source.manifests).some(item=>!exact(item,["path","sha256"])||!item.path.startsWith("data/business-sources/ca-childcare/")||!/^[a-f0-9]{64}$/.test(item.sha256)) ||
     !same(value.claims, {
       provider_rows_acquired: 0,
       current_operations_verified: false,
@@ -1380,15 +1385,14 @@ export default function Administration() {
                 lifecycle-review candidates, not verified active businesses.
               </p>
               <p>
-                Publisher file date: {caReadiness.temporal.publisher_file_date}{" "}
+                Catalog updated: {caReadiness.temporal.catalog_last_updated} · legacy publisher file date: {caReadiness.temporal.publisher_file_date}{" "}
                 · preflight observed{" "}
                 {caReadiness.temporal.preflight_observed_at}. Catalog/backend
-                temporal disagreement remains unresolved.
+                . The catalog now names ArcGIS GeoService as the current distribution, so automatic refresh remains on hold.
               </p>
               <p className="operations-note">
                 {caReadiness.semantics} No provider rows were acquired by this
-                aggregate preflight; statewide completeness and business count
-                remain unknown.
+                aggregate preflight; statewide completeness and business count remain unknown. {caReadiness.migration.next_action}
               </p>
             </section>
           )}

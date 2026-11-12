@@ -415,7 +415,8 @@ test("maintenance backlog deterministically bounds selected-industry attention t
       (source) =>
         source.source_id === "state-ny-retail-food" &&
         source.automatic_refresh_reason_code ===
-          "AUTOMATIC_REFRESH_NOT_REVIEWED",
+          "REVIEWED_AUTOMATIC_REFRESH" &&
+        source.automatic_refresh_authorized === true,
     ),
   );
   assert.deepEqual(view.claims, {
