@@ -238,8 +238,9 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   const catalog = await catalogResponse.json();
   assert.ok(catalog.export.policyModes.includes("local-review"));
   const iowaRefresh = catalog.governedSourceServices.find(service => service.sourceId === "ia-business-registry");
-  assert.equal(iowaRefresh.readinessStatus, "HOLD");
-  assert.equal(iowaRefresh.dispatchAvailable, false);
+  assert.equal(iowaRefresh.readinessStatus, "AUTHORIZED");
+  assert.equal(iowaRefresh.dispatchAvailable, true);
+  assert.equal(typeof iowaRefresh.sourceUseNotice, "string");
   assert.equal(catalog.collectionSources.some(source => source.id === "ia-business-registry"), false);
   const oregonRefresh = catalog.governedSourceServices.find(service => service.sourceId === "or-business-registry");
   assert.equal(oregonRefresh.readinessStatus, "AUTHORIZED");
@@ -259,9 +260,7 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(refreshPlan.operationCreated, false);
   assert.equal(refreshPlan.networkRequestCount, 0);
   assert.equal(refreshPlan.allocationCount, 0);
-  const refreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "ia-business-registry" } });
-  assert.equal(refreshStartResponse.status, 409);
-  assert.match((await refreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
+  assert.equal(refreshPlan.status, "AUTHORIZED");
   assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
   const orRefreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "or-business-registry" } });
   assert.equal(orRefreshPlanResponse.status, 200);

@@ -1,6 +1,6 @@
 {
   "policy_id": "ia-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Office of the Secretary of State, State of Iowa",
   "ownership": "Official active business-entity public records published through the Iowa Data Hub",
   "source_home": "https://data.iowa.gov/catalog/dataset/554",
@@ -26,10 +26,12 @@
     "ho_location_wkt": "excluded-as-redundant-with-approved-latitude-and-longitude"
   },
   "attribution": "Source: Office of the Secretary of State, State of Iowa, Active Iowa Business Entities, via Iowa Data Hub, licensed CC BY 4.0.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Iowa Active Business Entities is licensed CC BY 4.0; attribution and an indication of changes are required. Active registration, home-office addresses, and source coordinates remain publisher assertions. They do not establish current operation, licensure, solvency, a verified physical site, ownership, or every business operating in Iowa.",
   "retention": "Indefinite for immutable internal source archives and approved normalized records unless an approved retention rule applies.",
   "redistribution": "Approved business-only normalized fields may be redistributed under CC BY 4.0 with attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the source archive remains internal because it contains registered-agent personal data.",
   "contains_personal_data": true,
   "personal_data_handling": "Business names and home-office addresses may identify individuals or residences. The connector excludes registered-agent name, address, ZIP, geocode, and location fields; excludes the source home-office name; and prohibits treating the remaining address as a public storefront or operating site.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-31"
+  "reviewed_at": "2026-11-12"
 }
