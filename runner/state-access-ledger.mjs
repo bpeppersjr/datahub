@@ -83,6 +83,7 @@ const SOURCE_KEY_BY_EVIDENCE_ID = Object.freeze({
   "delaware-division-of-revenue-current-business-licenses": "de_business_licenses_current",
   "national-irs-eo-bmf": "irs_eo_bmf_organizations",
 });
+const RETAINED_TEMPORAL_SOURCE_IDS = new Set(["pa-dhs-childcare-centers", "vt-cdd-childcare-centers"]);
 
 function temporalEnvelope(source, asOf) {
   if (!source) throw new Error("Positive state-access evidence has no exact governed temporal source binding.");
@@ -128,6 +129,40 @@ function unmeasuredTemporalEnvelope({ sourceId, sourceReleaseId = null, observed
     evidenceScope,
     publisherCurrencyBasis: "unmeasured-in-retained-source-contract",
     retainedSourceObservedAt: observedAt,
+    activeBusinessVerified: false,
+    generalBusinessOperatingStatusAsserted: false,
+  };
+}
+
+function retainedTemporalEnvelope(extension, asOf) {
+  if (!extension?.sourceUpdatedAt || !RETAINED_TEMPORAL_SOURCE_IDS.has(extension.sourceId)) return unmeasuredTemporalEnvelope(extension);
+  const assessed = assessBusinessSourceTemporalStatus({
+    source_key: extension.sourceId,
+    release_metadata: {
+      source_release_id: extension.sourceReleaseId,
+      source_updated_at: extension.sourceUpdatedAt,
+      observed_at: extension.observedAt,
+    },
+  }, { asOf });
+  if (!assessed.policy_configured || assessed.source_reference_field !== "source_updated_at") {
+    throw new Error(`Retained extension ${extension.sourceId} lacks an exact publisher-currency policy.`);
+  }
+  return {
+    schemaVersion: "state-access-temporal-evidence@1.0.0",
+    binding: "exact-retained-extension",
+    sourceKey: extension.sourceId,
+    sourceReleaseId: extension.sourceReleaseId,
+    status: assessed.status,
+    sourceReferenceField: assessed.source_reference_field,
+    sourceReferenceValue: assessed.source_reference_value,
+    sourceReferenceAt: assessed.source_reference_at,
+    ageDays: assessed.age_days,
+    reviewAfterDays: assessed.review_after_days,
+    reviewDueDate: assessed.review_due_date,
+    cadenceClass: assessed.cadence_class,
+    evidenceScope: assessed.evidence_scope,
+    publisherCurrencyBasis: "publisher-catalog-source-updated-at",
+    retainedSourceObservedAt: extension.observedAt,
     activeBusinessVerified: false,
     generalBusinessOperatingStatusAsserted: false,
   };
@@ -551,7 +586,8 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
   }
   const extensionTemporal = new Map();
   const addExtension = (sourceId, value, evidenceScope) => extensionTemporal.set(sourceId, {
-    sourceId, sourceReleaseId: value?.sourceReleaseId ?? null, observedAt: value?.observedAt ?? null, evidenceScope,
+    sourceId, sourceReleaseId: value?.sourceReleaseId ?? null, observedAt: value?.observedAt ?? null,
+    sourceUpdatedAt: value?.sourceUpdatedAt ?? null, evidenceScope,
   });
   addExtension("mn-construction-credential-reporting", projectMnConstructionStateEvidence(localCredentials, "MN"), "retained-construction-credential-candidate-evidence-not-general-operation");
   addExtension("pa-dhs-childcare-centers", projectPaChildcareStateEvidence(localFacilities, "PA"), "retained-childcare-candidate-evidence-not-general-operation");
@@ -568,14 +604,14 @@ export async function buildStateAccessLedger({ root = APP_ROOT, coveragePointer 
     const governed = sourceByProfileId.get(item.sourceId) ?? coverage.sources.get(SOURCE_KEY_BY_EVIDENCE_ID[item.sourceId]);
     if (governed) return { ...item, temporalEvidence: temporalEnvelope(governed, temporalAsOfDate) };
     const extension = extensionTemporal.get(item.sourceId);
-    if (extension) return { ...item, temporalEvidence: unmeasuredTemporalEnvelope(extension) };
+    if (extension) return { ...item, temporalEvidence: retainedTemporalEnvelope(extension, temporalAsOfDate) };
     throw new Error(`Positive state-access evidence ${item.sourceId ?? "without-source-id"} has no exact governed temporal source binding.`);
   };
   const bindExtensionProjection = (value, sourceId) => {
     if (!value || ["not-applicable", "not-enrolled", "unavailable"].includes(value.status)) return value;
     const extension = extensionTemporal.get(sourceId);
     if (!extension) throw new Error(`Retained extension ${sourceId} has no exact temporal identity.`);
-    return { ...value, temporalEvidence: unmeasuredTemporalEnvelope(extension) };
+    return { ...value, temporalEvidence: retainedTemporalEnvelope(extension, temporalAsOfDate) };
   };
   const credentialPublicationVerified = credentialPublication?.status === "verified-downstream-publication"
     && credentialPublication.included === true && credentialPublication.credentialRows === 11456

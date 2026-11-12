@@ -19,9 +19,22 @@ function row(sourceKey, releaseMetadata = {}, observation = {}) {
 
 test("pins supported temporal policies separately from the current profile source denominator", () => {
   // 30 current legacy profile sources plus the supported nonemployer baseline.
-  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 31);
+  assert.equal(Object.keys(BUSINESS_SOURCE_TEMPORAL_POLICIES).length, 33);
   assert.equal(BUSINESS_SOURCE_TEMPORAL_POLICIES.ny_retail_food_store_license_sites.review_after_days, 120);
   assert.deepEqual(BUSINESS_SOURCE_TEMPORAL_POLICIES.il_business_registry_active_organizations.reference_fields, ["source_run_date"]);
+});
+
+test("PA and VT retained childcare use publisher catalog currency without asserting operation", () => {
+  for (const sourceKey of ["pa-dhs-childcare-centers", "vt-cdd-childcare-centers"]) {
+    const current = assessBusinessSourceTemporalStatus(row(sourceKey, {source_updated_at:"2026-10-14T19:56:37.000Z"}), {asOf:new Date("2026-11-12T17:00:00.000Z")});
+    assert.equal(current.status, "within-review-window");
+    assert.equal(current.source_reference_field, "source_updated_at");
+    assert.equal(current.review_after_days, 75);
+    assert.equal(current.cadence_class, "monthly-childcare-center-snapshot");
+    assert.equal(current.general_business_operating_status_asserted, false);
+    const stale = assessBusinessSourceTemporalStatus(row(sourceKey, {source_updated_at:"2026-01-01T00:00:00.000Z"}), {asOf:new Date("2026-11-12T17:00:00.000Z")});
+    assert.equal(stale.status, "review-due");
+  }
 });
 
 test("four retained childcare cohorts stay currency-unmeasured despite observation or unrelated date fields", () => {

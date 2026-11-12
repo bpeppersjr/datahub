@@ -954,6 +954,23 @@ test('every positive state evidence variant and annual aggregate carries an exac
   }
 });
 
+test('current PA and VT childcare reporting binds publisher source-updated timestamps', async () => {
+  const ledger = await buildStateAccessLedger({ temporalAsOf: '2026-11-12T17:00:00.000Z' });
+  for (const [state, sourceId, sourceReferenceAt, ageDays] of [
+    ['PA','pa-dhs-childcare-centers','2026-10-29T20:08:16.000Z',13],
+    ['VT','vt-cdd-childcare-centers','2026-10-14T19:56:37.000Z',28]
+  ]) {
+    const cell = ledger.jurisdictions.find((row) => row.state === state).industries.find((row) => row.industry === 'childcare');
+    const temporal = cell.evidence.find((item) => item.sourceId === sourceId).temporalEvidence;
+    assert.deepEqual(
+      [temporal.binding, temporal.status, temporal.sourceReferenceField, temporal.sourceReferenceAt, temporal.ageDays, temporal.reviewAfterDays],
+      ['exact-retained-extension','within-review-window','source_updated_at',sourceReferenceAt,ageDays,75]
+    );
+    assert.equal(temporal.activeBusinessVerified, false);
+    assert.equal(temporal.generalBusinessOperatingStatusAsserted, false);
+  }
+});
+
 test('annual aggregate temporal context never inflates access temporal status', async () => {
   const ledger = await buildStateAccessLedger({ temporalAsOf: '2026-09-22T05:00:00.000Z' });
   const cells = ledger.jurisdictions.flatMap((jurisdiction) => jurisdiction.industries);
