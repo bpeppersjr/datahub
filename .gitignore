@@ -53,6 +53,12 @@ next-env.d.ts
 /data/national-business-lifecycle-jurisdiction-evidence/releases/*
 !/data/national-business-lifecycle-jurisdiction-evidence/releases/national-business-lifecycle-jurisdiction-evidence-65d0c4b1f2a6d10ea0c5b031dfc3251e1b87510a88d7c3efeacd8cc0dd37910b/
 !/data/national-business-lifecycle-jurisdiction-evidence/releases/national-business-lifecycle-jurisdiction-evidence-65d0c4b1f2a6d10ea0c5b031dfc3251e1b87510a88d7c3efeacd8cc0dd37910b/*
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/
+/data/national-business-lifecycle-industry-jurisdiction-evidence/*
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/
+/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/*
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1/
+!/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1/*
 !/data/retained-childcare-zip-evidence/
 /data/retained-childcare-zip-evidence/*
 !/data/retained-childcare-zip-evidence/releases/

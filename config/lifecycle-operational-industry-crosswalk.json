@@ -1,0 +1,29 @@
+{
+  "schema_version": "lifecycle-operational-industry-crosswalk@1.0.0",
+  "operational_industries": ["retail-consumer", "health-care", "financial-services", "transportation", "construction", "tax-exempt-organizations", "sales-tax-outlets", "local-business-licenses", "childcare"],
+  "sources": [
+    {"source_id":"alaska-dcced-active-business-licenses","industries":["local-business-licenses"]},
+    {"source_id":"california-abc-daily-active-licenses","industries":["retail-consumer"]},
+    {"source_id":"city-of-chicago-bacp-current-active-business-licenses","industries":["local-business-licenses"]},
+    {"source_id":"cms-nppes-monthly-v2","industries":["health-care"]},
+    {"source_id":"dc-dlcp-active-basic-business-licenses","industries":["local-business-licenses"]},
+    {"source_id":"epa-echo-exporter-active-facility","industries":[],"unmapped_reason":"EPA ECHO regulated-facility membership crosses operational industries and is not equivalent to one business segment."},
+    {"source_id":"fdic-bankfind-current-structure","industries":["financial-services"]},
+    {"source_id":"fmcsa-company-census-active-us-principal-office","industries":["transportation"]},
+    {"source_id":"los-angeles-office-of-finance-active-businesses","industries":["local-business-licenses"]},
+    {"source_id":"ncua-final-quarterly-call-report","industries":["financial-services"]},
+    {"source_id":"new-york-agriculture-markets-retail-food-stores","industries":["retail-consumer"]},
+    {"source_id":"nyc-dcwp-issued-licenses-active-premises","industries":["local-business-licenses"]},
+    {"source_id":"texas-comptroller-active-sales-tax-permits","industries":["sales-tax-outlets"]},
+    {"source_id":"usda-fsis-active-mpi-directory","industries":[],"unmapped_reason":"FSIS inspected-establishment membership is a regulated food-safety cohort, not the retail-consumer operational segment."},
+    {"source_id":"usda-snap-current-retailers","industries":["retail-consumer"]}
+  ],
+  "claims": {
+    "closed_lifecycle_source_roster": true,
+    "multi_industry_mapping_allowed": true,
+    "source_memberships_additive_across_industries": false,
+    "unique_business_count": null,
+    "industry_completeness": null,
+    "current_operation_verified": false
+  }
+}
