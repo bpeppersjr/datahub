@@ -12,10 +12,10 @@ export const WA_LNI_EXACT_ZIP_TEMPORAL_MAPPING=Object.freeze({dimension_id:'wa_l
 const DATASET='exact-zip-industry-temporal-qualification', SHA=/^[a-f0-9]{64}$/;
 const MATRIX_ID='national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003';
 const MATRIX_SHA='aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1';
-const TEMPORAL_ID='national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090';
-const TEMPORAL_SHA='342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05';
-const QUALIFICATION_ID='zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9';
-const QUALIFICATION_SHA='9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493';
+const TEMPORAL_ID='national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd';
+const TEMPORAL_SHA='1890a7941062ac71e79c25b773a56ecd122b9abf00f8173cd4d8f1a00fb9c7b8';
+const QUALIFICATION_ID='zip-active-evidence-1a9051e36418118997eaf053cdca2f20df7d81c69b967fad964875caf7c427cc';
+const QUALIFICATION_SHA='a41a0affc02596e34d3f429bae876b73f7c89e788814ae21fe8f83a8b4155395';
 const AS_OF='2026-10-02T16:30:00.000Z';
 const UNMAPPED=new Set(['cms_hospital_directory','cms_nursing_home_directory',...['pa','ct','md','vt','co','ut','ia'].map(s=>`childcare_${s}_candidates`)]);
 const MAP=Object.freeze({
@@ -37,7 +37,13 @@ export function classifyExactZipEvidenceDisposition({cell_status,semantic_class,
  else lifecycle_status=cell_status==='positive'?'non-active-reporting-positive':'non-active-reporting-without-positive-evidence';
  return {cell_status,lifecycle_status,label:`${cell_status.replaceAll('-',' ')} · ${lifecycle_status.replaceAll('-',' ')}`,current_operations_verified:false};
 }
-function reviewState(row){const c=row.review_clock;if(!c||c.source_reference_at===null||c.age_days===null||c.review_after_days===null)return 'unmeasured';check(Number.isSafeInteger(c.age_days)&&Number.isSafeInteger(c.review_after_days));return c.age_days>c.review_after_days?'stale':'within-review-window';}
+function reviewState(row){
+ check(['measured-within-review-window','measured-stale-review-due','unmeasured'].includes(row.qualification));
+ if(row.qualification==='unmeasured')return 'unmeasured';
+ if(row.qualification==='measured-stale-review-due')return 'stale';
+ const c=row.review_clock;check(c&&c.source_reference_at!==null&&Number.isSafeInteger(c.age_days)&&Number.isSafeInteger(c.review_after_days));
+ return 'within-review-window';
+}
 function dueAt(row){const c=row.review_clock;if(!c||!c.source_reference_at||!Number.isSafeInteger(c.review_after_days))return null;const d=new Date(c.source_reference_at);check(Number.isFinite(d.valueOf()));d.setUTCDate(d.getUTCDate()+c.review_after_days);return d.toISOString();}
 async function inputs(root,signal,zip5='10001'){
  signal?.throwIfAborted();
@@ -63,7 +69,7 @@ function compose(input){
  check(rows.length===40&&rows.filter(x=>x.source_key!==null).length===31&&new Set(rows.filter(x=>x.source_key).map(x=>x.source_key)).size===29);
  const qualification_counts=Object.fromEntries(['within-review-window','stale','unmeasured','unmapped'].map(k=>[k,rows.filter(x=>x.review_qualification===k).length]));
  const semantic_counts=Object.fromEntries(['source-defined-current','non-active-reporting','unmapped'].map(k=>[k,rows.filter(x=>x.semantic_class===k).length]));
- check(canonical(qualification_counts)===canonical({'within-review-window':26,stale:1,unmeasured:4,unmapped:9})&&canonical(semantic_counts)===canonical({'source-defined-current':23,'non-active-reporting':8,unmapped:9}));
+ check(canonical(qualification_counts)===canonical({'within-review-window':26,stale:0,unmeasured:5,unmapped:9})&&canonical(semantic_counts)===canonical({'source-defined-current':23,'non-active-reporting':8,unmapped:9}));
  const counts_by_dimension=input.matrix.cell_status_counts_by_dimension;
  const qualification_cell_counts=Object.fromEntries(Object.keys(qualification_counts).map(k=>[k,rows.filter(x=>x.review_qualification===k).length*48194]));
  const semantic_cell_counts=Object.fromEntries(Object.keys(semantic_counts).map(k=>[k,rows.filter(x=>x.semantic_class===k).length*48194]));

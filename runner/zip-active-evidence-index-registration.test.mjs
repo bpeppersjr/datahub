@@ -48,7 +48,7 @@ function reconcile({ catalog, manifestBytes, sourceCatalogBytes, sourceManifestB
   assert.equal(m.schema_version, 'zip-active-evidence-index@1.0.0');
   assert.equal(m.status, 'immutable-local-lookup-index');
   for (const key of ['release_id', 'status', 'created_at', 'source_zip_rows', 'indexed_zip_count', 'bindings']) assert.deepEqual(r[key], m[key]);
-  assert.equal(r.created_at, '2026-10-02T17:45:00.000Z');
+  assert.equal(r.created_at, '2026-11-12T03:27:50.465Z');
   assert.equal(r.source_zip_rows, 1397626);
   assert.equal(r.indexed_zip_count, 48194);
   assert.equal(r.artifact_count, m.artifacts.length);

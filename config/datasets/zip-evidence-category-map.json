@@ -5,7 +5,7 @@
   "mapping": "config/zip-evidence-category-map.json",
   "mapping_version": "zip-evidence-category-map@1.0.0",
   "taxonomy_version": "zip-economy-source-categories@1.0.0",
-  "mapping_sha256": "af9eeac347d77cb999944f4e9072d40a421cea1bc6201fa75a8b84f87f58db3a",
+  "mapping_sha256": "1858de493a009051ace5a001979732b0a017a4ff76bf06a8082a37330f4a1b06",
   "hash_encoding": "SHA-256 of UTF-8 JSON.stringify(parsed mapping), retaining authored property order",
   "source_count": 30,
   "export_policy": "local-review-only",

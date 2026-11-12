@@ -15,13 +15,13 @@ import { readBusinessEntitySourcePolicyProvenance } from './business-entity-sour
 export const BUSINESS_ENTITY_LIFECYCLE_VERSION = 'business-entity-lifecycle-eligibility@1.0.0';
 const DATASET = 'business-entity-lifecycle-eligibility';
 const AS_OF = '2026-10-02T16:30:00.000Z';
-const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1';
-const SELECTED_MANIFEST_SHA256 = '218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528';
-const SELECTED_TAXONOMY_SHA256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc';
-const SELECTED_REGISTRATION_SHA256 = '2e9266d0e68627edcaaf09cf2fc4593971eb6a4176672841f1b29f56d76c3ced';
+const SELECTED_RELEASE_ID = 'business-entity-lifecycle-eligibility-a4b84f5cace847e888832a2efefd09efadb773463864b11bcfad89be3936087f';
+const SELECTED_MANIFEST_SHA256 = 'd5477035d4cf9f248ecabac77de1a54ac5acf02bb5658ae591eb530e2ad925ac';
+const SELECTED_TAXONOMY_SHA256 = 'cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676';
+const SELECTED_REGISTRATION_SHA256 = 'b2e3e336977b43f39a90299c40c67b849c792a50c5b495306c823191a594d127';
 const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_ID = 'business-entity-lifecycle-eligibility-f5fba9c9f870251d54525d71bf99c26afaa6acbb93b83ec9bdf494c56513b074';
 const SOURCE_POLICY_PREDECESSOR_LIFECYCLE_SHA256 = '6b8f0dd94d3ee667a591a99abdb94c37b2ef1af6005519f2f5b4312343ed8c65';
-const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee', manifest_sha256: 'c9fce9805fb4cad870e90ea074ef74a31a5f1001e2d601192671129ca1513409', artifact_sha256: '8cb2668ecf2f428e2f350742072ae589c9bc1342c6432e78e7e87e476a52848a', assessment_as_of: AS_OF });
+const HISTORICAL_QUALIFICATION = Object.freeze({ release_id: 'exact-zip-industry-temporal-qualification-f94b7d998adaf47defe9512116113811c8c3af3a738db4e623d817b29c402bbb', manifest_sha256: '176738a36c9c947120a78f4916a0fab9394b75f1535ac38c7e50c900f28bccbc', artifact_sha256: '3fd5a9083c7b6fc86b4c290a977feaea0f44b4a84c2d38fa7374c865b4acb260', assessment_as_of: AS_OF });
 const SHA = /^[a-f0-9]{64}$/;
 const check = (value, message = 'Business entity lifecycle eligibility contract rejected.') => { if (!value) throw new Error(message); };
 const sha = value => createHash('sha256').update(value).digest('hex');
@@ -39,7 +39,7 @@ const sourceCounts = Object.freeze({
   'fmcsa-company-census-active-us-principal-office': 2195563,
   'los-angeles-office-of-finance-active-businesses': 633232,
   'ncua-final-quarterly-call-report': 22445,
-  'new-york-agriculture-markets-retail-food-stores': 24230,
+  'new-york-agriculture-markets-retail-food-stores': 23608,
   'nyc-dcwp-issued-licenses-active-premises': 31163,
   'texas-comptroller-active-sales-tax-permits': 885097,
   'usda-fsis-active-mpi-directory': 7237,
@@ -124,14 +124,14 @@ async function readBindings(root, signal) {
     && taxonomyBytes.claims?.current_operation_verified === false && taxonomyBytes.claims?.active_business_eligible === false);
   const taxonomySha256 = taxonomyMeter.sha256;
   const registryMeta = registryCatalog.current_release;
-  check(registryCatalog.dataset_id === 'national-business-registry' && registryMeta?.release_id === 'national-business-registry-20260911-022652067Z-1ec656c3'
+  check(registryCatalog.dataset_id === 'national-business-registry' && registryMeta?.release_id === 'national-business-registry-20261112-005851952Z-44f0a338'
     && SHA.test(registryMeta.manifest_sha256) && safeRelative(registryMeta.manifest));
   const registryManifest = await readJson(path.join(root, registryMeta.manifest), 4_000_000, signal, registryMeter);
   check(registryManifest.dataset_id === registryCatalog.dataset_id && registryManifest.release_id === registryMeta.release_id
     && registryMeter.sha256 === registryMeta.manifest_sha256 && registryManifest.status === 'published-partial'
-    && registryManifest.coverage?.resolution_location_profiles === 8011835);
+    && registryManifest.coverage?.resolution_location_profiles === 8011213);
   const profileArtifacts = registryManifest.artifacts.filter(item => item.artifact_type === 'entity-resolution-location-profile-jsonl-gzip');
-  check(profileArtifacts.length === 100 && profileArtifacts.reduce((n, item) => n + item.record_count, 0) === 8011835);
+  check(profileArtifacts.length === 100 && profileArtifacts.reduce((n, item) => n + item.record_count, 0) === 8011213);
   const temporal = await readNationalBusinessTemporalClaimRows({ root, signal });
   const qualification = await readExactZipIndustryTemporalQualification({ root, zip5: '10001', signal });
   const sourcePolicy = await readBusinessEntitySourcePolicyProvenance({ root, signal });
@@ -139,7 +139,7 @@ async function readBindings(root, signal) {
     && temporal.provenance.registry_manifest_sha256 === registryMeta.manifest_sha256 && qualification.assessment_as_of === AS_OF
     && qualification.provenance?.release_id && qualification.provenance?.manifest_sha256 && qualification.provenance?.artifact_sha256);
   const temporalByProfile = new Map(temporal.rows.filter(row => row.profile_source_id).map(row => [row.profile_source_id, row]));
-  check(sourcePolicy.available && sourcePolicy.record_count === 15 && sourcePolicy.summary.profile_count === 8011835
+  check(sourcePolicy.available && sourcePolicy.record_count === 15 && sourcePolicy.summary.profile_count === 8011213
     && sourcePolicy.registry_release_id === registryMeta.release_id && sourcePolicy.registry_manifest_sha256 === registryMeta.manifest_sha256
     && sourcePolicy.lifecycle_release_id === SOURCE_POLICY_PREDECESSOR_LIFECYCLE_ID
     && sourcePolicy.lifecycle_manifest_sha256 === SOURCE_POLICY_PREDECESSOR_LIFECYCLE_SHA256
@@ -164,7 +164,7 @@ async function readBindings(root, signal) {
     `Source policy provenance differs from taxonomy/temporal lineage for ${item.source_id}.`);
     sourceById.set(item.source_id, { taxonomy: item, semantic, qualification: temporalQualification, policy });
   }
-  check(sourceById.size === 15 && Object.keys(sourceCounts).length === 15 && Object.values(sourceCounts).reduce((a, b) => a + b, 0) === 8011835);
+  check(sourceById.size === 15 && Object.keys(sourceCounts).length === 15 && Object.values(sourceCounts).reduce((a, b) => a + b, 0) === 8011213);
   return {
     taxonomy: taxonomyBytes, taxonomy_sha256: taxonomySha256,
     registry: { release_id: registryMeta.release_id, manifest_sha256: registryMeta.manifest_sha256, manifest: registryMeta.manifest, manifest_object: registryManifest, profile_artifacts: profileArtifacts },
@@ -263,7 +263,7 @@ export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP
     && selected[0].release_id === SELECTED_RELEASE_ID
     && selected[0].manifest === `data/${DATASET}/releases/${SELECTED_RELEASE_ID}/manifest.json`
     && selected[0].manifest_sha256 === SELECTED_MANIFEST_SHA256
-    && selected[0].profile_count === 8011835, 'Lifecycle selected registration is unavailable or incompatible.');
+    && selected[0].profile_count === 8011213, 'Lifecycle selected registration is unavailable or incompatible.');
   const manifestPath = selected[0].manifest, manifestMeter = {};
   const manifest = await readJson(path.join(root, manifestPath), 1_000_000, signal, manifestMeter);
   check(manifestMeter.sha256 === SELECTED_MANIFEST_SHA256 && manifest.schema_version === `${DATASET}-release@1.0.0`
@@ -280,15 +280,15 @@ export async function readBusinessEntityLifecycleEligibilitySummary({ root = APP
     const zip2 = String(index).padStart(2, '0');
     return item?.artifact_type === 'business-entity-lifecycle-decision-jsonl-gzip' && item.path === `decisions/zip2=${zip2}.jsonl.gz`
       && Number.isSafeInteger(item.record_count) && item.record_count > 0 && Number.isSafeInteger(item.bytes) && item.bytes > 0 && SHA.test(item.sha256);
-  }) && artifacts.reduce((sum, item) => sum + item.record_count, 0) === 8011835
+  }) && artifacts.reduce((sum, item) => sum + item.record_count, 0) === 8011213
     && artifacts.reduce((sum, item) => sum + item.bytes, 0) > 0, 'Lifecycle artifact inventory is incompatible.');
   const summary = manifest.summary;
-  check(summary?.profile_count === 8011835 && summary.source_count === 15 && summary.source_status_value_count === 17
+  check(summary?.profile_count === 8011213 && summary.source_count === 15 && summary.source_status_value_count === 17
     && summary.assessment_as_of === AS_OF && stable(summary.source_counts) === stable(sourceCounts)
     && stable(summary.status_value_counts) === stable(expectedStatusCounts(input.taxonomy))
-    && stable(summary.review_status_counts) === stable({ 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 })
-    && stable(summary.lifecycle_evidence_counts) === stable({ 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 })
-    && stable(summary.exception_counts) === stable({ la_null_source_status: 633232, ca_expiration_before_observation_profiles: 2667, ny_retail_food_stale_non_active: 24230 })
+    && stable(summary.review_status_counts) === stable({ 'within-review-window': 7987605, stale: 0, unmeasured: 23608, unmapped: 0 })
+    && stable(summary.lifecycle_evidence_counts) === stable({ 'source-defined-current': 5240481, 'non-active-reporting': 2134833, unknown: 633232, contradictory: 2667 })
+    && stable(summary.exception_counts) === stable({ la_null_source_status: 633232, ca_expiration_before_observation_profiles: 2667, ny_retail_food_unmeasured_non_active: 23608 })
     && stable(summary.bindings) === stable({ registry_release_id: input.registry.release_id, temporal_release_id: input.temporal.release_id, qualification_release_id: HISTORICAL_QUALIFICATION.release_id }),
   'Lifecycle selected summary conservation differs from the audited cohort.');
   return {
@@ -319,7 +319,7 @@ function emptySummary(bindings) {
     source_counts: Object.fromEntries(Object.keys(sourceCounts).sort().map(key => [key, 0])),
     status_value_counts: {}, review_status_counts: { 'within-review-window': 0, stale: 0, unmeasured: 0, unmapped: 0 },
     lifecycle_evidence_counts: { 'source-defined-current': 0, 'non-active-reporting': 0, unknown: 0, contradictory: 0 },
-    exception_counts: { la_null_source_status: 0, ca_expiration_before_observation_profiles: 0, ny_retail_food_stale_non_active: 0 },
+    exception_counts: { la_null_source_status: 0, ca_expiration_before_observation_profiles: 0, ny_retail_food_unmeasured_non_active: 0 },
     bindings: { registry_release_id: bindings.registry.release_id, temporal_release_id: bindings.temporal.release_id, qualification_release_id: bindings.qualification.release_id },
   };
 }
@@ -343,7 +343,7 @@ function addSummary(summary, decision) {
   if (decision.source_status_value !== null) summary.status_value_counts[decision.source_status_value] = (summary.status_value_counts[decision.source_status_value] ?? 0) + 1;
   if (decision.source_id === 'los-angeles-office-of-finance-active-businesses' && decision.source_status_value === null) summary.exception_counts.la_null_source_status++;
   if (decision.source_id === 'california-abc-daily-active-licenses' && decision.lifecycle_evidence === 'contradictory') summary.exception_counts.ca_expiration_before_observation_profiles++;
-  if (decision.source_id === 'new-york-agriculture-markets-retail-food-stores' && decision.review_status === 'stale' && decision.lifecycle_evidence === 'non-active-reporting') summary.exception_counts.ny_retail_food_stale_non_active++;
+  if (decision.source_id === 'new-york-agriculture-markets-retail-food-stores' && decision.review_status === 'unmeasured' && decision.lifecycle_evidence === 'non-active-reporting') summary.exception_counts.ny_retail_food_unmeasured_non_active++;
 }
 
 async function ensureNoLinkPath(root, file, allowMissingLeaf = false) {
@@ -453,10 +453,10 @@ export async function buildBusinessEntityLifecycleEligibility({ root = APP_ROOT,
       const written = await consumeProfileShard(root, input, sourceArtifact, target, signal, counts);
       artifacts.push({ artifact_type: 'business-entity-lifecycle-decision-jsonl-gzip', path: rel, record_count: written.record_count, bytes: written.bytes, sha256: written.sha256 });
     }
-    check(counts.summary.profile_count === 8011835 && stable(counts.sources) === stable(sourceCounts)
+    check(counts.summary.profile_count === 8011213 && stable(counts.sources) === stable(sourceCounts)
       && Object.keys(counts.status_values).length === 16 && counts.summary.exception_counts.la_null_source_status === 633232
       && counts.summary.exception_counts.ca_expiration_before_observation_profiles === 2667
-      && counts.summary.exception_counts.ny_retail_food_stale_non_active === 24230, 'Lifecycle source conservation or audited exception counts differ.');
+      && counts.summary.exception_counts.ny_retail_food_unmeasured_non_active === 23608, 'Lifecycle source conservation or audited exception counts differ.');
     check(stable(counts.status_values) === stable(expectedStatusCounts(input.taxonomy)), 'Lifecycle source-status value distribution differs from the closed taxonomy.');
     check(counts.summary.lifecycle_evidence_counts.unknown === 633232 && counts.summary.lifecycle_evidence_counts.contradictory === 2667);
     counts.summary.status_value_counts = Object.fromEntries(Object.entries(counts.status_values).sort(([a], [b]) => a.localeCompare(b)));
@@ -499,7 +499,7 @@ async function verifyBusinessEntityLifecycleReleaseInternal({ root, release_id, 
     && manifest.claims?.current_operation_verified === false && manifest.claims?.active_business_eligible === false
     && manifest.claims?.identity_resolution_applied === false && manifest.claims?.registry_bytes_modified === false
     && manifest.claims?.source_acquisition_performed === false && manifest.claims?.current_pointer_written === false && manifest.claims?.production_enrollment === false);
-  check(manifest.artifacts.length === 100 && manifest.summary.profile_count === 8011835);
+  check(manifest.artifacts.length === 100 && manifest.summary.profile_count === 8011213);
   const byPath = new Map(manifest.artifacts.map(item => [item.path, item])); check(byPath.size === 100);
   const counts = { sources: {}, status_values: {}, summary: emptySummary(input) };
   for (const sourceArtifact of input.registry.profile_artifacts) {
@@ -508,10 +508,10 @@ async function verifyBusinessEntityLifecycleReleaseInternal({ root, release_id, 
     const outputFile = path.join(path.dirname(manifestPath), rel); await ensureNoLinkPath(root, outputFile);
     await consumeProfileShard(root, input, sourceArtifact, null, signal, counts, { file: outputFile, artifact: output });
   }
-  check(counts.summary.profile_count === 8011835 && stable(counts.sources) === stable(sourceCounts)
+  check(counts.summary.profile_count === 8011213 && stable(counts.sources) === stable(sourceCounts)
     && Object.keys(counts.status_values).length === 16 && counts.summary.exception_counts.la_null_source_status === 633232
     && counts.summary.exception_counts.ca_expiration_before_observation_profiles === 2667
-    && counts.summary.exception_counts.ny_retail_food_stale_non_active === 24230);
+    && counts.summary.exception_counts.ny_retail_food_unmeasured_non_active === 23608);
   check(stable(counts.status_values) === stable(expectedStatusCounts(input.taxonomy)), 'Lifecycle replay status distribution differs from the closed taxonomy.');
   counts.summary.status_value_counts = Object.fromEntries(Object.entries(counts.status_values).sort(([a], [b]) => a.localeCompare(b)));
   check(stable(counts.summary) === stable(manifest.summary));

@@ -18,13 +18,13 @@ test('exact ZIP view adds one joined disposition per dimension without current-o
 test('registered temporal qualification exhaustively binds 40 dimensions without current-operation uplift',async()=>{
  const view=await readExactZipIndustryTemporalQualification({zip5:'10000'}), rows=view.rows;
  assert.equal(rows.length,40);assert.equal(view.claims.current_operations_verified,false);assert.equal(view.claims.active_business_count,null);assert.equal(view.claims.all_business_denominator,null);assert.equal(view.claims.all_business_completion_percent,null);
- assert.deepEqual(view.summary.qualification_dimension_counts,{'within-review-window':26,stale:1,unmeasured:4,unmapped:9});
- assert.deepEqual(view.summary.qualification_cell_counts,{'within-review-window':1253044,stale:48194,unmeasured:192776,unmapped:433746});
+ assert.deepEqual(view.summary.qualification_dimension_counts,{'within-review-window':26,stale:0,unmeasured:5,unmapped:9});
+ assert.deepEqual(view.summary.qualification_cell_counts,{'within-review-window':1253044,stale:0,unmeasured:240970,unmapped:433746});
  assert.deepEqual(view.summary.semantic_dimension_counts,{'source-defined-current':23,'non-active-reporting':8,unmapped:9});
  assert.deepEqual(view.summary.semantic_cell_counts,{'source-defined-current':1108462,'non-active-reporting':385552,unmapped:433746});
  assert.equal(view.summary.qualification_cell_total,48194*40);assert.equal(view.summary.semantic_cell_total,48194*40);
  const byId=new Map(rows.map(row=>[row.dimension_id,row]));
- assert.equal(byId.get('ny_retail_food_location_profiles').review_qualification,'stale');
+ assert.equal(byId.get('ny_retail_food_location_profiles').review_qualification,'unmeasured');
  for(const id of ['childcare_ma_reporting_centers','childcare_nj_reporting_centers','childcare_tn_reporting_centers','childcare_oh_reporting_centers'])assert.equal(byId.get(id).review_qualification,'unmeasured');
  for(const id of ['cms_hospital_directory','cms_nursing_home_directory','childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates']){assert.equal(byId.get(id).source_key,null);assert.equal(byId.get(id).review_qualification,'unmapped');}
  assert.equal(byId.get('healthcare_organizations').source_key,byId.get('pharmacy').source_key);
@@ -33,8 +33,8 @@ test('registered temporal qualification exhaustively binds 40 dimensions without
  assert.equal(byId.get('broad_org_or_legal_registration_addresses').source_release_id,'or-business-registry-2026-09-01-c58ca37fef13c0e9');
  assert.ok(rows.every(row=>row.current_operations_verified===false&&row.assessment_as_of===view.assessment_as_of));
  assert.deepEqual(view.provenance.bindings.matrix,{release_id:'national-exact-zip-industry-evidence-matrix-0055db697e2ef0900edb00b43e8114c146ad446a0bbb41633b938d445f74b003',manifest_sha256:'aa155af612f232bafe83d59583500452326bcd16d565c4445425b9f99a8f4ad1',artifact_inventory_sha256:view.provenance.bindings.matrix.artifact_inventory_sha256,registration_sha256:view.provenance.bindings.matrix.registration_sha256});
- assert.equal(view.provenance.bindings.temporal.artifact_sha256,'d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0');
- assert.equal(view.provenance.bindings.qualification.projection_sha256,'bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8');
+ assert.equal(view.provenance.bindings.temporal.artifact_sha256,'91de493ef612a8dcba2a4d7db44707f695f754cfb5485ae771a06238015a0fee');
+ assert.equal(view.provenance.bindings.qualification.projection_sha256,'1c9720c2acd676f22b00fdd9002ff03f8d2ef0def6407922a86a97e48f0e7db2');
 });
 
 test('rejects tampered derivative bytes before attempting source replay',async()=>{

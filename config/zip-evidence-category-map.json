@@ -64,12 +64,12 @@
     }
   ],
   "bindings": {
-    "qualification_release_id": "zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9",
-    "qualification_manifest_sha256": "9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493",
-    "projection_sha256": "bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8",
-    "coverage_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
-    "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
-    "sources_sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e"
+    "qualification_release_id": "zip-active-evidence-1a9051e36418118997eaf053cdca2f20df7d81c69b967fad964875caf7c427cc",
+    "qualification_manifest_sha256": "a41a0affc02596e34d3f429bae876b73f7c89e788814ae21fe8f83a8b4155395",
+    "projection_sha256": "1c9720c2acd676f22b00fdd9002ff03f8d2ef0def6407922a86a97e48f0e7db2",
+    "coverage_release_id": "national-business-coverage-views-20261112-025948835Z-76733954",
+    "coverage_manifest_sha256": "7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a",
+    "sources_sha256": "99f31e3bb9dc93167aa935869ff8468be0bb2314f2ed755ca153fa41faafbcd9"
   },
   "sources": [
     {
@@ -264,7 +264,7 @@
     {
       "source_key": "ny_retail_food_store_license_sites",
       "profile_source_id": "new-york-agriculture-markets-retail-food-stores",
-      "source_release_id": "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8",
+      "source_release_id": "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",
       "source_kind": "record-level-evidence",
       "category_ids": [
         "retail-consumer"

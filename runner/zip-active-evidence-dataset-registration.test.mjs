@@ -44,7 +44,8 @@ function reconcile(catalog, manifestBytes, projectionBytes) {
   assert.equal(r.projection_schema, p.schema_version);
   for (const key of ['as_of', 'created_at', 'bindings', 'claims']) assert.deepEqual(m[key], p[key], key);
   assert.equal(r.as_of, '2026-10-02T16:30:00.000Z');
-  assert.equal(r.created_at, r.as_of);
+  assert.equal(r.created_at, '2026-11-12T03:25:40.011Z');
+  assert.ok(Date.parse(r.created_at) >= Date.parse(r.as_of));
   assert.equal(r.temporal_policy_version, p.temporal_policy_version);
   assert.equal(r.temporal_policy_version, '1.1.0');
   assert.equal(r.zip_members, p.zip_members);
@@ -63,7 +64,7 @@ function reconcile(catalog, manifestBytes, projectionBytes) {
   assert.equal(r.artifact_count, m.artifacts.length);
   assert.equal(r.artifact_count, 1399);
   assert.equal(r.artifact_bytes, m.artifacts.reduce((sum, item) => sum + item.bytes, 0));
-  assert.equal(r.artifact_bytes, 2289977727);
+  assert.equal(r.artifact_bytes, 2290170500);
   assert.equal(r.artifact_inventory_sha256, hash(JSON.stringify(m.artifacts)));
   assert.equal(r.artifact_inventory_hash_encoding, 'SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order');
   assert.deepEqual(r.projection_artifact, m.artifacts[0]);

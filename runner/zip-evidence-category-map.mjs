@@ -6,7 +6,7 @@ import {mnSelectionReadJson as readJson,mnSelectionReadLines as readLines} from 
 
 export const ZIP_CATEGORY_MAP_VERSION='zip-evidence-category-map@1.0.0';
 export const ZIP_CATEGORY_TAXONOMY_VERSION='zip-economy-source-categories@1.0.0';
-export const ZIP_CATEGORY_MAP_SHA256='af9eeac347d77cb999944f4e9072d40a421cea1bc6201fa75a8b84f87f58db3a';
+export const ZIP_CATEGORY_MAP_SHA256='1858de493a009051ace5a001979732b0a017a4ff76bf06a8082a37330f4a1b06';
 const check=(ok,message)=>{if(!ok)throw Error(`ZIP category mapping rejected: ${message}.`);};
 const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
 const keys=rows=>rows.map(row=>row.source_key).sort();

@@ -24,23 +24,23 @@ test('lifecycle taxonomy exhaustively pins the retained 15 profile cohorts and 1
   assert.equal(taxonomy.source_status_value_count, 17);
   const input = await businessEntityLifecycleInputs();
   assert.equal(input.source_by_id.size, 15);
-  assert.equal(input.registry.release_id, 'national-business-registry-20260911-022652067Z-1ec656c3');
-  assert.equal(input.registry.manifest_sha256, 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76');
-  assert.equal(input.temporal.release_id, 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090');
-  assert.equal(input.qualification.release_id, 'exact-zip-industry-temporal-qualification-d4c84e6c4665b66c9629d942764ab26904f8571e17c2c5a6cca56b89bfdaf4ee');
+  assert.equal(input.registry.release_id, 'national-business-registry-20261112-005851952Z-44f0a338');
+  assert.equal(input.registry.manifest_sha256, '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048');
+  assert.equal(input.temporal.release_id, 'national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd');
+  assert.equal(input.qualification.release_id, 'exact-zip-industry-temporal-qualification-f94b7d998adaf47defe9512116113811c8c3af3a738db4e623d817b29c402bbb');
 });
 
 test('bounded lifecycle summary binds registration, selected manifest, inventory, lineage and exact conservation', async () => {
   const result = await readBusinessEntityLifecycleEligibilitySummary();
-  assert.equal(result.release_id, 'business-entity-lifecycle-eligibility-5816762cc4987555140d4d7964e671afbf5527e722214ca5198eeb266bb66ac1');
-  assert.equal(result.registration_sha256, '2e9266d0e68627edcaaf09cf2fc4593971eb6a4176672841f1b29f56d76c3ced');
-  assert.equal(result.manifest_sha256, '218b5ee7c0cfcce6bad1a5e694ef7ce22623cc50a7275aaca7113ae3f32d6528');
-  assert.equal(result.taxonomy_sha256, '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc');
-  assert.equal(result.artifact_count, 100); assert.equal(result.artifact_record_count, 8011835);
-  assert.equal(result.artifact_inventory_sha256, 'ef3c2a697f8504656d884b1dde88317d4ed6a04597d99d957e28795f2a417907');
-  assert.deepEqual(result.summary.review_status_counts, { 'within-review-window': 7987605, stale: 24230, unmeasured: 0, unmapped: 0 });
-  assert.deepEqual(result.summary.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2135455, unknown: 633232, contradictory: 2667 });
-  assert.equal(result.summary.profile_count, 8011835);
+  assert.equal(result.release_id, 'business-entity-lifecycle-eligibility-a4b84f5cace847e888832a2efefd09efadb773463864b11bcfad89be3936087f');
+  assert.equal(result.registration_sha256, 'b2e3e336977b43f39a90299c40c67b849c792a50c5b495306c823191a594d127');
+  assert.equal(result.manifest_sha256, 'd5477035d4cf9f248ecabac77de1a54ac5acf02bb5658ae591eb530e2ad925ac');
+  assert.equal(result.taxonomy_sha256, 'cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676');
+  assert.equal(result.artifact_count, 100); assert.equal(result.artifact_record_count, 8011213);
+  assert.equal(result.artifact_inventory_sha256, '6a24a12d9baf237e3a876e0152e17444faade376600140afe6115e99b6d1d939');
+  assert.deepEqual(result.summary.review_status_counts, { 'within-review-window': 7987605, stale: 0, unmeasured: 23608, unmapped: 0 });
+  assert.deepEqual(result.summary.lifecycle_evidence_counts, { 'source-defined-current': 5240481, 'non-active-reporting': 2134833, unknown: 633232, contradictory: 2667 });
+  assert.equal(result.summary.profile_count, 8011213);
   assert.equal(result.verified_claims.current_operation_verified, false); assert.equal(result.verified_claims.active_business_eligible, false);
 
   const root = await mkdtemp(path.join(APP_ROOT, 'data/tmp/lifecycle-summary-'));
@@ -121,10 +121,10 @@ test('profile-count denominators, named exceptions, and separate CO assertion sc
     'dc-dlcp-active-basic-business-licenses': 54910, 'epa-echo-exporter-active-facility': 1517826,
     'fdic-bankfind-current-structure': 77285, 'fmcsa-company-census-active-us-principal-office': 2195563,
     'los-angeles-office-of-finance-active-businesses': 633232, 'ncua-final-quarterly-call-report': 22445,
-    'new-york-agriculture-markets-retail-food-stores': 24230, 'nyc-dcwp-issued-licenses-active-premises': 31163,
+    'new-york-agriculture-markets-retail-food-stores': 23608, 'nyc-dcwp-issued-licenses-active-premises': 31163,
     'texas-comptroller-active-sales-tax-permits': 885097, 'usda-fsis-active-mpi-directory': 7237, 'usda-snap-current-retailers': 252080,
   });
-  assert.equal(Object.values(counts).reduce((a, b) => a + b, 0), 8011835);
+  assert.equal(Object.values(counts).reduce((a, b) => a + b, 0), 8011213);
   assert.equal(taxonomy.separate_scopes.length, 1);
   assert.equal(taxonomy.separate_scopes[0].source_id, 'co-business-registry');
   assert.match(taxonomy.separate_scopes[0].scope, /excluded from the 8,011,835 location-profile decisions/);

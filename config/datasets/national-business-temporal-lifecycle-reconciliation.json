@@ -6,27 +6,27 @@
   "runtime_pointer": null,
   "production_enrollment": false,
   "temporal": {
-    "manifest_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090/manifest.json",
-    "manifest_sha256": "342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05",
-    "release_id": "national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090",
-    "artifact_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090/temporal-claims.jsonl",
-    "artifact_sha256": "d7ceedd8651500f2affce2df1dc93dea5c8d9a5b69e19720c67b76ecc76231b0"
+    "manifest_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd/manifest.json",
+    "manifest_sha256": "1890a7941062ac71e79c25b773a56ecd122b9abf00f8173cd4d8f1a00fb9c7b8",
+    "release_id": "national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd",
+    "artifact_path": "data/national-business-temporal-claim-matrix/releases/national-business-temporal-claim-matrix-ff98f93ab4373d21a55c5db5ff85f43e1259236c6b11349601097c1c1ea635fd/temporal-claims.jsonl",
+    "artifact_sha256": "91de493ef612a8dcba2a4d7db44707f695f754cfb5485ae771a06238015a0fee"
   },
   "lifecycle": {
-    "manifest_path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0/manifest.json",
-    "manifest_sha256": "d62cd007616c08da7ed71c3b7ecb4ac9890f1d8c0e711a4613e08e8e5cdb296e",
-    "release_id": "business-entity-lifecycle-eligibility-afc1ef2c825cca630134a0d84dbff6777cf5d0b7710d4cff6172439f6c7928d0"
+    "manifest_path": "data/business-entity-lifecycle-eligibility/releases/business-entity-lifecycle-eligibility-a4b84f5cace847e888832a2efefd09efadb773463864b11bcfad89be3936087f/manifest.json",
+    "manifest_sha256": "d5477035d4cf9f248ecabac77de1a54ac5acf02bb5658ae591eb530e2ad925ac",
+    "release_id": "business-entity-lifecycle-eligibility-a4b84f5cace847e888832a2efefd09efadb773463864b11bcfad89be3936087f"
   },
   "taxonomy": {
     "path": "config/datasets/business-entity-lifecycle-eligibility-taxonomy.json",
-    "sha256": "7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc"
+    "sha256": "cece2430cabd23fdbedb037f9b4a26c302f0ce1a7daf0200345fc94557a2c676"
   },
   "lineage": {
-    "registry_release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
-    "registry_manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-    "coverage_release_id": "national-business-coverage-views-20260911-040908332Z-f01c882a",
-    "coverage_manifest_sha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
-    "coverage_source_artifact_sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e"
+    "registry_release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+    "registry_manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+    "coverage_release_id": "national-business-coverage-views-20261112-025948835Z-76733954",
+    "coverage_manifest_sha256": "7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a",
+    "coverage_source_artifact_sha256": "99f31e3bb9dc93167aa935869ff8468be0bb2314f2ed755ca153fa41faafbcd9"
   },
   "los_angeles": {
     "source_key": "la_active_business_location_accounts",

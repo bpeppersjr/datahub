@@ -14,43 +14,43 @@
     "national-business-registry"
   ],
   "retained_release": {
-    "release_id": "zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9",
-    "manifest": "data/zip-active-evidence-qualification/releases/zip-active-evidence-76630f473281f971dc8e588ad7cf918ef649ae6c3597f995118b1238223969d9/manifest.json",
-    "manifest_sha256": "9872e4b46fe01fc529ac189cda20a5a8a28d0a39904c8742b931934a5ce0b493",
+    "release_id": "zip-active-evidence-1a9051e36418118997eaf053cdca2f20df7d81c69b967fad964875caf7c427cc",
+    "manifest": "data/zip-active-evidence-qualification/releases/zip-active-evidence-1a9051e36418118997eaf053cdca2f20df7d81c69b967fad964875caf7c427cc/manifest.json",
+    "manifest_sha256": "a41a0affc02596e34d3f429bae876b73f7c89e788814ae21fe8f83a8b4155395",
     "manifest_bytes": 196779,
     "manifest_schema_version": "zip-active-evidence-release@1.0.0",
     "projection_schema": "zip-active-evidence-qualification@1.0.0",
     "status": "immutable-local-derived-release",
     "as_of": "2026-10-02T16:30:00.000Z",
-    "created_at": "2026-10-02T16:30:00.000Z",
+    "created_at": "2026-11-12T03:25:40.011Z",
     "temporal_policy_version": "1.1.0",
     "source_zip_rows": 1397626,
     "zip_members": 48194,
     "source_conservation_entries": 30,
     "artifact_count": 1399,
-    "artifact_bytes": 2289977727,
-    "artifact_inventory_sha256": "9f00f1a86252dace3a209bbe628a104046947ab8c0097d3eb75a97c12ac2b5e5",
+    "artifact_bytes": 2290170500,
+    "artifact_inventory_sha256": "ad3d6f247bf25fcddfe92d80d8e449f88d2762e9ba2984df95d8e0353f7f1763",
     "artifact_inventory_hash_encoding": "SHA-256 of UTF-8 JSON.stringify(manifest.artifacts), in retained order",
     "projection_artifact": {
       "path": "projection.json",
       "bytes": 9285,
-      "sha256": "bb4314e0d76a6d0507093bd00992dd29a4caa28e34e43d1d2b5e1b9ea58ee4c8",
+      "sha256": "1c9720c2acd676f22b00fdd9002ff03f8d2ef0def6407922a86a97e48f0e7db2",
       "record_count": 1
     },
     "bindings": {
       "coverage": {
-        "coverageReleaseId": "national-business-coverage-views-20260911-040908332Z-f01c882a",
-        "pointerSha256": "dbe15c414452409c6f3ef6ee11263476138d02f2fec9e3b4c19e307ecc58220b",
-        "manifestSha256": "f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6",
+        "coverageReleaseId": "national-business-coverage-views-20261112-025948835Z-76733954",
+        "pointerSha256": "922bf3e4a483659727a72e953b226e1dcf48b8ad5ad92fbd555f1dc98174a9c1",
+        "manifestSha256": "7fd54a6c1a38f921ceb5b6ad918c74d82f12e2b665e25da08a43f34f1cd3ee7a",
         "artifacts": {
           "states": {
-            "sha256": "22783ec56d2e84d6f171b213188e9aead7be8f717869b9e5716713df46125c0c",
+            "sha256": "01a8f8db46b8a899921ab88364bc4e203eb56d7636380ebde5c1eb1998aee7f4",
             "bytes": 376303,
             "recordCount": 56,
             "exportPolicy": "local-review-only"
           },
           "sources": {
-            "sha256": "5e2c84acc985922361c791d9cdb8a5c72ac1f8db63801f1051cd0f1da8e7b59e",
+            "sha256": "99f31e3bb9dc93167aa935869ff8468be0bb2314f2ed755ca153fa41faafbcd9",
             "bytes": 56339,
             "recordCount": 30,
             "exportPolicy": "local-review-only"
@@ -62,14 +62,14 @@
         "allBusinessesPercent": null
       },
       "registry": {
-        "release_id": "national-business-registry-20260911-022652067Z-1ec656c3",
-        "manifest_sha256": "d8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76",
-        "pointer_sha256": "a5e5d58960e97ee51825ec558d1b59a356f7a98a15300db504a35df625ace1de"
+        "release_id": "national-business-registry-20261112-005851952Z-44f0a338",
+        "manifest_sha256": "657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048",
+        "pointer_sha256": "b06a5a4ca89ab28d19b656c0600778fb7322d04b2bfca1179439204d27c14ffb"
       },
       "zip_artifact": {
         "path": "views/zips.jsonl",
-        "sha256": "b24a6dc7026a3bec96cea4cd4cb227aa58d11be9beebd633d8229ca5ee37a6dd",
-        "bytes": 712218883,
+        "sha256": "bbec4dc2b4ff79702b35c3e7dc937958fc4c82005260087b1dbcf3253646abb2",
+        "bytes": 714580381,
         "record_count": 48194,
         "export_policy": "local-review-only"
       },
