@@ -4,7 +4,7 @@ import { gunzipSync } from 'node:zlib';
 import pin from '../config/national-status-contract.json' with { type: 'json' };
 import { APP_ROOT } from './paths.mjs';
 import { echoReplay as r } from './national-epa-echo-naics-zip-industry-evidence.mjs';
-import { exact, equal, integer, validIndustryRow, validNationalStatus, evidenceStatuses } from '../app/national-status-validation.mjs';
+import { exact, equal, integer, validIndustryRow, validNationalStatus, validTemporalAssessment, evidenceStatuses } from '../app/national-status-validation.mjs';
 
 const DATASET='national-goal-evidence-federation';
 const check=(v,label)=>{if(!v)throw Error(`National status rejected: ${label}.`)};
@@ -19,7 +19,9 @@ async function load(root,signal) {
   check(equal(JSON.parse(decoder.decode(registration.raw)),REGISTRATION),'closed registration and pin');
   const manifestFile=r.contained(root,pin.manifest),proof=await r.secureBuffer(root,manifestFile,NATIONAL_STATUS_LIMITS.manifest,signal),manifest=JSON.parse(decoder.decode(proof.raw));
   check(proof.sha256===pin.manifest_sha256 && exact(manifest,['release_id','schema_version','dataset_id','status','publication_mode','created_at','inputs','config_sha256','contract_sha256','summary','claims','verification_scope','artifacts']) && manifest.release_id===pin.release_id && manifest.schema_version===`${DATASET}@1.0.0` && manifest.dataset_id===DATASET && manifest.status==='immutable-local-review-only' && manifest.publication_mode==='pointer-free' && equal(manifest.claims,pin.claims),'closed immutable manifest');
-  check(equal(manifest.summary,{zip5_cohort_rows:48194,source_dimensions:51,matrix_evidence_cells:2457894,state_industry_rows:459,gaps:pin.gaps}),'manifest totals');
+  check(equal(manifest.summary,{zip5_cohort_rows:48194,source_dimensions:51,matrix_evidence_cells:2457894,state_industry_rows:459,gaps:pin.gaps,temporal_assessment:pin.temporal_assessment}) &&
+    validTemporalAssessment(manifest.summary.temporal_assessment) && manifest.inputs.matrix.release_id===pin.matrix_provenance.release_id &&
+    manifest.inputs.matrix.sha256===pin.matrix_provenance.manifest_sha256,'manifest totals and v3.2 temporal projection');
   check(Array.isArray(manifest.artifacts) && manifest.artifacts.length===104 && new Set(manifest.artifacts.map(a=>a.path)).size===104 && names.every(name=>manifest.artifacts.some(a=>a.path===name)),'artifact roster');
   for(const a of manifest.artifacts)check(exact(a,['path','artifact_type','bytes','decoded_bytes','record_count','sha256']) && integer(a.bytes) && integer(a.decoded_bytes) && integer(a.record_count) && /^[a-f0-9]{64}$/.test(a.sha256),'artifact declarations');
   const q=pin.geography_relationship_quality,relationshipRegistrationFile=r.contained(root,q.registration_path),relationshipRegistration=await r.secureBuffer(root,relationshipRegistrationFile,10000,signal),rr=JSON.parse(decoder.decode(relationshipRegistration.raw));

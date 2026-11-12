@@ -11,6 +11,14 @@ const boundedString = v => typeof v === 'string' && v.length > 0 && v.length <= 
 export function validTemporal(v) {
   return exact(v,temporalKeys) && temporalKeys.filter(k=>!['review_qualification','semantic_class'].includes(k)).every(k=>v[k]===null || boundedString(v[k])) && ['within-review-window','stale','unmeasured','unmapped'].includes(v.review_qualification) && ['source-defined-current','non-active-reporting','annual-aggregate','linkage-readiness','publisher-active-snapshot','unknown-source-status','unmapped'].includes(v.semantic_class);
 }
+export function validTemporalAssessment(value) {
+  return equal(value,pin.temporal_assessment) &&
+    value.schema_version==='exact-zip-industry-temporal-summary-projection@3.2.0' &&
+    value.matrix_release_id===pin.matrix_provenance.release_id && value.matrix_manifest_sha256===pin.matrix_provenance.manifest_sha256 &&
+    value.source_dimensions===pin.dimension_order.length && /^[a-f0-9]{64}$/.test(value.projection_sha256) &&
+    [value.dimension_counts,value.semantic_dimension_counts,value.retained_assessment_dimension_counts]
+      .every(counts=>Object.values(counts).every(integer) && sum(Object.values(counts))===value.source_dimensions);
+}
 const common = v => v.schema_version === pin.schema_version && equal(v.claims,pin.claims) && exact(v.provenance,['release_id','manifest_sha256','created_at','artifact_sha256','verification_scope']) && v.provenance.release_id===pin.release_id && v.provenance.manifest_sha256===pin.manifest_sha256 && /^[a-f0-9]{64}$/.test(v.provenance.artifact_sha256) && boundedString(v.provenance.created_at) && v.provenance.verification_scope==='Pinned retained aggregate bytes and closed count reconciliation; full replay was verified at publication.';
 export function validIndustryRow(row, state) {
   const scope=pin.state_scopes[state];
@@ -28,7 +36,7 @@ function validateNationalStatus(v, state=null) {
   if(!v || !common(v) || v.provenance.created_at!==pin.created_at || v.provenance.artifact_sha256!==pin.artifact_sha256[v.kind==='summary'?'national-summary.json':v.kind==='state'?'state-industry-status.jsonl':`zip-status/prefix=${typeof v.zip5==='string'?v.zip5.slice(0,2):''}.jsonl.gz`])return false;
   if(v.kind==='state')return exact(v,['schema_version','kind','state','industries','claims','provenance']) && v.state===state && Object.hasOwn(pin.state_scopes,v.state) && Array.isArray(v.industries) && v.industries.length===9 && v.industries.every((row,i)=>row.id===pin.industries[i] && validIndustryRow(row,v.state));
   if(v.kind==='summary') {
-    if(!exact(v,['schema_version','kind','zip5_cohort_rows','source_dimensions','matrix_evidence_cells','state_industry_rows','temporal_assessment','geography_scope_counts','gaps','industry_evidence_metrics','territories','geography_relationship_quality','source_policy_provenance','publisher_membership_reconciliation','claims','provenance']) || v.zip5_cohort_rows!==48194 || v.source_dimensions!==51 || v.matrix_evidence_cells!==v.zip5_cohort_rows*v.source_dimensions || v.state_industry_rows!==459 || !equal(v.temporal_assessment,pin.temporal_assessment) || !equal(v.geography_scope_counts,pin.geography_scope_counts) || sum(Object.values(v.geography_scope_counts))!==v.zip5_cohort_rows || !equal(v.gaps,pin.gaps))return false;
+    if(!exact(v,['schema_version','kind','zip5_cohort_rows','source_dimensions','matrix_evidence_cells','state_industry_rows','temporal_assessment','geography_scope_counts','gaps','industry_evidence_metrics','territories','geography_relationship_quality','source_policy_provenance','publisher_membership_reconciliation','claims','provenance']) || v.zip5_cohort_rows!==48194 || v.source_dimensions!==51 || v.matrix_evidence_cells!==v.zip5_cohort_rows*v.source_dimensions || v.state_industry_rows!==459 || !validTemporalAssessment(v.temporal_assessment) || !equal(v.geography_scope_counts,pin.geography_scope_counts) || sum(Object.values(v.geography_scope_counts))!==v.zip5_cohort_rows || !equal(v.gaps,pin.gaps))return false;
     const q=v.geography_relationship_quality,p=pin.geography_relationship_quality;
     if(!exact(q,['profile_count','postal_relationship_counts','point_relationship_counts','reported_state_conflict_count','scope','claims','release_id','manifest_sha256']) || q.profile_count!==p.profile_count || !equal(q.postal_relationship_counts,p.postal_relationship_counts) || !equal(q.point_relationship_counts,p.point_relationship_counts) || q.reported_state_conflict_count!==p.reported_state_conflict_count || q.release_id!==p.release_id || q.manifest_sha256!==p.manifest_sha256 || q.scope!=='Aggregate relationship quality for the registry profile cohort; non-numerator and separate from ZIP5 evidence dimensions.' || !exact(q.claims,['numerator','denominator','entity_assignment','polygon_assignment','usps_validity_verified','current_operation_verified','geocode_verified','business_completeness','acquisition_performed','production_enrollment','current_pointer_written','network_requests']) || q.claims.numerator!==false || q.claims.denominator!==false || q.claims.business_completeness!==null || q.claims.network_requests!==0)return false;
     const sp=v.source_policy_provenance,la=v.publisher_membership_reconciliation;
@@ -49,4 +57,5 @@ function validateNationalStatus(v, state=null) {
   }
   return false;
 }
+/** @param {*} v @param {string|null} [state] */
 export function validNationalStatus(v,state=null) {try{return validateNationalStatus(v,state)}catch{return false}}

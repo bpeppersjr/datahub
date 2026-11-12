@@ -43,7 +43,9 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
   assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
   const renderedSummary=text((h.render("ExactZipIndustryNationalSummary"),await flush(),h.render("ExactZipIndustryNationalSummary")));
   assert.match(renderedSummary,/30 dimensions are within review window; 0 is stale; 21 are unmeasured/);
+  assert.match(renderedSummary,/2026-10-02 \(49 dimensions\).*2026-11-11 \(2 dimensions\)/);
   assert.match(renderedSummary,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
+  for(const mutate of [v=>{v.temporal_qualification.schema_version="exact-zip-industry-temporal-qualification-v2-1-runtime-projection"},v=>{v.temporal_qualification.source_dimensions=42},v=>{v.temporal_qualification.projection_sha256="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
   for(const mutate of [v=>{v.manifest_sha256="0".repeat(64)},v=>{v.status_counts.positive++},v=>{v.dimensions.at(-1).temporal_qualification.review_qualification="stale"},v=>{v.ny_retail_food_license_address_dispositions[0].site_occupancy_verified=true}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
   const temporal = (view, id) => view.temporal_qualification.rows.find(row=>row.dimension_id===id);
   for(const mutate of [
@@ -170,6 +172,7 @@ const nativeStatusRegistration = JSON.parse(
 );
 const nativeStatusPin = nativeStatusRegistration.retained_release;
 const stateAccessEnrollment = JSON.parse(await readFile(new URL('../config/state-access-ui-enrollment.json',import.meta.url),'utf8'));
+const nationalStatusContract = JSON.parse(await readFile(new URL('../config/national-status-contract.json',import.meta.url),'utf8'));
 const exactZipMatrixRegistration = JSON.parse(
   await readFile(
     new URL(
@@ -229,6 +232,8 @@ function harness(request, sourceCode = code) {
             ? { default: nativeStatusRegistration }
             : name === "../config/state-access-ui-enrollment.json"
               ? { default: stateAccessEnrollment }
+            : name === "../config/national-status-contract.json"
+              ? { default: nationalStatusContract }
             : name === "./runner-client"
               ? { runnerJson: request }
               : name === "./business-intelligence"

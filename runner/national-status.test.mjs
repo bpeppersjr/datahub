@@ -13,12 +13,29 @@ const source=path.dirname(path.join(APP_ROOT,pin.manifest));
 test('National Status conserves headline units, nine state/DC industries and separate geography',async()=>{
   const summary=await readNationalStatus();assert.equal(validNationalStatus(summary),true);
   assert.equal(summary.zip5_cohort_rows*summary.source_dimensions,2457894);assert.equal(summary.state_industry_rows,51*9);
+  assert.equal(summary.temporal_assessment.matrix_release_id,pin.matrix_provenance.release_id);
+  assert.equal(summary.temporal_assessment.matrix_manifest_sha256,pin.matrix_provenance.manifest_sha256);
+  assert.equal(summary.temporal_assessment.source_dimensions,summary.source_dimensions);
   assert.equal(Object.values(summary.geography_scope_counts).reduce((n,v)=>n+v,0),48194);
   assert.equal(summary.territories.reduce((n,v)=>n+v.zip5_rows,0),149);
   for(const state of ['NJ','DC']){const view=await readNationalStatus({kind:'state',state});assert.equal(view.industries.length,9);assert.equal(validNationalStatus(view,state),true);assert.ok(Buffer.byteLength(JSON.stringify(view))<128000)}
   for(const state of ['PR','AS','ZZ','nj','',null])await assert.rejects(readNationalStatus({kind:'state',state}),/selector/);
   assert.equal(summary.claims.business_completeness,null);assert.equal(summary.claims.unresolved_geography_blocks_map,false);
   assert.equal(summary.geography_relationship_quality.profile_count,8011213);assert.equal(Object.values(summary.geography_relationship_quality.postal_relationship_counts).reduce((n,v)=>n+v,0),8011213);assert.equal(Object.values(summary.geography_relationship_quality.point_relationship_counts).reduce((n,v)=>n+v,0),8011213);assert.equal(summary.geography_relationship_quality.reported_state_conflict_count,50);assert.equal(summary.geography_relationship_quality.claims.numerator,false);
+});
+
+test('National Status rejects legacy temporal identity, dimension count and checksum',async()=>{
+  const summary=await readNationalStatus(),legacyHash='2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4';
+  for(const edit of [
+    value=>{value.schema_version='exact-zip-industry-temporal-qualification-v2-1-runtime-projection';},
+    value=>{value.source_dimensions=42;},
+    value=>{value.projection_sha256=legacyHash;},
+    value=>{value.matrix_manifest_sha256=legacyHash;},
+    value=>{value.retained_assessment_dimension_counts={'2026-10-02T16:30:00.000Z':51};},
+  ]){
+    const changed=structuredClone(summary);edit(changed.temporal_assessment);
+    assert.equal(validNationalStatus(changed),false);
+  }
 });
 
 test('ZIP endpoint retains exact zero-prefixed strings, separate ZIP4 and unknown outside-cohort results',async()=>{

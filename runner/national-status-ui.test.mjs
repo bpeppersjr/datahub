@@ -17,6 +17,7 @@ function harness(request) {
 const summary=await readNationalStatus(),state=await readNationalStatus({kind:'state',state:'NJ'});
 test('National Status renders national units, evidence reach, source reviews, selected state and separate territories',async()=>{
   const h=harness(async url=>url.endsWith('summary')?structuredClone(summary):structuredClone(state));h.render();await flush();const output=text(h.render());
+  assert.match(output,/2026-10-02 \(49 dimensions\).*2026-11-11 \(2 dimensions\)/);
   for(const expected of [/48,194 ZIP5 cohort keys/,/51 source dimensions/,/459 state\/industry rows/,/30 within review window/,/0 stale/,/21 unmeasured/,/40 states\/DC awaiting broad/,/149 unsupported/,/2 unmeasured access/,/59\.2%/,/evidence reach/,/NJ · nine/,/Source date:/,/PR 132 ZIP5 keys/,/14,402 non-ZCTA keys/,/184 material cross-state/,/business completeness is unmeasured/,/8,011,213 matching profiles/,/7,962,776 same-code ZCTA candidates/,/48,436 outside ZCTA/,/994,752 retained single-county/,/6,976,316 missing geocode/,/50 reported-state conflicts/,/not a numerator/])assert.match(output,expected);assert.doesNotMatch(output,/% complete/);h.close();
 });
 test('summary and selected-state failures are isolated and malformed data never displays inferred counts',async()=>{

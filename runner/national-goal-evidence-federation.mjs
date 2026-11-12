@@ -12,7 +12,7 @@ import { verifyNationalBusinessTemporalLifecycleReconciliationV11 } from './nati
 export const DATASET = 'national-goal-evidence-federation';
 export const VERSION = `${DATASET}@1.0.0`;
 export const CLAIMS = Object.freeze({ all_business_denominator:null, business_completeness:null, industry_completeness:null, unique_business_count:null, current_operating_business_count:null, current_operation_verified:false, cross_industry_counts_additive:false, epa_memberships_additive_to_business_totals:false, usps_validity_verified:false, zcta_membership_is_usps_validity:false, zip4_joined:false, business_geometry_required:false, missing_population_blocks_map:false, unresolved_geography_blocks_map:false, raw_business_rows_exported:false, network_requests:0, acquisition_performed:false, current_pointer_written:false, production_enrollment:false });
-const INPUT_NAMES = ['goal','matrix','disposition','epa','geography','cohort','non_zcta','crosswalk','lifecycle','entity_geography_registration','entity_geography','source_policy_registration','source_policy_manifest','temporal_lifecycle_reconciliation_registration','access','industries','operational_crosswalk','summary_implementation','temporal_mapping'];
+const INPUT_NAMES = ['goal','matrix','disposition','epa','geography','cohort','non_zcta','crosswalk','lifecycle','entity_geography_registration','entity_geography','source_policy_registration','source_policy_manifest','temporal_lifecycle_reconciliation_registration','access','industries','operational_crosswalk','summary_implementation','temporal_mapping','ny_retail_food_snapshot_manifest'];
 const CONTRACTS = ['connectors','schemas','source-policies'].map(part=>`config/${part}/${DATASET}${part==='schemas'?'.schema':''}.json`);
 const count = n => Number.isSafeInteger(n) && n >= 0;
 const EVIDENCE_BY_RAW = {positive:'evidence-present','measured-positive':'evidence-present','retained-linkage-evidence':'evidence-present','measured-zero':'measured-zero','not-published-for-zip':'source-did-not-publish-for-zip','outside-zbp-zcta-evidence-union':'outside-source-evidence-union','outside-source-denominator':'outside-source-denominator','absent-from-retained-source-rows':'absent-from-retained-source-rows',unavailable:'unavailable','no-resolution-decision':'unavailable'};
@@ -37,9 +37,24 @@ async function load(root,configPath,signal) {
   const contractHashes={};for(const p of CONTRACTS)contractHashes[p]=(await r.secureBuffer(root,r.contained(root,p),200_000,signal)).sha256;
   check(inputs.goal.value.schema_version==='national-goal-completion-matrix@1.3.0' && inputs.matrix.value.schema_version==='national-exact-zip-industry-evidence-matrix@3.2.0','required versions');
   check(inputs.disposition.value.bindings.matrix.release_id===inputs.matrix.value.release_id && inputs.disposition.value.bindings.matrix.manifest_sha256===inputs.matrix.proof.sha256,'disposition matrix pin');
+  check(config.inputs.summary_implementation.path==='runner/exact-zip-industry-summary-v3-2.mjs','v3.2 summary implementation path');
   const summary=await readExactZipIndustrySummaryV32({root,signal});
   check(summary.schema_version==='national-exact-zip-industry-summary-view@3.2.0' && summary.release_id===inputs.matrix.value.release_id && summary.manifest_sha256===inputs.matrix.proof.sha256 && summary.source_dimensions===51 && summary.zip5_rows===48194 && summary.industry_cells===2457894,'summary binding/conservation');
   check(summary.dimensions.length===51 && new Set(summary.dimensions.map(d=>d.id)).size===51,'summary dimensions');
+  const temporal=summary.temporal_qualification, matrix=inputs.matrix.value;
+  check(temporal.schema_version==='exact-zip-industry-temporal-summary-projection@3.2.0' &&
+    temporal.matrix_release_id===matrix.release_id && temporal.matrix_manifest_sha256===inputs.matrix.proof.sha256 &&
+    temporal.source_dimensions===matrix.summary.dimension_count && /^[a-f0-9]{64}$/.test(temporal.projection_sha256) &&
+    [temporal.dimension_counts,temporal.semantic_dimension_counts,temporal.retained_assessment_dimension_counts]
+      .every(tally=>Object.values(tally).every(count)&&Object.values(tally).reduce((sum,n)=>sum+n,0)===51),'v3.2 temporal projection binding/conservation');
+  const snapshot=inputs.ny_retail_food_snapshot_manifest, snapshotBinding=matrix.bindings.ny_retail_food_license_snapshot;
+  check(snapshot.proof.sha256===snapshotBinding.manifest_sha256 && snapshot.value.release_id===snapshotBinding.release_id &&
+    snapshot.value.source_release_id===snapshotBinding.source_release_id &&
+    ['ny_retail_food_location_profiles',matrix.bindings.replaced_dimension].every(id=>{
+      const qualification=summary.dimensions.find(row=>row.id===id)?.temporal_qualification;
+      return qualification?.source_release_id===snapshot.value.source_release_id &&
+        qualification.source_reference_at===snapshot.value.source_rows_updated_at && qualification.assessment_as_of===snapshot.value.retrieved_at;
+    }),'New York temporal projection source and assessment pin');
   return {root,configRead,config,inputs,contractHashes,summary};
 }
 
@@ -149,7 +164,7 @@ async function derive(input,output,signal,hooks,verifyRelationship=true) {
 
 function manifestFor(input,result,createdAt) {
   check(typeof createdAt==='string'&&new Date(createdAt).toISOString()===createdAt,'timestamp');
-  const body={schema_version:VERSION,dataset_id:DATASET,status:'immutable-local-review-only',publication_mode:'pointer-free',created_at:createdAt,inputs:input.config.inputs,config_sha256:input.configRead.sha256,contract_sha256:input.contractHashes,summary:{zip5_cohort_rows:48194,source_dimensions:51,matrix_evidence_cells:2457894,state_industry_rows:459,gaps:result.summary.gaps},claims:CLAIMS,verification_scope:'Replays every checksum-bound retained matrix cell and joins pinned aggregate evidence. Upstream record normalization, publisher authentication and current operation are not reverified.',artifacts:result.artifacts};
+  const body={schema_version:VERSION,dataset_id:DATASET,status:'immutable-local-review-only',publication_mode:'pointer-free',created_at:createdAt,inputs:input.config.inputs,config_sha256:input.configRead.sha256,contract_sha256:input.contractHashes,summary:{zip5_cohort_rows:48194,source_dimensions:51,matrix_evidence_cells:2457894,state_industry_rows:459,gaps:result.summary.gaps,temporal_assessment:result.summary.temporal_assessment},claims:CLAIMS,verification_scope:'Replays every checksum-bound retained matrix cell and joins pinned aggregate evidence. Upstream record normalization, publisher authentication and current operation are not reverified.',artifacts:result.artifacts};
   return {release_id:`${DATASET}-${r.sha(JSON.stringify(body))}`,...body};
 }
 async function inventory(directory) { const names=await fs.readdir(directory),nested=names.includes('zip-status')?(await fs.readdir(path.join(directory,'zip-status'))).map(name=>`zip-status/${name}`):[];return sorted([...names.filter(n=>n!=='zip-status'),...nested]); }
@@ -184,7 +199,9 @@ export async function verifyNationalGoalEvidenceFederation(manifestPath,options=
   check(path.basename(directory)===m.release_id||options.allowStaging===true&&options.expectedReleaseId===m.release_id&&/^\.stage-[a-f0-9-]+$/.test(path.basename(directory)),'immutable/staging location');
   const expectedInventory=sorted(['manifest.json','national-summary.json','state-industry-status.jsonl','gap-ledger.json','territories.json',...Array.from({length:100},(_,i)=>`zip-status/prefix=${String(i).padStart(2,'0')}.jsonl.gz`)]);
   check(r.equal(await inventory(directory),expectedInventory),'closed output inventory');
-  const input=await load(root,options.configPath,options.signal),replay=await fs.mkdtemp(path.join(path.dirname(directory),'.verify-'));
+  const input=await load(root,options.configPath,options.signal);
+  check(r.equal(m.summary?.temporal_assessment,input.summary.temporal_qualification),'v3.2 temporal projection manifest pin');
+  const replay=await fs.mkdtemp(path.join(path.dirname(directory),'.verify-'));
   try {
     const result=await derive(input,replay,options.signal),expected=manifestFor(input,result,m.created_at);check(r.equal(m,expected),'independent semantic reconstruction');
     for(const a of expected.artifacts){const actual=await r.secureBuffer(root,r.contained(directory,a.path),100_000_000,options.signal);check(actual.sha256===a.sha256&&actual.bytes===a.bytes,`artifact replay ${a.path}`);}

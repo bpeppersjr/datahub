@@ -93,11 +93,17 @@
     },
     "summary_implementation": {
       "path": "runner/exact-zip-industry-summary-v3-2.mjs",
-      "sha256": "515f23bd1d2edd9c5cab2d66b3f43f32389289929ff5a607d99e6785da6a9d45"
+      "sha256": "59e8b011bf6d201a429df454c830052ac1ae8274d0ea8ddac85eb5154c756d7c"
     },
     "temporal_mapping": {
       "path": "runner/exact-zip-industry-temporal-mappings-v3-1.mjs",
       "sha256": "6f6c72838283797b1556b18ce35f7c6b0b4537446fc1a5542f880c1f3aad928c"
+    },
+    "ny_retail_food_snapshot_manifest": {
+      "path": "data/business-sources/ny-retail-food-store-license-sites/releases/ny-retail-food-stores-20261111-232147684Z-a758a52c/manifest.json",
+      "sha256": "f207c68e2427c0647c71b92b20dc95d32662c96a55d5d89e39bcc53349f0aadc",
+      "release_id": "ny-retail-food-stores-20261111-232147684Z-a758a52c",
+      "schema_version": "1.0.0"
     }
   }
 }

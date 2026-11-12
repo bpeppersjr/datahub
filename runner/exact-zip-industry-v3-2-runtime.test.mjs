@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readExactZipIndustryEvidenceV32 } from "./national-exact-zip-industry-evidence-matrix-v3-2-reader.mjs";
 import { readExactZipIndustrySummaryV32 } from "./exact-zip-industry-summary-v3-2.mjs";
 import { readExactZipIndustryEvidenceWithTemporalQualificationV32 } from "./exact-zip-industry-temporal-qualification-v3-2.mjs";
@@ -25,9 +26,20 @@ test("v3.2 summary conserves the 51-dimension matrix and refreshed New York coun
   assert.equal(dimension.temporal_qualification.review_qualification, "within-review-window");
   assert.deepEqual(value.temporal_qualification.dimension_counts,
     { "within-review-window": 30, stale: 0, unmeasured: 21, unmapped: 0 });
+  const { projection_sha256, ...projection } = value.temporal_qualification;
+  assert.equal(projection.schema_version, "exact-zip-industry-temporal-summary-projection@3.2.0");
+  assert.equal(projection.source_dimensions, value.dimensions.length);
+  assert.equal(projection.matrix_release_id, value.release_id);
+  assert.equal(projection.matrix_manifest_sha256, value.manifest_sha256);
+  assert.deepEqual(projection.retained_assessment_dimension_counts,
+    { "2026-10-02T16:30:00.000Z": 49, "2026-11-11T23:21:47.684Z": 2 });
+  const dimensions = value.dimensions.map(({ id, temporal_qualification }) => ({ dimension_id: id, ...temporal_qualification }));
+  assert.equal(projection_sha256, createHash("sha256").update(JSON.stringify({ ...projection, dimensions })).digest("hex"));
   const profile = value.dimensions.find(row => row.id === "ny_retail_food_location_profiles");
   assert.equal(profile.temporal_qualification.source_release_id, dimension.temporal_qualification.source_release_id);
   assert.equal(profile.temporal_qualification.review_qualification, "unmeasured");
+  assert.equal(profile.temporal_qualification.assessment_as_of, "2026-11-11T23:21:47.684Z");
+  assert.equal(dimension.temporal_qualification.assessment_as_of, profile.temporal_qualification.assessment_as_of);
   assert.equal(profile.status_counts.positive, 1498);
   assert.equal(profile.status_counts["absent-from-retained-source-rows"], 46696);
 });

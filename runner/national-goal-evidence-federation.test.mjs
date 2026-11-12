@@ -48,6 +48,13 @@ test('retained federation has full independent replay, closed units and correct 
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
   assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:149,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:21});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
+  assert.deepEqual(verified.temporal_assessment,summary.temporal_assessment);
+  const temporal=summary.temporal_assessment, matrix=(await json(manifest)).inputs.matrix;
+  assert.equal(temporal.schema_version,'exact-zip-industry-temporal-summary-projection@3.2.0');
+  assert.equal(temporal.matrix_release_id,matrix.release_id);
+  assert.equal(temporal.matrix_manifest_sha256,matrix.sha256);
+  assert.equal(temporal.source_dimensions,summary.dimension_order.length);
+  assert.equal(gaps.temporal.find(row=>row.dimension==='ny_retail_food_location_profiles').assessment_as_of,'2026-11-11T23:21:47.684Z');
   assert.equal(Object.entries(summary.geography_scope_counts).filter(([s])=>s.startsWith('state:')).reduce((n,[,v])=>n+v,0),33455);
   assert.equal(summary.geography_scope_counts['non-zcta-unassigned'],14402);assert.equal(summary.geography_scope_counts['multi-state-material'],184);assert.equal(summary.geography_scope_counts['zcta-overlay-unresolved'],3);assert.equal(summary.geography_scope_counts['explicit-placeholder'],1);
   assert.equal(territories.included_in_51_state_denominator,false);assert.deepEqual(territories.geography.map(row=>row.zip5_rows),[1,7,3,132,6]);
@@ -61,10 +68,27 @@ test('retained federation has full independent replay, closed units and correct 
   const la=summary.sidecars.publisher_membership_reconciliation;assert.equal(la.registration_sha256,'8bb9d80ddd7192e76f1a48a75e83b03afd8e91170eafb646193adde2b8961d75');assert.equal(la.source_rows,la.normalized_profiles+la.quarantined_rows);assert.deepEqual(la.effective_source_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});assert.equal(la.row_status,null);assert.equal(la.lifecycle_evidence,'unknown');assert.equal(la.active_business_eligible_count,0);assert.equal(la.active_business_count,null);assert.equal(la.completeness_percentage,null);assert.equal(la.claims.inference_performed,false);
 });
 
-test('successor advances only New York ZIP/state summaries while preserving its immutable predecessor',async()=>{
-  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8/manifest.json'),registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),current=path.join(APP_ROOT,registration.retained_release.manifest);
-  const [oldManifest,newManifest]=await Promise.all([json(prior),json(current)]);assert.equal(oldManifest.release_id,'national-goal-evidence-federation-4a629edead7a4c13f473db6e526f1e7cfcf9a067e24a867ea2ab002164f703a8');assert.equal((await fs.stat(prior)).isFile(),true);assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
-  const changed=new Set(['gap-ledger.json','national-summary.json','state-industry-status.jsonl','territories.json',...['10','11','12','13','14'].map(prefix=>`zip-status/prefix=${prefix}.jsonl.gz`)]),oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256])),actualChanged=new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path));assert.deepEqual(actualChanged,changed);assert.equal(newManifest.artifacts.filter(a=>oldHashes.get(a.path)===a.sha256).length,95);
+test('successor corrects temporal aggregate provenance while preserving its immutable predecessor',async()=>{
+  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf/manifest.json');
+  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`)),current=path.join(APP_ROOT,registration.retained_release.manifest);
+  const oldBytes=await fs.readFile(prior),oldManifest=JSON.parse(oldBytes),newManifest=await json(current);
+  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56');
+  assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
+  const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256]));
+  assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['gap-ledger.json','national-summary.json']));
+});
+
+test('current verifier rejects legacy temporal lineage, dimension count and checksum',async t=>{
+  const registration=await json(path.join(APP_ROOT,`config/datasets/${DATASET}.json`));
+  const source=path.dirname(path.join(APP_ROOT,registration.retained_release.manifest)),root=await fixture(t);
+  const dir=path.join(root,registration.retained_release.release_id);await fs.cp(source,dir,{recursive:true});
+  const file=path.join(dir,'manifest.json'),manifest=await json(file);
+  const legacy={release_id:'exact-zip-industry-temporal-qualification-v2-1-runtime-projection',manifest_sha256:'2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4'};
+  for(const change of [value=>({...value,...legacy}),value=>({...value,source_dimensions:42}),value=>({...value,projection_sha256:legacy.manifest_sha256})]){
+    const changed=structuredClone(manifest);changed.summary.temporal_assessment=change(changed.summary.temporal_assessment);
+    await fs.writeFile(file,JSON.stringify(changed));
+    await assert.rejects(verifyNationalGoalEvidenceFederation(file),/v3\.2 temporal projection manifest pin/);
+  }
 });
 
 test('exclusive publisher lock and cancellation leave no invocation staging',async t=>{

@@ -1,8 +1,8 @@
 {
-  "created_at": "2026-11-12T05:26:08.927Z",
+  "created_at": "2026-11-12T06:20:34.138Z",
   "artifact_sha256": {
-    "gap-ledger.json": "2c8a008698d7992d3a5af6ef84875e734622f939ae4476c7073225e99ac28d8a",
-    "national-summary.json": "a084b557906ef77097e58683309ffd8f3c85363cfba46138e6d16073a7838310",
+    "gap-ledger.json": "0d93c26b1825cb3493e63292daa2202e414787130480a23e7f0bd16ec0adeebf",
+    "national-summary.json": "a392eec85d23b8f957df77f7f2e3d828d348c3b3a4fda38299223a2ee035dd23",
     "state-industry-status.jsonl": "52b920961bdf0f16eb3ffa084b95dbb724488fc2f30260ab481a0f2af5360974",
     "territories.json": "a35b10d006a6205c19993b1643cc99758f29e9803adfe67890c454260561186a",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -136,9 +136,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf/manifest.json",
-  "manifest_sha256": "a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56",
+  "release_id": "national-goal-evidence-federation-f7f4d81685c590f02749337c8ab42dfc03afa0ae552e758ba45ff405cdab0efb",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f7f4d81685c590f02749337c8ab42dfc03afa0ae552e758ba45ff405cdab0efb/manifest.json",
+  "manifest_sha256": "49ab7fb15713e8c071746660ab4525eda14d5aabcd0ea1183270d7f9a3af9a95",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -493,9 +493,14 @@
     "zcta-overlay-unresolved": 3
   },
   "temporal_assessment": {
-    "release_id": "exact-zip-industry-temporal-qualification-v2-1-runtime-projection",
-    "manifest_sha256": "2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4",
-    "assessment_as_of": "2026-10-02T16:30:00.000Z",
+    "schema_version": "exact-zip-industry-temporal-summary-projection@3.2.0",
+    "matrix_release_id": "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",
+    "matrix_manifest_sha256": "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",
+    "source_dimensions": 51,
+    "retained_assessment_dimension_counts": {
+      "2026-10-02T16:30:00.000Z": 49,
+      "2026-11-11T23:21:47.684Z": 2
+    },
     "dimension_counts": {
       "within-review-window": 30,
       "stale": 0,
@@ -510,7 +515,8 @@
       "linkage-readiness": 1,
       "publisher-active-snapshot": 3,
       "unknown-source-status": 1
-    }
+    },
+    "projection_sha256": "9c12275487f6935a57955325ef5b0795be01715d3296ff673f98165e4af8ffb6"
   },
   "gaps": {
     "broad_business_missing_states": 40,
