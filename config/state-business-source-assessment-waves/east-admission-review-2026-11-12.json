@@ -1,0 +1,28 @@
+{
+  "schema_version": "state-business-source-admission-review-wave-config@1.0.0",
+  "wave_id": "east-business-source-admission-review-2026-11-12",
+  "assembled_at": "2026-11-12T20:00:00.000Z",
+  "scope": ["AL", "GA", "NC", "SC"],
+  "inputs": {
+    "AL": {
+      "path": "config/state-business-source-assessments/al-2026-10-03.json",
+      "sha256": "eaaa86147e0e011a118cf3769f506a379fa8f4a634df1033112ed027ab522fa7",
+      "assessment_id": "al-business-source-reassessment-2026-10-03"
+    },
+    "GA": {
+      "path": "config/state-business-source-assessments/ga-2026-10-03.json",
+      "sha256": "ee55fad552f202bcafbbf7701bd22b2ac6352821248223c2312b10b8c807484a",
+      "assessment_id": "ga-business-source-reassessment-2026-10-03"
+    },
+    "NC": {
+      "path": "config/state-business-source-assessments/nc-2026-10-03.json",
+      "sha256": "7969e71623323640c5af72870676bb8f2a78eb5a36edce0a6206bd9446056807",
+      "assessment_id": "nc-business-source-reassessment-2026-10-03"
+    },
+    "SC": {
+      "path": "config/state-business-source-assessments/sc-2026-10-03.json",
+      "sha256": "777044cc8a92a8cb4808855c9e119ee387a2c4a3f3141282666c3ab411393c3b",
+      "assessment_id": "sc-business-source-reassessment-2026-10-03"
+    }
+  }
+}

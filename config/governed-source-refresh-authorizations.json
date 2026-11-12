@@ -11,16 +11,6 @@
       "descriptor_evidence_sha256": "d91b2bf6477b8a5de958207ffb94678c9ee1f2f416f3bb6c0b939eece9ac5a1c",
       "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
     },
-    "ak-active-business-licenses": {
-      "schema_version": "governed-source-refresh-authorization@1.0.0",
-      "authorization_id": "ak-active-business-licenses-production-20261112-01",
-      "source_id": "ak-active-business-licenses",
-      "approved_at": "2026-11-12T16:00:00.000Z",
-      "approved_by": "repository-owner-approved-production-plan",
-      "mode": "app-owned-automatic-full-snapshot-refresh",
-      "descriptor_evidence_sha256": "3d1d0c06ae48afc196c3cecc32575a868abdcdae0a72eaa42e531fd796c1b440",
-      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
-    },
     "fdic-bankfind": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "fdic-bankfind-production-20261112-01",

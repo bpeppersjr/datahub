@@ -10,7 +10,7 @@ import { ManagedOperations } from "./managed-operations.mjs";
 test("automatic-refresh contract covers every industry source and authorizes reviewed national and state sources", async () => {
   const config = await loadIndustryConfig(), decisions = await loadAutomaticRefreshAuthorizations(config);
   assert.equal(decisions.length, Object.keys(config.sources).length);
-  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,19);
+  assert.equal(decisions.filter((item) => item.automaticRefreshAuthorized).length,18);
   assert.equal(decisions.find((item)=>item.sourceId==="state-tx-sales-tax").automaticRefreshAuthorized,true);
   assert.deepEqual(decisions.filter((item) => item.governedSourceId).map((item) => [item.sourceId, item.governedSourceId, item.reasonCode]), [
     ["national-fdic-bankfind", "fdic-bankfind", "REVIEWED_AUTOMATIC_REFRESH"],
@@ -19,7 +19,7 @@ test("automatic-refresh contract covers every industry source and authorizes rev
     ["national-ncua-quarterly", "ncua-quarterly", "REVIEWED_AUTOMATIC_REFRESH"],
     ["national-nppes-organizations", "cms-nppes-organizations", "REVIEWED_AUTOMATIC_REFRESH"],
     ["national-snap-retailers", "usda-snap-retailers", "REVIEWED_AUTOMATIC_REFRESH"],
-    ["state-ak-business-licenses", "ak-active-business-licenses", "REVIEWED_AUTOMATIC_REFRESH"],
+    ["state-ak-business-licenses", "ak-active-business-licenses", "GOVERNED_SOURCE_HOLD"],
     ["state-ca-abc", "ca-abc-active-license-sites", "REVIEWED_AUTOMATIC_REFRESH"],
     ["state-co-childcare-centers", "co-childcare", "REVIEWED_AUTOMATIC_REFRESH"],
     ["state-ct-childcare-centers", "ct-childcare", "REVIEWED_AUTOMATIC_REFRESH"],
@@ -40,7 +40,7 @@ test("reviewed governed authorization can enable app-owned dispatch while HOLD a
   t.after(() => rm(root, { recursive: true, force: true }));
   const source = JSON.parse(await readFile(path.join(APP_ROOT, "config/automatic-refresh-authorizations.json"), "utf8"));
   const file = path.join(root, "authorized.json"); await writeFile(file, `${JSON.stringify(source)}\n`);
-  const authorizedBinding = async (sourceId) => ["fdic-bankfind","ncua-quarterly","fmcsa-company-census","usda-snap-retailers","cms-nppes-organizations","irs-eo-bmf","ak-active-business-licenses","ca-abc-active-license-sites","co-childcare","ct-childcare","dc-basic-business-licenses","de-business-licenses","md-childcare","ny-retail-food-stores","oh-childcare","pa-childcare","tx-active-sales-tax-permits","vt-childcare","wa-lni-active-contractor-licenses"].includes(sourceId)
+  const authorizedBinding = async (sourceId) => ["fdic-bankfind","ncua-quarterly","fmcsa-company-census","usda-snap-retailers","cms-nppes-organizations","irs-eo-bmf","ca-abc-active-license-sites","co-childcare","ct-childcare","dc-basic-business-licenses","de-business-licenses","md-childcare","ny-retail-food-stores","oh-childcare","pa-childcare","tx-active-sales-tax-permits","vt-childcare","wa-lni-active-contractor-licenses"].includes(sourceId)
     ? ({ sourceId, status: "AUTHORIZED", dispatchAvailable: true, freshAcquisitionAuthorized: true,
       autonomousAcquisitionAuthorized: true, productionPointerChangeAuthorized: true })
     : ({ sourceId, status: "HOLD", dispatchAvailable: false, freshAcquisitionAuthorized: false,

@@ -1,0 +1,59 @@
+{
+  "schema_version": "state-business-source-assessment-wave@1.0.0",
+  "wave_id": "state-business-source-assessment-wave-midwest-il-in-mi-oh-2026-11-12",
+  "created_at": "2026-11-12T19:00:00.000Z",
+  "purpose": "Bind the current retained broad-organization source assessments for Illinois, Indiana, Michigan, and Ohio to the current national gap ledger without authorizing source actions.",
+  "states": ["IL", "IN", "MI", "OH"],
+  "source_assessments": [
+    {
+      "state": "IL",
+      "assessment_id": "il-business-source-reassessment-2026-10-03",
+      "path": "config/state-business-source-assessments/il-2026-10-03.json",
+      "file_sha256": "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323"
+    },
+    {
+      "state": "IN",
+      "assessment_id": "in-business-source-reassessment-2026-10-03",
+      "path": "config/state-business-source-assessments/in-2026-10-03.json",
+      "file_sha256": "985bee2a6e3c1e46b01451c038f5336d1404d333c381f0b85d5148b73e9a99f7"
+    },
+    {
+      "state": "MI",
+      "assessment_id": "mi-business-source-reassessment-2026-10-03",
+      "path": "config/state-business-source-assessments/mi-2026-10-03.json",
+      "file_sha256": "23283f4c51633ec22abf1a08f64c066166dc4bfcbba9520874eeca6ce7273d02"
+    },
+    {
+      "state": "OH",
+      "assessment_id": "oh-business-source-reassessment-2026-10-03",
+      "path": "config/state-business-source-assessments/oh-2026-10-03.json",
+      "file_sha256": "cc5ed09ade4e0a2fd43ad2eda2b0ce08d39de6c5a2ee26ee2426dfd79dc65c24"
+    }
+  ],
+  "national_gap_binding": {
+    "federation_release_id": "national-goal-evidence-federation-7759bbfd3679a96e78886f91b94f1a64bdda297dd8c329c05df5b1970c030d7b",
+    "federation_manifest_sha256": "f386b18be2bb9a9325f141a27a6b0183dba638d84aa5df6feb5be22d19f370ae",
+    "gap_ledger_path": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-7759bbfd3679a96e78886f91b94f1a64bdda297dd8c329c05df5b1970c030d7b/gap-ledger.json",
+    "gap_ledger_sha256": "24ff1f161368bc2745946fbe2cfdbcbb94d67451fe2c1b8d16b9961e0a458d6c",
+    "required_gap_status": "missing-retained-broad-organization-layer"
+  },
+  "outcomes": {
+    "IL": "offline-connector-retained-package-and-rights-unresolved",
+    "IN": "account-gated-paid-bulk-contract-unresolved",
+    "MI": "written-scope-and-contract-required",
+    "OH": "paid-ftp-contract-and-schema-unresolved"
+  },
+  "controls": {
+    "source_assessments_reused": 4,
+    "network_requests": 0,
+    "downloads": 0,
+    "contacts_made": 0,
+    "fees_paid": 0,
+    "operations_started": 0,
+    "production_changes": 0,
+    "acquisition_authorized": false,
+    "source_action_authorized": false,
+    "production_pointer_change_authorized": false,
+    "broad_layer_admitted": false
+  }
+}
