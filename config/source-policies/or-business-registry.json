@@ -1,6 +1,6 @@
 {
   "policy_id": "or-business-registry",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Oregon Secretary of State, Corporation Division",
   "ownership": "Official active business-registration public records published through Oregon's Open Data Portal",
   "source_home": "https://data.oregon.gov/Business/Active-Businesses-ALL/tckn-sxa6",
@@ -29,10 +29,12 @@
     "business_details_url": "excluded"
   },
   "attribution": "Source: Oregon Secretary of State, Corporation Division, Active Businesses - ALL, via Oregon's Open Data Portal.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Oregon open data may be freely used, modified, and shared. Active registry status, principal-place addresses, and assumed business names remain source assertions; they do not establish current operation, licensure, a verified physical site, ownership of an assumed name, or every business operating in Oregon.",
   "retention": "Indefinite for immutable selected-field source and approved normalized records unless an approved retention rule applies.",
   "redistribution": "Approved normalized fields may be redistributed under the Oregon Open Data Program use authorization with source attribution, source refresh timestamp, source checksum, provenance, field exclusions, and status/address limitations retained; the selected-field source snapshot remains internal.",
   "contains_personal_data": true,
   "personal_data_handling": "Business names and principal-place addresses are public registration fields but can identify a sole proprietor or home address. The connector excludes every first, middle, last, and suffix field; entity-of-record names and numbers; all registered-agent and authorized-representative rows; and mailing-address rows. Downstream use must retain the public-record and non-site warning.",
   "contains_secrets": false,
-  "reviewed_at": "2026-08-31"
+  "reviewed_at": "2026-11-12"
 }

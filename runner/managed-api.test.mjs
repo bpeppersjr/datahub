@@ -242,10 +242,11 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(iowaRefresh.dispatchAvailable, false);
   assert.equal(catalog.collectionSources.some(source => source.id === "ia-business-registry"), false);
   const oregonRefresh = catalog.governedSourceServices.find(service => service.sourceId === "or-business-registry");
-  assert.equal(oregonRefresh.readinessStatus, "HOLD");
-  assert.equal(oregonRefresh.dispatchAvailable, false);
+  assert.equal(oregonRefresh.readinessStatus, "AUTHORIZED");
+  assert.equal(oregonRefresh.dispatchAvailable, true);
   assert.equal(oregonRefresh.retainedRelease.activeRegistrationsPublished, 559874);
   assert.equal(catalog.collectionSources.some(source => source.id === "or-business-registry"), false);
+  for(const sourceId of ["co-business-registry","ct-business-registry","pa-business-registry"]){const source=catalog.governedSourceServices.find(service=>service.sourceId===sourceId);assert.equal(source.readinessStatus,"AUTHORIZED");assert.equal(source.dispatchAvailable,true);assert.equal(typeof source.sourceUseNotice,"string");}
   const newYorkRefresh = catalog.governedSourceServices.find(service => service.sourceId === "ny-business-registry");
   assert.equal(newYorkRefresh.readinessStatus, "HOLD");
   assert.equal(newYorkRefresh.dispatchAvailable, false);
@@ -268,9 +269,7 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(orRefreshPlan.operationCreated, false);
   assert.equal(orRefreshPlan.networkRequestCount, 0);
   assert.equal(orRefreshPlan.allocationCount, 0);
-  const orRefreshStartResponse = await request(fixture.base, "/api/data-operations/source-refreshes", { method: "POST", body: { sourceId: "or-business-registry" } });
-  assert.equal(orRefreshStartResponse.status, 409);
-  assert.match((await orRefreshStartResponse.json()).error, /^ACQUISITION_NOT_AUTHORIZED:/);
+  assert.equal(orRefreshPlan.status,"AUTHORIZED");
   assert.deepEqual(await (await request(fixture.base, "/api/data-operations/operations")).json(), []);
   const nyRefreshPlanResponse = await request(fixture.base, "/api/data-operations/source-refresh-plans", { method: "POST", body: { sourceId: "ny-business-registry" } });
   assert.equal(nyRefreshPlanResponse.status, 200);

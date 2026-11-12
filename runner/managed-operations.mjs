@@ -174,7 +174,7 @@ export class ManagedOperations {
         exportPolicy: "internal", currentOperationsVerified: false, statewideCompletenessVerified: false }],
       export: { categories: Object.keys(BUSINESS_FLATFILE_CATEGORIES), fields: [...AVAILABLE_EXPORT_FIELDS], formats: FORMATS, policyModes: POLICIES },
       credentialExport:{exportType:'mn-construction-credentials',fields:[...MN_CREDENTIAL_FLAT_FIELDS],requiredFields:[...MN_CREDENTIAL_FLAT_REQUIRED_FIELDS],formats:['csv','jsonl','both'],policyModes:['local-review-only'],recordUnit:'publisher-business-credential-row'},
-      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),await getIaBusinessRegistryRefreshReadiness(),await getOrBusinessRegistryRefreshReadiness(),await getNyBusinessRegistryRefreshReadiness(),...await Promise.all(RETAINED_BUSINESS_REFRESH_SOURCE_IDS.map(getRetainedBusinessRefreshReadiness))] };
+      retainedSourceAdoptions:ADOPTIONS.map(source=>({...source})), governedSourceServices:[await getCmsSnfPecosAppStatus(),...await Promise.all([...new Set([IA_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,OR_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,NY_BUSINESS_REGISTRY_REFRESH_SOURCE_ID,...RETAINED_BUSINESS_REFRESH_SOURCE_IDS])].map(sourceId=>this.sourceRefreshDispatch.get(sourceId).readiness()))] };
   }
   async sourceRefreshPlan(input = {}) {
     const dispatch=this.#exactSourceRefreshInput(input);
