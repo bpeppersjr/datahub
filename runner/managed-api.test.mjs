@@ -330,13 +330,15 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
   const catalog = await (await request(fixture.base, "/api/data-operations/catalog")).json();
   assert.equal(catalog.automaticRefreshSources.length, 28);
-  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 5);
+  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 6);
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").governedSourceId, "fdic-bankfind");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-ncua-quarterly").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-ncua-quarterly").governedSourceId, "ncua-quarterly");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fmcsa-census").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fmcsa-census").governedSourceId, "fmcsa-company-census");
+  assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-snap-retailers").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
+  assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-snap-retailers").governedSourceId, "usda-snap-retailers");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-tx-sales-tax").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-ca-childcare").reasonCode, "AUTOMATIC_REFRESH_NOT_REVIEWED");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "state-wa-contractors").governedSourceId, "wa-lni-active-contractor-licenses");
@@ -346,7 +348,7 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const initial = await request(fixture.base, route); assert.equal(initial.status, 200); assert.deepEqual(await initial.json(), []);
   const invalid = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 0 } });
   assert.equal(invalid.status, 400);
-  const response = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 24 } });
+  const response = await request(fixture.base, route, { method: "POST", body: { industries: ["health-care"], states: ["TX"], intervalHours: 24 } });
   assert.equal(response.status, 409); assert.match((await response.json()).error, /Automatic refresh is not authorized/);
   const listed = await request(fixture.base, route); assert.deepEqual(await listed.json(), []);
   const operations = await request(fixture.base, "/api/data-operations/operations"); assert.deepEqual(await operations.json(), []);

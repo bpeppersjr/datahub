@@ -1,6 +1,6 @@
 {
   "policy_id": "usda-snap-retailers",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "U.S. Department of Agriculture Food and Nutrition Administration",
   "ownership": "United States federal government public retailer-locator data",
   "source_home": "https://www.fns.usda.gov/snap/retailer-locator",
@@ -18,5 +18,7 @@
   "redistribution": "Allowed for the public locator fields with source item, update timestamp, transformation, and semantic limitations retained.",
   "contains_secrets": false,
   "contains_personal_data": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "USDA FNS publishes this public SNAP Retailer Locator layer without item-level license or terms text. SNAP authorization is location- and owner-specific and does not independently establish that a business is currently open, every grocery or retail business, legal ownership, parent company, or transferability to another site. Source fields, points, classifications, and update times remain publisher assertions."
 }

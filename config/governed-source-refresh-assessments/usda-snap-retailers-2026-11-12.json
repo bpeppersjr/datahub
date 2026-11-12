@@ -1,0 +1,35 @@
+{
+  "schema_version": "governed-source-refresh-assessment@1.0.0",
+  "assessment_id": "usda-snap-retailers-2026-11-12",
+  "source_id": "usda-snap-retailers",
+  "dataset_id": "usda-snap-retailers",
+  "observed_at": "2026-11-12",
+  "controls": { "metadata_requests": 1, "aggregate_requests": 1, "entity_row_requests": 0, "records_downloaded": 0, "production_changes": 0 },
+  "observation": {
+    "metadata_sha256": "26647a00677d5253451af821c5d5746c55c2eea9b9c180c71e964f1cc214e081",
+    "aggregate_sha256": "6a49ce1b2ebdca1b2662c45c57b8bcb3b05076e1261fdfdde3126d0c64acb5af",
+    "aggregate_records": 248175,
+    "item_url": "https://www.arcgis.com/sharing/rest/content/items/8b260f9a10b0459aa441ad8588c2251c?f=json",
+    "item_http_status": 200,
+    "item_bytes": 1855,
+    "item_modified_at": "2026-11-05T21:02:24.000Z",
+    "layer_url": "https://services1.arcgis.com/RLQu0rK7h4kbsBq5/arcgis/rest/services/snap_retailer_location_data/FeatureServer/0?f=json",
+    "layer_http_status": 200,
+    "layer_bytes": 12745,
+    "data_last_edited_at": "2026-11-05T21:00:57.776Z",
+    "field_count": 15,
+    "maximum_page_size": 1000,
+    "count_http_status": 200,
+    "count_response_bytes": 184,
+    "returned_entity_rows": 0
+  },
+  "claims": {
+    "snap_authorization_is_current_operation": false,
+    "reported_location_is_verified_open_storefront": false,
+    "complete_all_grocery_retailers": false,
+    "row_delta_is_net_business_creation": false,
+    "complete_all_us_businesses": false
+  },
+  "citations": ["https://www.fns.usda.gov/snap/retailer-locator", "https://www.arcgis.com/home/item.html?id=8b260f9a10b0459aa441ad8588c2251c", "https://services1.arcgis.com/RLQu0rK7h4kbsBq5/arcgis/rest/services/snap_retailer_location_data/FeatureServer/0"],
+  "next_action": "Use only the authorization-bound Co*Tive operation; pin the item and layer edit times, reconcile exact counts and ordered pages, verify identities, points, postal fields, quarantine, artifacts, and immutable publication before changing the SNAP source pointer."
+}

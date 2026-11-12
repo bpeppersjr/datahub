@@ -4,6 +4,8 @@
   "title": "USDA SNAP Current Authorized Retailers",
   "description": "Point-in-time source records and normalized site/establishment candidates for currently SNAP-authorized retailer locations.",
   "producer_connector": "usda-snap-retailers",
+  "connector": "config/connectors/usda-snap-retailers.json",
+  "output": "data/business-sources/usda-snap/current.json",
   "runtime_pointer": "data/business-sources/usda-snap/current.json",
   "required_datasets": ["census-zbp-baseline", "us-census-geography"],
   "normalized_artifacts": {
@@ -13,6 +15,17 @@
     "quarantine": "quarantine/records.jsonl.gz"
   },
   "status_semantics": "The source asserts SNAP authorization as of its source edit timestamp; it does not by itself prove the location is generally open at retrieval time.",
+  "current_verified_release": {
+    "release_id": "usda-snap-retailers-20260903-004744483Z-17748dbd",
+    "source_release_id": "usda-snap-20260819T174009953Z",
+    "source_updated_at": "2026-08-19T17:40:09.953Z",
+    "source_features": 252080,
+    "accepted_records": 252080,
+    "quarantined_records": 0,
+    "source_zip_codes": 23957,
+    "zip_union_records": 37872,
+    "complete_all_grocery_retailers": false
+  },
   "documentation": "docs/USDA-SNAP-RETAILERS.md",
   "source_policy": "config/source-policies/usda-snap-retailers.json"
 }

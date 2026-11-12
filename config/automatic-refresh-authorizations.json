@@ -21,7 +21,7 @@
     "state-dc-basic-licenses": { "script": "scripts/build-dc-basic-business-licenses.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "national-irs-eo-bmf": { "script": "scripts/build-irs-eo-bmf.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
     "national-nppes-organizations": { "script": "scripts/build-cms-nppes-organizations.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
-    "national-snap-retailers": { "script": "scripts/build-usda-snap-retailers.mjs", "authorized": false, "reason_code": "AUTOMATIC_REFRESH_NOT_REVIEWED", "governed_source_id": null },
+    "national-snap-retailers": { "script": "scripts/build-usda-snap-retailers.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "usda-snap-retailers" },
     "national-fdic-bankfind": { "script": "scripts/build-fdic-bankfind.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "fdic-bankfind" },
     "national-ncua-quarterly": { "script": "scripts/build-ncua-quarterly.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "ncua-quarterly" },
     "national-fmcsa-census": { "script": "scripts/build-fmcsa-company-census.mjs", "authorized": true, "reason_code": "REVIEWED_AUTOMATIC_REFRESH", "governed_source_id": "fmcsa-company-census" },

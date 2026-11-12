@@ -31,6 +31,16 @@
       "descriptor_evidence_sha256": "699ec42aa97f2b6d541801ee1fe4d66634dbe7379d73ebddc8b050e5d6ef888f",
       "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
     },
+    "usda-snap-retailers": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "usda-snap-retailers-production-20261112-01",
+      "source_id": "usda-snap-retailers",
+      "approved_at": "2026-11-12T14:00:00.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "0e61dfaf62f50e32cdade7523303a13317685899aae551139ccffc2ef89c1406",
+      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
+    },
     "co-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "co-business-registry-production-20261112-01",

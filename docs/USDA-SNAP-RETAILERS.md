@@ -37,3 +37,9 @@ Each normalized record preserves USDA `Record_ID`, name, address, ZIP/ZIP+4, cou
 The source item describes its rows as currently SNAP-authorized and reports a recurring two-week update cadence. The normalized status is therefore `snap-authorized-as-of-source-update`. This is strong program-participation evidence tied to one owner/location permit, but it is not independent proof that a storefront is open at retrieval time.
 
 Malformed identifiers, ZIPs, states, or coordinates are placed in quarantine. Publication is blocked if the quarantine rate exceeds one percent. Source, accepted, and quarantined counts must reconcile exactly.
+
+## Governed refresh authorization on November 12, 2026
+
+Item metadata, layer metadata, and a count-only query observed 248,175 current source features at data edit time `2026-11-05T21:00:57.776Z`. The preflight requested no feature rows, downloaded no retailer records, and changed no production pointer.
+
+The assessment, source limitations, connector, retained August release, and reviewed policy are hash-bound to the governed full-snapshot operation. Co*Tive may acquire this national retailer layer once and partition verified evidence locally by state and ZIP. Publication remains conditional on stable item/layer timestamps, exact ordered paging, identity and coordinate validation, separate ZIP5/ZIP4 handling, quarantine reconciliation, independent artifact verification, and atomic pointer replacement. Count differences are not net business creation, SNAP authorization is not independent proof of an open storefront, and this source is not an all-grocery, all-retail, or all-business denominator.
