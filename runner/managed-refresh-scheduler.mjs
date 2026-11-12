@@ -36,16 +36,26 @@ function planIdentity(plan) {
 }
 
 export class ManagedRefreshScheduler {
-  constructor({ operations, root = "data/refresh-schedules", now = () => new Date().toISOString(), intervalMs = 60_000, autoStart = true } = {}) {
+  constructor({ operations, maintenanceSelection, root = "data/refresh-schedules", now = () => new Date().toISOString(), intervalMs = 60_000, autoStart = true } = {}) {
     if (!operations || !["planScheduled", "get", "startScheduledCollection"].every((key) => typeof operations[key] === "function")) throw invalid("Managed scheduled-operations implementation is required.");
+    if (typeof maintenanceSelection !== "function") throw invalid("Durable industry maintenance selection is required.");
     if (!Number.isInteger(intervalMs) || intervalMs < 10) throw invalid("Invalid scheduler poll interval.");
-    this.operations = operations; this.root = assertInsideApp(path.resolve(APP_ROOT, root));
+    this.operations = operations; this.maintenanceSelection = maintenanceSelection; this.root = assertInsideApp(path.resolve(APP_ROOT, root));
     if (this.root === APP_ROOT) throw invalid("Scheduler requires a dedicated storage directory.");
     this.now = now; this.closed = false; this.queue = Promise.resolve(); this.schedules = []; this.ownerToken = randomUUID();
     this.ready = this.initialize();
     if (autoStart) this.ready.then(() => { if (!this.closed) { this.timer = setInterval(() => { this.tick().catch(() => { this.runtimeError = "SCHEDULER_STORAGE_OR_RUNTIME_FAILURE"; clearInterval(this.timer); }); }, intervalMs); this.timer.unref(); } }, () => {});
   }
   time() { const value = this.now(); if (!validDate(value)) throw invalid("Scheduler clock is invalid."); return new Date(value).toISOString(); }
+  selectedIndustries() {
+    const value = this.maintenanceSelection();
+    if (!value || typeof value !== "object" || Array.isArray(value) || !Array.isArray(value.maintainedIndustries) || !Number.isSafeInteger(value.revision) || value.revision < 0 || new Set(value.maintainedIndustries).size !== value.maintainedIndustries.length || value.maintainedIndustries.some((id) => typeof id !== "string" || !/^[a-z][a-z0-9-]*$/.test(id))) throw invalid("Durable industry maintenance selection is unavailable or invalid.", "MAINTENANCE_SELECTION_UNAVAILABLE");
+    return new Set(value.maintainedIndustries);
+  }
+  assertMaintenanceEligible(industries) {
+    const selected = this.selectedIndustries(), missing = industries.filter((id) => !selected.has(id));
+    if (missing.length) throw invalid(`Select every scheduled industry in Administration before scheduling refresh: ${missing.join(", ")}.`, "INDUSTRY_NOT_SELECTED_FOR_MAINTENANCE");
+  }
   async safePath(file, directory = false) {
     const relative = path.relative(APP_ROOT, file);
     let current = APP_ROOT;
@@ -97,7 +107,9 @@ export class ManagedRefreshScheduler {
           ids.add(schedule.id);
         }
         this.schedules = state.schedules;
+        const selected = this.selectedIndustries();
         for (const schedule of this.schedules) {
+          if (schedule.enabled && schedule.industries.some((id) => !selected.has(id))) { this.pause(schedule, "INDUSTRY_MAINTENANCE_SELECTION_CHANGED"); continue; }
           try {
             const identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states }));
             if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) this.pause(schedule, "PLAN_DRIFT_REQUIRES_REVIEW");
@@ -159,7 +171,7 @@ export class ManagedRefreshScheduler {
   }
   list() { return this.run(() => clone(this.schedules)); }
   create(input) { return this.run(async () => {
-    const normalized = normalize(input); const identity = planIdentity(await this.operations.planScheduled({ industries: normalized.industries, states: normalized.states }));
+    const normalized = normalize(input); this.assertMaintenanceEligible(normalized.industries); const identity = planIdentity(await this.operations.planScheduled({ industries: normalized.industries, states: normalized.states })); this.assertMaintenanceEligible(normalized.industries);
     const time = this.time(); const schedule = { id: randomUUID(), ...normalized, ...identity, createdAt: time, status: normalized.enabled ? "READY" : "DISABLED", nextDueAt: normalized.enabled ? time : null, lastOccurrence: null, reason: null };
     if (schedule.enabled) this.assertNoOverlap(schedule);
     this.schedules.push(schedule); await this.persist(); return clone(schedule);
@@ -168,7 +180,9 @@ export class ManagedRefreshScheduler {
     if (typeof enabled !== "boolean") throw invalid("enabled must be boolean.");
     const schedule = this.schedules.find((item) => item.id === id); if (!schedule) return null;
     if (enabled) {
+      this.assertMaintenanceEligible(schedule.industries);
       const identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states }));
+      this.assertMaintenanceEligible(schedule.industries);
       if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) throw invalid("Plan changed; create a newly reviewed schedule.", "SCHEDULE_PLAN_DRIFT");
       this.assertNoOverlap(schedule);
       if (schedule.lastOccurrence && ["DISPATCHING", "UNKNOWN"].includes(schedule.lastOccurrence.status)) throw invalid("Unresolved occurrence requires inspection before enabling.");
@@ -181,6 +195,14 @@ export class ManagedRefreshScheduler {
   pause(schedule, reason) { schedule.enabled = false; schedule.status = "PAUSED"; schedule.nextDueAt = null; schedule.reason = reason; }
   tick() { return this.run(async () => {
     let busy = false;
+    const selected = this.selectedIndustries();
+    for (const schedule of this.schedules) {
+      if (!schedule.enabled || schedule.industries.every((id) => selected.has(id))) continue;
+      const running = schedule.lastOccurrence && ["DISPATCHING", "RUNNING"].includes(schedule.lastOccurrence.status);
+      if (running) { schedule.enabled = false; schedule.nextDueAt = null; schedule.reason = "INDUSTRY_MAINTENANCE_SELECTION_CHANGED"; }
+      else this.pause(schedule, "INDUSTRY_MAINTENANCE_SELECTION_CHANGED");
+      await this.persist();
+    }
     for (const schedule of this.schedules) {
       const occurrence = schedule.lastOccurrence;
       if (!occurrence || !["DISPATCHING", "RUNNING"].includes(occurrence.status)) continue;
@@ -200,6 +222,8 @@ export class ManagedRefreshScheduler {
       try { identity = planIdentity(await this.operations.planScheduled({ industries: schedule.industries, states: schedule.states })); }
       catch { this.pause(schedule, "PLAN_VALIDATION_FAILED"); await this.persist(); continue; }
       if (identity.planHash !== schedule.planHash || JSON.stringify(identity.resources) !== JSON.stringify(schedule.resources)) { this.pause(schedule, "PLAN_DRIFT_REQUIRES_REVIEW"); await this.persist(); continue; }
+      try { this.assertMaintenanceEligible(schedule.industries); }
+      catch { this.pause(schedule, "INDUSTRY_MAINTENANCE_SELECTION_CHANGED"); await this.persist(); continue; }
       if (this.closed) break;
       const previous = schedule.lastOccurrence;
       const occurrence = { operationId: `refresh-${digest({ id: schedule.id, dueAt: schedule.nextDueAt }).slice(0, 48)}`, status: "DISPATCHING", dueAt: schedule.nextDueAt, createdAt: this.time() };

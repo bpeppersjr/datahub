@@ -91,11 +91,12 @@ export default function RefreshSchedules({ catalog, administrationIndustries = n
   const unavailable = busy || !loaded || !!connectionError;
   const authorization=automaticRefreshScope(catalog,industries,states);
   const authorizedScope=authorization.valid&&authorization.sources.length>0&&authorization.authorized>0&&authorization.blocked===0;
-  const valid = industries.length > 0 && states.length > 0 && Number.isInteger(hours) && hours >= 24 && hours <= 8760 && authorizedScope;
+  const maintenanceEligible=administrationIndustries!==null&&industries.every(id=>administrationIndustries.includes(id));
+  const valid = industries.length > 0 && states.length > 0 && Number.isInteger(hours) && hours >= 24 && hours <= 8760 && authorizedScope && maintenanceEligible;
 
   return <section className="operations-history refresh-schedules" aria-labelledby="refresh-title">
     <h3 id="refresh-title">Automatic industry refreshes</h3>
-    <p className="operations-note">Co*Tive must stay running; Codex is not required. Create a disabled schedule, review its scope, then enable it. Enabling makes it due immediately. National sources download once in full, regardless of selected states.</p>
+    <p className="operations-note">Co*Tive must stay running; Codex is not required. Every scheduled industry must remain selected in Administration to create, enable, or dispatch a refresh. Selection alone never creates a schedule or starts acquisition. Create a disabled schedule, review its scope, then enable it. Enabling makes it due immediately. National sources download once in full, regardless of selected states.</p>
     {(connectionError || error) && <p className="operations-error" role="alert">{connectionError || error}</p>}
     {connectionError && <p className="operations-note">Previously loaded schedules may be out of date. Manual collection and export controls remain separate.</p>}
     {notice && <p role="status">{notice}</p>}
@@ -110,7 +111,8 @@ export default function RefreshSchedules({ catalog, administrationIndustries = n
         <label>Refresh interval (hours)<input type="number" min={24} max={8760} step={1} required value={interval} onChange={(event) => setIntervalHours(event.target.value)} /></label>
       </fieldset>
       <div className="operations-actions"><button type="button" className="ghost-button" disabled={unavailable || !catalog || administrationIndustries === null} onClick={() => { if (catalog && administrationIndustries !== null) { setIndustries(administrationScheduleDefault(catalog, administrationIndustries)); setNotice('Restored the persisted Administration industry selection. No schedule was created or enabled.'); } }}>Use Administration selection</button></div>
-      <p className="operations-note">{administrationUnavailable ? 'Administration maintenance selection is unavailable; no schedule industry was inferred.' : administrationIndustries === null ? 'Loading the persisted Administration maintenance selection…' : `Administration default: ${administrationIndustries.length ? administrationIndustries.map(readable).join(', ') : 'none selected'}. This only initializes this form and grants no source authorization.`}</p>
+      <p className="operations-note">{administrationUnavailable ? 'Administration maintenance selection is unavailable; schedule creation and enabling fail closed.' : administrationIndustries === null ? 'Loading the persisted Administration maintenance selection…' : `Administration eligibility: ${administrationIndustries.length ? administrationIndustries.map(readable).join(', ') : 'none selected'}. This gates scheduling but grants no source authorization and starts no acquisition.`}</p>
+      {industries.length>0&&!maintenanceEligible&&administrationIndustries!==null&&<p role="alert">Select every chosen industry in Administration and save that selection before creating or enabling its refresh schedule.</p>}
       <p className="operations-note">Choose at least one industry and state. Hold Ctrl or Command to select several. The interval is measured from a successful refresh; missed intervals do not create a backlog. Source policies and request limits still apply.</p>
       <section aria-live="polite" aria-label="Automatic refresh source authorization decisions">
         <h4>Automatic source authorization</h4>
@@ -127,7 +129,7 @@ export default function RefreshSchedules({ catalog, administrationIndustries = n
       {schedule.reason && <p role="status">Needs attention: {readable(schedule.reason)}. Inspect the operation and source prerequisites before re-enabling. A changed source plan requires a newly reviewed schedule.</p>}
       {schedule.lastOccurrence && <p>Latest occurrence: {readable(schedule.lastOccurrence.status)} · <a href="#operations-history-title">View operation history</a><br /><small>{schedule.lastOccurrence.operationId}</small></p>}
       <small>Schedule {schedule.id}</small>
-      <button className="ghost-button" disabled={unavailable} aria-label={`${schedule.enabled ? 'Pause' : 'Enable'} schedule ${schedule.id}`} onClick={() => void save(`${endpoint}/${encodeURIComponent(schedule.id)}/enabled`, { enabled: !schedule.enabled }, schedule.enabled ? 'Schedule paused. Any active collection continues until cancelled in operation history.' : 'Schedule enabled and due now. Co*Tive will dispatch it when the runner is available.')}>{schedule.enabled ? 'Pause schedule' : 'Enable — due now'}</button>
+      <button className="ghost-button" disabled={unavailable||(!schedule.enabled&&(administrationIndustries===null||schedule.industries.some(id=>!administrationIndustries.includes(id))))} aria-label={`${schedule.enabled ? 'Pause' : 'Enable'} schedule ${schedule.id}`} onClick={() => void save(`${endpoint}/${encodeURIComponent(schedule.id)}/enabled`, { enabled: !schedule.enabled }, schedule.enabled ? 'Schedule paused. Any active collection continues until cancelled in operation history.' : 'Schedule enabled and due now. Co*Tive will dispatch it when the runner is available.')}>{schedule.enabled ? 'Pause schedule' : 'Enable — due now'}</button>
     </article>)}
     <p className="operations-note">Pausing stops future dispatches, not an active download. Cancel an active collection in operation history. Overlapping enabled sources are rejected; failed or uncertain runs pause for inspection. Refreshed releases need reconciliation before appearing in national comparisons.</p>
   </section>;

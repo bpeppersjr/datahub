@@ -3055,7 +3055,7 @@ export function validChildcareZipEvidence(
   const view = value as ChildcareZipEvidence,
     pin = childcareRegistration.retained_release;
   if (
-    view.schema_version !== "retained-childcare-zip-evidence@1.1.0" ||
+    view.schema_version !== "retained-childcare-zip-evidence@1.2.0" ||
     view.available !== true ||
     view.zip5 !== zip5 ||
     view.source_replay_performed !== false ||
@@ -3070,10 +3070,18 @@ export function validChildcareZipEvidence(
     !sameClosed(view.claims, childcareRegistration.claims) ||
     !sameClosed(view.sources, pin.sources) ||
     !sameClosed(view.summary, pin.summary) ||
-    view.summary.accepted_candidate_rows !== 12206 ||
-    view.summary.zip_present_candidate_rows !== 12205 ||
-    view.summary.missing_zip_candidate_rows !== 0 ||
+    view.summary.accepted_candidate_rows !== 12210 ||
+    view.summary.zip_present_candidate_rows !== 12208 ||
+    view.summary.missing_zip_candidate_rows !== 1 ||
     view.summary.invalid_zip_candidate_rows !== 1 ||
+    !sameClosed(view.summary.missing_zip_buckets, [
+      {
+        publisher_scope: "VT",
+        source_id: "vt-cdd-childcare-centers",
+        reason: "missing-source-zip",
+        candidate_rows: 1,
+      },
+    ]) ||
     !sameClosed(view.summary.invalid_zip_buckets, [
       {
         publisher_scope: "MD",
@@ -3099,7 +3107,7 @@ export function validChildcareZipEvidence(
     accepted += source.accepted_candidate_rows;
     present += source.quality.with_zip5;
   }
-  if (accepted !== 12206 || present !== 12205) return false;
+  if (accepted !== 12210 || present !== 12208) return false;
   if (view.row === null)
     return view.status === "absent-from-retained-candidate-evidence";
   if (

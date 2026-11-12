@@ -29,7 +29,8 @@ test('Administration puts maintained industries and Save before the independent 
   assert.equal(inputs.length, 9);
   assert.ok(rendered.indexOf('Save maintenance selection') < rendered.indexOf('Industry evidence status'));
   assert.match(rendered, /Displayed selection is persisted/);
-  assert.match(rendered, /saved selection sets defaults for collection and refresh planning/);
+  assert.match(rendered, /saved selection is an eligibility gate for recurring refresh schedules/);
+  assert.match(rendered, /Selection alone never creates a schedule, authorizes a source, or starts a download/);
   assert.match(rendered, /Evidence availability/);
   assert.match(rendered, /not the percent of businesses collected or nationwide industry completeness/);
   assert.match(rendered, /11 of 51 jurisdictions \(21\.6% evidence availability; completeness unknown\)/);

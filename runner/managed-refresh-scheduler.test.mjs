@@ -14,7 +14,7 @@ async function fixture(t) {
   const temp = path.join(APP_ROOT, 'data/tmp'); await mkdir(temp, { recursive: true });
   const root = await mkdtemp(path.join(temp, 'refresh-scheduler-test-')); const instances = [];
   t.after(async () => { for (const item of instances) await item.close().catch(() => {}); await rm(root, { recursive: true, force: true }); });
-  let clock = '2026-09-07T00:00:00.000Z', calls = 0, busy = false;
+  let clock = '2026-09-07T00:00:00.000Z', calls = 0, busy = false, maintenanceRevision = 0, maintainedIndustries = ['other', 'retail'];
   const records = new Map();
   const config = { version: 1, max_concurrency: 1, states: ['TX', 'GA'], industries: { retail: ['fixture-source'], other: ['other-source'] }, sources: {
     'fixture-source': { script: 'scripts/build-usda-snap-retailers.mjs', scope: 'national', states: 'all', state_filter_supported: false, prerequisites: [] },
@@ -28,14 +28,38 @@ async function fixture(t) {
       calls += 1; const operation = { id: operationId, status: 'RUNNING' }; records.set(operationId, operation); return operation;
     },
   };
-  const make = (options = {}) => { const instance = createManagedRefreshScheduler({ root: path.join(root, 'scheduler'), operations, now: () => clock, autoStart: false, ...options }); instances.push(instance); return instance; };
-  return { root, make, operations, records, config, setTime: (value) => { clock = value; }, setBusy: (value) => { busy = value; }, calls: () => calls };
+  const make = (options = {}) => { const instance = createManagedRefreshScheduler({ root: path.join(root, 'scheduler'), operations, maintenanceSelection: () => ({ maintainedIndustries: [...maintainedIndustries], revision: maintenanceRevision }), now: () => clock, autoStart: false, ...options }); instances.push(instance); return instance; };
+  return { root, make, operations, records, config, setTime: (value) => { clock = value; }, setBusy: (value) => { busy = value; }, setMaintained: (value) => { maintainedIndustries = [...value]; maintenanceRevision += 1; }, calls: () => calls };
 }
 test('refresh schedules default disabled and require explicit bounded selections', async (t) => {
   const f = await fixture(t), scheduler = f.make();
   const schedule = await scheduler.create(input); assert.equal(schedule.enabled, false);
   await scheduler.tick(); assert.equal(f.calls(), 0); assert.equal((await scheduler.list()).length, 1);
   for (const value of [{ ...input, intervalHours: 1 }, { ...input, states: [] }, { ...input, industries: [] }, { ...input, enabled: 'yes' }, { ...input, command: 'anything' }]) await assert.rejects(scheduler.create(value));
+});
+test('maintenance selection gates create and enable without authorizing acquisition', async (t) => {
+  const f = await fixture(t), scheduler = f.make();
+  f.setMaintained([]);
+  await assert.rejects(scheduler.create(input), (error) => error.code === 'INDUSTRY_NOT_SELECTED_FOR_MAINTENANCE');
+  assert.equal(f.calls(), 0); assert.deepEqual(await scheduler.list(), []);
+  f.setMaintained(['retail']); const disabled = await scheduler.create(input); assert.equal(disabled.enabled, false); assert.equal(f.calls(), 0);
+  f.setMaintained([]); await assert.rejects(scheduler.setEnabled(disabled.id, true), (error) => error.code === 'INDUSTRY_NOT_SELECTED_FOR_MAINTENANCE');
+  assert.equal((await scheduler.list())[0].enabled, false); assert.equal(f.calls(), 0);
+});
+test('tick pauses enabled schedules after maintenance deselection before dispatch', async (t) => {
+  const f = await fixture(t), scheduler = f.make(), created = await scheduler.create({ ...input, enabled: true });
+  f.setMaintained([]); await scheduler.tick();
+  const schedule = (await scheduler.list()).find((row) => row.id === created.id);
+  assert.equal(schedule.enabled, false); assert.equal(schedule.status, 'PAUSED'); assert.equal(schedule.reason, 'INDUSTRY_MAINTENANCE_SELECTION_CHANGED'); assert.equal(schedule.lastOccurrence, null); assert.equal(f.calls(), 0);
+  await assert.rejects(scheduler.setEnabled(created.id, true), (error) => error.code === 'INDUSTRY_NOT_SELECTED_FOR_MAINTENANCE');
+});
+test('tick rechecks durable maintenance selection after asynchronous planning and before dispatch', async (t) => {
+  const f = await fixture(t), scheduler = f.make(); await scheduler.create({ ...input, enabled: true });
+  const original = f.operations.planScheduled; let releasePlan, reachedPlan;
+  const blocked = new Promise((resolve) => { releasePlan = resolve; }), reached = new Promise((resolve) => { reachedPlan = resolve; });
+  f.operations.planScheduled = async (selection) => { reachedPlan(); await blocked; return original(selection); };
+  const ticking = scheduler.tick(); await reached; f.setMaintained([]); releasePlan(); await ticking;
+  const schedule = (await scheduler.list())[0]; assert.equal(schedule.enabled, false); assert.equal(schedule.status, 'PAUSED'); assert.equal(schedule.reason, 'INDUSTRY_MAINTENANCE_SELECTION_CHANGED'); assert.equal(schedule.lastOccurrence, null); assert.equal(f.calls(), 0);
 });
 test('simultaneous ticks dispatch exactly one durable occurrence', async (t) => {
   const f = await fixture(t), scheduler = f.make();

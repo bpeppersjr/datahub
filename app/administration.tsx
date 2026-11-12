@@ -1296,7 +1296,7 @@ export default function Administration() {
         <section aria-labelledby="maintained-industries-heading">
           <h3 id="maintained-industries-heading">Maintained industries</h3>
           <p>Select the industry programs Co*Tive should keep under maintenance. This controls planning and refresh defaults; it does not require every entity to have coordinates, every ZIP to have population, or a universal count of U.S. businesses.</p>
-          <p>The saved selection sets defaults for collection and refresh planning. Downloads and recurring schedules have their own controls.</p>
+          <p>The saved selection is an eligibility gate for recurring refresh schedules: every scheduled industry must remain selected before creation, enabling, and dispatch. Selection alone never creates a schedule, authorizes a source, or starts a download; recurring schedules retain their own explicit controls.</p>
           <p className="scope-note">
             This selection records local maintenance intent only; it does not authorize acquisition, start downloads, prove coverage, or change production enrollment.
           </p>

@@ -390,7 +390,7 @@ const zipInspectorView = createZipInspectorView({ indexedEvidence: readIndexedZi
   } : null;
 } });
 const managedOperations = createManagedOperations();
-const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations });
+const refreshScheduler = createManagedRefreshScheduler({ operations: managedOperations, maintenanceSelection: () => industryMaintenance.view() });
 let refreshSchedulerUnavailable = false;
 void refreshScheduler.ready.catch(() => { refreshSchedulerUnavailable = true; console.warn('Refresh scheduler unavailable; inspect its stored state and ownership before enabling refreshes.'); });
 async function maintenanceExecutionStatus() {

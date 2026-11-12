@@ -174,8 +174,8 @@ export async function readFlatBusinessExportGovernance(){return{lineage:{registr
   return { root, child, base: `http://127.0.0.1:${port}` };
 }
 
-async function request(base, route, { method = "GET", body, authenticated = true } = {}) {
-  const headers = {};
+async function request(base, route, { method = "GET", body, authenticated = true, headers: additionalHeaders = {} } = {}) {
+  const headers = { ...additionalHeaders };
   if (authenticated) headers.Authorization = `Bearer ${token}`;
   if (body !== undefined) headers["Content-Type"] = "application/json";
   return fetch(`${base}${route}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), signal: AbortSignal.timeout(5_000) });
@@ -330,7 +330,7 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
   const catalog = await (await request(fixture.base, "/api/data-operations/catalog")).json();
   assert.equal(catalog.automaticRefreshSources.length, 28);
-  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 19);
+  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 18);
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").governedSourceId, "fdic-bankfind");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-ncua-quarterly").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
@@ -348,6 +348,11 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const initial = await request(fixture.base, route); assert.equal(initial.status, 200); assert.deepEqual(await initial.json(), []);
   const invalid = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 0 } });
   assert.equal(invalid.status, 400);
+  const unselected = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 24 } });
+  assert.equal(unselected.status, 400); assert.match((await unselected.json()).error, /Select every scheduled industry in Administration/);
+  const maintenance = await (await request(fixture.base, "/api/administration/industries")).json();
+  const selected = await request(fixture.base, "/api/administration/industries", { method: "PUT", headers: { "If-Match": `"${maintenance.revision}"` }, body: { maintainedIndustries: ["childcare"], expectedRevision: maintenance.revision } });
+  assert.equal(selected.status, 200);
   const response = await request(fixture.base, route, { method: "POST", body: { industries: ["childcare"], states: ["CA"], intervalHours: 24 } });
   assert.equal(response.status, 409); assert.match((await response.json()).error, /Automatic refresh is not authorized/);
   const listed = await request(fixture.base, route); assert.deepEqual(await listed.json(), []);

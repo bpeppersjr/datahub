@@ -98,13 +98,19 @@ test('authorization validator fails closed on missing, duplicate, extra, or inve
 
 test('reviewed governed authorization is accepted and enables an all-authorized schedule scope',()=>{
   const authorized={...catalog,automaticRefreshSources:[{sourceId:'state-tx-retail',script:'scripts/tx.mjs',automaticRefreshAuthorized:true,reasonCode:'REVIEWED_AUTOMATIC_REFRESH',governedSourceId:'tx-retail'}]};
-  const f=fixture(async()=>record,{1:['retail'],2:['TX'],4:true},{catalog:authorized});
+  const f=fixture(async()=>record,{1:['retail'],2:['TX'],4:true},{catalog:authorized,administrationIndustries:['retail']});
   const scope=f.exports.automaticRefreshScope(authorized,['retail'],['TX']);
   assert.deepEqual({valid:scope.valid,authorized:scope.authorized,blocked:scope.blocked},{valid:true,authorized:1,blocked:0});
   const tree=f.render();
   assert.equal(button(tree,'Create disabled schedule').props.disabled,false);
   assert.match(text(tree),/1\s+authorized/);
   assert.match(text(tree),/Authorized for automatic refresh/);
+});
+test('saved maintenance selection is required but never submits by itself',()=>{
+  const authorized={...catalog,automaticRefreshSources:[{sourceId:'state-tx-retail',script:'scripts/tx.mjs',automaticRefreshAuthorized:true,reasonCode:'REVIEWED_AUTOMATIC_REFRESH',governedSourceId:'tx-retail'}]};
+  const tree=fixture(()=>assert.fail('must not dispatch'),{1:['retail'],2:['TX'],4:true},{catalog:authorized,administrationIndustries:[]}).render();
+  assert.equal(button(tree,'Create disabled schedule').props.disabled,true);assert.match(text(tree),/Select every chosen industry in Administration/);assert.match(text(tree),/Selection alone never creates a schedule or starts acquisition/);
+  assert.equal(button(tree,'Enable — due now'),undefined);
 });
 
 test('mixed reviewed and held sources remain visible and fail the schedule scope closed',()=>{
@@ -124,7 +130,7 @@ test('selected scope lists national and matching state decisions but not unrelat
 test('enable and pause use distinct requests and never invoke collection cancellation', async () => {
   for (const enabled of [false, true]) {
     const calls = [];
-    const f = fixture(async (...args) => { calls.push(args); return { ...record, enabled: !enabled }; }, { 0: [{ ...record, enabled }], 4: true });
+    const f = fixture(async (...args) => { calls.push(args); return { ...record, enabled: !enabled }; }, { 0: [{ ...record, enabled }], 4: true }, {administrationIndustries:['retail']});
     button(f.render(), enabled ? 'Pause schedule' : 'Enable — due now').props.onClick();
     await settle();
     assert.equal(calls[0][0], '/api/data-operations/schedules/s1/enabled');
@@ -136,7 +142,7 @@ test('enable and pause use distinct requests and never invoke collection cancell
 test('stale polling cannot replace a newer mutation; duplicate clicks are suppressed', async () => {
   let resolveRead, resolveWrite;
   const calls = [];
-  const f = fixture((url, options) => { calls.push(url); return new Promise((resolve) => { if (options.method) resolveWrite = resolve; else resolveRead = resolve; }); }, { 0: [record], 4: true });
+  const f = fixture((url, options) => { calls.push(url); return new Promise((resolve) => { if (options.method) resolveWrite = resolve; else resolveRead = resolve; }); }, { 0: [record], 4: true }, {administrationIndustries:['retail']});
   const tree = f.render(), cleanup = f.mount();
   const enable = button(tree, 'Enable — due now');
   enable.props.onClick(); enable.props.onClick();
@@ -149,7 +155,7 @@ test('stale polling cannot replace a newer mutation; duplicate clicks are suppre
 
 test('failed mutation reports uncertainty and polling reconciles authoritative state', async () => {
   let fail = true;
-  const f = fixture(async (url, options) => { if (options.method && fail) throw new Error('Response interrupted'); return [{ ...record, enabled: true }]; }, { 0: [record], 4: true });
+  const f = fixture(async (url, options) => { if (options.method && fail) throw new Error('Response interrupted'); return [{ ...record, enabled: true }]; }, { 0: [record], 4: true }, {administrationIndustries:['retail']});
   const tree = f.render(), cleanup = f.mount(); await settle();
   button(tree, 'Enable — due now').props.onClick(); await settle();
   assert.match(f.values[6], /Check the refreshed list before retrying/);
