@@ -136,7 +136,7 @@ export async function readFlatBusinessExportGovernance(){return{lineage:{registr
     await writeFile(stub, "process.exitCode = 0;\n", { flag: "wx" }).catch((error) => { if (error.code !== "EEXIST") throw error; });
   }
   for (const descriptor of Object.values(GOVERNED_SOURCE_REFRESH_DESCRIPTORS)) {
-    for (const relative of [descriptor.builder, descriptor.verifier]) {
+    for (const relative of [descriptor.builder, descriptor.verifier, ...(descriptor.dependencies ?? [])]) {
       const target = path.join(root, ...relative.split("/")); await mkdir(path.dirname(target), { recursive: true });
       await copyFile(path.join(APP_ROOT, ...relative.split("/")), target);
     }
@@ -330,7 +330,7 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const fixture = await makeFixture(t), route = "/api/data-operations/schedules";
   const catalog = await (await request(fixture.base, "/api/data-operations/catalog")).json();
   assert.equal(catalog.automaticRefreshSources.length, 28);
-  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 6);
+  assert.equal(catalog.automaticRefreshSources.filter((source) => source.automaticRefreshAuthorized).length, 7);
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-fdic-bankfind").governedSourceId, "fdic-bankfind");
   assert.equal(catalog.automaticRefreshSources.find((source) => source.sourceId === "national-ncua-quarterly").reasonCode, "REVIEWED_AUTOMATIC_REFRESH");
@@ -348,7 +348,7 @@ test("managed refresh schedule API reports reviewed sources and rejects an unrev
   const initial = await request(fixture.base, route); assert.equal(initial.status, 200); assert.deepEqual(await initial.json(), []);
   const invalid = await request(fixture.base, route, { method: "POST", body: { industries: ["retail-consumer"], states: ["TX"], intervalHours: 0 } });
   assert.equal(invalid.status, 400);
-  const response = await request(fixture.base, route, { method: "POST", body: { industries: ["health-care"], states: ["TX"], intervalHours: 24 } });
+  const response = await request(fixture.base, route, { method: "POST", body: { industries: ["tax-exempt-organizations"], states: ["TX"], intervalHours: 24 } });
   assert.equal(response.status, 409); assert.match((await response.json()).error, /Automatic refresh is not authorized/);
   const listed = await request(fixture.base, route); assert.deepEqual(await listed.json(), []);
   const operations = await request(fixture.base, "/api/data-operations/operations"); assert.deepEqual(await operations.json(), []);

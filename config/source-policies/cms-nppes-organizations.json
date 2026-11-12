@@ -1,6 +1,6 @@
 {
   "policy_id": "cms-nppes-organizations",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "U.S. Centers for Medicare & Medicaid Services",
   "ownership": "FOIA-disclosable National Plan and Provider Enumeration System health care provider data",
   "source_home": "https://www.cms.gov/medicare/regulations-guidance/administrative-simplification/data-dissemination",
@@ -30,5 +30,7 @@
   "raw_contains_personal_data": true,
   "normalized_public_layer_contains_individual_provider_data": false,
   "contains_secrets": false,
-  "reviewed_at": "2026-08-30"
+  "reviewed_at": "2026-11-12",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "CMS publishes the public NPPES V2 dissemination archive for health care provider enumeration. NPI issuance, an active enumeration record, or a reported practice address does not independently establish licensure, credentials, current operation, public access, a verified physical premise, ownership, or nationwide health-care-business completeness. Co*Tive excludes Entity Type 1 individuals and restricted identifiers from the combined business layer and retains source release, temporal, and provenance limitations."
 }

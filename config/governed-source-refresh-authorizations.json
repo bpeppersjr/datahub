@@ -41,6 +41,16 @@
       "descriptor_evidence_sha256": "0e61dfaf62f50e32cdade7523303a13317685899aae551139ccffc2ef89c1406",
       "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
     },
+    "cms-nppes-organizations": {
+      "schema_version": "governed-source-refresh-authorization@1.0.0",
+      "authorization_id": "cms-nppes-organizations-production-20261112-01",
+      "source_id": "cms-nppes-organizations",
+      "approved_at": "2026-11-12T13:50:34.000Z",
+      "approved_by": "repository-owner-approved-production-plan",
+      "mode": "app-owned-automatic-full-snapshot-refresh",
+      "descriptor_evidence_sha256": "dfa1321ebcbdf600682e8e9f40661a610faa4885c31692bee117aae007fa7ac3",
+      "permissions": { "fresh_acquisition": true, "autonomous_acquisition": true, "production_pointer_change": true, "terms_reviewed": true, "source_access_reviewed": true }
+    },
     "co-business-registry": {
       "schema_version": "governed-source-refresh-authorization@1.0.0",
       "authorization_id": "co-business-registry-production-20261112-01",

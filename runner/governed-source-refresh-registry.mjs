@@ -8,6 +8,7 @@ const rows = [
   ["US","ncua-quarterly","ncua-quarterly-credit-unions","verifyNcuaQuarterly","config/governed-source-refresh-assessments/ncua-quarterly-2026-11-12.json"],
   ["US","fmcsa-company-census","fmcsa-active-us-company-census","verifyFmcsaCompanyCensus","config/governed-source-refresh-assessments/fmcsa-company-census-2026-11-12.json"],
   ["US","usda-snap-retailers","usda-snap-retailers","verifyUsdaSnapRelease","config/governed-source-refresh-assessments/usda-snap-retailers-2026-11-12.json","data/business-sources/usda-snap"],
+  ["US","cms-nppes-organizations","cms-nppes-organizations","verifyCmsNppesOrganizations","config/governed-source-refresh-assessments/cms-nppes-organizations-2026-11-12.json",null,["runner/nppes-source.mjs"]],
   ["CO","co-business-registry","co-business-registry-good-standing-or-delinquent-organizations","verifyCoBusinessRegistry"],
   ["CT","ct-business-registry","ct-business-registry-active-organizations","verifyCtBusinessRegistry"],
   ["DE","de-business-licenses","de-business-licenses-current","verifyDeBusinessLicenses"],
@@ -21,10 +22,11 @@ const rows = [
   ["WA","wa-lni-active-contractor-licenses","wa-lni-active-contractor-organizations","verifyWaLniActiveContractors","config/governed-source-refresh-assessments/wa-lni-active-contractor-licenses-2026-11-12.json"],
 ];
 
-export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntries(rows.map(([state,sourceId,datasetId,verifierExport,assessment,outputRoot])=>[sourceId,Object.freeze({
+export const GOVERNED_SOURCE_REFRESH_DESCRIPTORS = Object.freeze(Object.fromEntries(rows.map(([state,sourceId,datasetId,verifierExport,assessment,outputRoot,dependencies=[]])=>[sourceId,Object.freeze({
   state,sourceId,datasetId,builder:`scripts/build-${sourceId}.mjs`,verifier:`runner/${sourceId}.mjs`,verifierExport,
   outputRoot:outputRoot??`data/business-sources/${datasetId}`,connector:`config/connectors/${sourceId}.json`,policy:`config/source-policies/${sourceId}.json`,dataset:`config/datasets/${datasetId}.json`,
   ...(assessment?{assessment}:{}),
+  ...(dependencies.length?{dependencies:Object.freeze([...dependencies])}:{}),
 })])));
 export const GOVERNED_SOURCE_REFRESH_SOURCE_IDS = Object.freeze(rows.map(([,sourceId])=>sourceId));
 
@@ -53,7 +55,7 @@ function validateAuthorizationRegistry(value){
 function validateAssessment(value,descriptor){
   const top=["schema_version","assessment_id","source_id","dataset_id","observed_at","controls","observation","claims","citations","next_action"];
   const controls=descriptor.sourceId==="fdic-bankfind"?[0,2]:[1,1];
-  const claimKeys=descriptor.sourceId==="tx-active-sales-tax-permits"?["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="wa-lni-active-contractor-licenses"?["active_license_is_current_operation","reported_mailing_address_is_verified_premise","complete_all_washington_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="fdic-bankfind"?["active_institution_is_current_operation","current_location_is_verified_public_premise","complete_all_financial_businesses","index_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="ncua-quarterly"?["quarterly_membership_is_current_operation","reported_branch_is_verified_public_premise","complete_all_credit_unions","edition_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="fmcsa-company-census"?["active_registration_is_current_operation","principal_office_is_verified_public_premise","complete_all_transportation_businesses","row_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="usda-snap-retailers"?["snap_authorization_is_current_operation","reported_location_is_verified_open_storefront","complete_all_grocery_retailers","row_delta_is_net_business_creation","complete_all_us_businesses"]:[];
+  const claimKeys=descriptor.sourceId==="tx-active-sales-tax-permits"?["active_permit_is_current_operation","reported_physical_address_is_verified_premise","complete_all_texas_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="wa-lni-active-contractor-licenses"?["active_license_is_current_operation","reported_mailing_address_is_verified_premise","complete_all_washington_businesses","row_delta_is_net_business_creation","record_level_public_export_authorized"]:descriptor.sourceId==="fdic-bankfind"?["active_institution_is_current_operation","current_location_is_verified_public_premise","complete_all_financial_businesses","index_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="ncua-quarterly"?["quarterly_membership_is_current_operation","reported_branch_is_verified_public_premise","complete_all_credit_unions","edition_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="fmcsa-company-census"?["active_registration_is_current_operation","principal_office_is_verified_public_premise","complete_all_transportation_businesses","row_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="usda-snap-retailers"?["snap_authorization_is_current_operation","reported_location_is_verified_open_storefront","complete_all_grocery_retailers","row_delta_is_net_business_creation","complete_all_us_businesses"]:descriptor.sourceId==="cms-nppes-organizations"?["active_npi_is_current_operation","reported_practice_location_is_verified_open_premise","complete_all_healthcare_businesses","edition_delta_is_net_business_creation","complete_all_us_businesses"]:[];
   if(!exact(value,top)||value.schema_version!=="governed-source-refresh-assessment@1.0.0"||value.source_id!==descriptor.sourceId||value.dataset_id!==descriptor.datasetId
     ||typeof value.assessment_id!=="string"||!/^[a-z0-9][a-z0-9._-]{0,127}$/.test(value.assessment_id)||typeof value.observed_at!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value.observed_at)
     ||!exact(value.controls,["metadata_requests","aggregate_requests","entity_row_requests","records_downloaded","production_changes"])||value.controls.metadata_requests!==controls[0]||value.controls.aggregate_requests!==controls[1]||value.controls.entity_row_requests!==0||value.controls.records_downloaded!==0||value.controls.production_changes!==0
@@ -81,7 +83,7 @@ function authorizationBinding(sourceId,evidence,registry){
 export async function validateGovernedSourceRefreshDescriptor(sourceId,{appRoot=APP_ROOT,authorizationRegistry=AUTHORIZATION_REGISTRY}={}){
   const descriptor=GOVERNED_SOURCE_REFRESH_DESCRIPTORS[sourceId];if(!descriptor)throw new Error("Unsupported governed source refresh.");
   const root=path.resolve(appRoot);if(root!==appRoot)throw new Error("Governed refresh root must be absolute and canonical.");
-  const paths=[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset,...(descriptor.assessment?[descriptor.assessment]:[])];
+  const paths=[descriptor.builder,descriptor.verifier,descriptor.connector,descriptor.policy,descriptor.dataset,...(descriptor.assessment?[descriptor.assessment]:[]),...(descriptor.dependencies??[])];
   const entries=await Promise.all(paths.map(relative=>fixedFile(root,relative)));
   const connector=JSON.parse(entries[2].bytes),policy=JSON.parse(entries[3].bytes),dataset=JSON.parse(entries[4].bytes);
   if(connector.connector_id!==sourceId||connector.source_policy!==descriptor.policy||policy.policy_id!==sourceId

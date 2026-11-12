@@ -3,6 +3,7 @@
 import path from 'node:path';
 import process from 'node:process';
 import { buildCmsNppesOrganizations } from '../runner/cms-nppes-organizations.mjs';
+import { ensureNppesSource } from '../runner/nppes-source.mjs';
 import { APP_ROOT, assertInsideApp } from '../runner/paths.mjs';
 import { createCliCancellation } from '../runner/cli-cancellation.mjs';
 const cancellation = createCliCancellation();
@@ -15,7 +16,9 @@ Usage:
 
 Options:
   --output <path>             Output root (default: data/business-sources/cms-nppes-organizations)
-  --source <path>             Prepared NPPES directory (default: data/pharmacy-sources/nppes)
+  --source <path>             Use an explicitly prepared NPPES directory; skip discovery/download
+  --source-root <path>        Managed source root (default: data/pharmacy-sources)
+  --keep-archive              Retain the downloaded CMS ZIP after verified extraction
   --zbp <path>                Census ZBP current.json prerequisite
   --minimum-organizations <n> Publication floor (default: 1000000)
   --help                      Show this help
@@ -25,19 +28,26 @@ Options:
 function parseArguments(args) {
   const options = {
     output: 'data/business-sources/cms-nppes-organizations',
-    source: 'data/pharmacy-sources/nppes',
+    source: null,
+    sourceRoot: 'data/pharmacy-sources',
+    keepArchive: false,
     zbp: 'data/business-baselines/census-zbp/current.json',
     minimumOrganizations: 1_000_000,
   };
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
     if (argument === '--help') return { help: true };
-    if (['--output', '--source', '--zbp', '--minimum-organizations'].includes(argument)) {
+    if (argument === '--keep-archive') {
+      options.keepArchive = true;
+      continue;
+    }
+    if (['--output', '--source', '--source-root', '--zbp', '--minimum-organizations'].includes(argument)) {
       const value = args[index + 1];
       if (!value) throw new Error(`${argument} requires a value.`);
       index += 1;
       if (argument === '--output') options.output = value;
       if (argument === '--source') options.source = value;
+      if (argument === '--source-root') options.sourceRoot = value;
       if (argument === '--zbp') options.zbp = value;
       if (argument === '--minimum-organizations') options.minimumOrganizations = Number(value);
       continue;
@@ -53,10 +63,19 @@ try {
     process.stdout.write(usage());
     process.exit(0);
   }
+  const sourceDirectory = options.source
+    ? assertInsideApp(path.resolve(APP_ROOT, options.source))
+    : path.dirname((await ensureNppesSource({
+        rootDirectory: assertInsideApp(path.resolve(APP_ROOT, options.sourceRoot)),
+        keepArchive: options.keepArchive,
+        signal: cancellation.signal,
+        onProgress: (value, message) => process.stdout.write(`${String(Math.round(value)).padStart(3, ' ')}%  ${message}\n`),
+        onLog: (message) => process.stdout.write(`${message}\n`),
+      })).inputPath);
   const result = await buildCmsNppesOrganizations({
     signal: cancellation.signal,
     outputRoot: assertInsideApp(path.resolve(APP_ROOT, options.output)),
-    sourceDirectory: assertInsideApp(path.resolve(APP_ROOT, options.source)),
+    sourceDirectory,
     zbpPointer: assertInsideApp(path.resolve(APP_ROOT, options.zbp)),
     minimumOrganizations: options.minimumOrganizations,
     logger: (message) => process.stdout.write(`${message}\n`),

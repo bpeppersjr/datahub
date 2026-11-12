@@ -48,10 +48,11 @@ function findMonthlyV2Href(html) {
 export async function discoverCurrentNppesRelease({
   fetchImpl = fetch,
   pageUrl = CMS_NPI_FILES_PAGE,
+  signal,
 } = {}) {
   const response = await fetchImpl(pageUrl, {
     headers: { Accept: 'text/html', 'User-Agent': 'CoTive-Collector/0.1' },
-    signal: AbortSignal.timeout(60_000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(60_000)]) : AbortSignal.timeout(60_000),
   });
   if (!response.ok) throw new Error(`CMS NPPES release discovery failed with HTTP ${response.status}.`);
   const sourceUrl = new URL(findMonthlyV2Href(await response.text()), pageUrl).toString();
@@ -178,7 +179,7 @@ async function acquireSourceLock(lockPath, onProgress) {
   throw new Error('Timed out waiting for another job to prepare the CMS NPPES source.');
 }
 
-async function downloadArchive({ release, destination, fetchImpl, onProgress }) {
+async function downloadArchive({ release, destination, fetchImpl, onProgress, signal }) {
   let resumedBytes = 0;
   try {
     resumedBytes = (await stat(destination)).size;
@@ -189,7 +190,7 @@ async function downloadArchive({ release, destination, fetchImpl, onProgress }) 
   if (resumedBytes > 0) headers.Range = `bytes=${resumedBytes}-`;
   const response = await fetchImpl(release.sourceUrl, {
     headers,
-    signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS)]) : AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS),
   });
   if (response.status === 416 && resumedBytes > 0) {
     const total = Number(response.headers.get('content-range')?.match(/\*\/(\d+)$/)?.[1] ?? 0);
@@ -344,14 +345,16 @@ export async function ensureNppesSource({
   keepArchive = false,
   onProgress,
   onLog,
+  signal,
 } = {}) {
+  signal?.throwIfAborted();
   const locations = sourcePaths(rootDirectory);
   await mkdir(locations.root, { recursive: true });
   const existing = await validCachedSource(locations.active);
   let release;
   onProgress?.(1, 'Checking the current CMS NPPES V2 release');
   try {
-    release = await discoverCurrentNppesRelease({ fetchImpl });
+    release = await discoverCurrentNppesRelease({ fetchImpl, signal });
   } catch (error) {
     if (existing) {
       onLog?.(`CMS release check failed; using cached ${existing.metadata.releaseId ?? 'NPPES V2'} source. ${error.message}`, 'warn');
@@ -366,11 +369,13 @@ export async function ensureNppesSource({
     return existing;
   }
 
+  signal?.throwIfAborted();
   const lockHandle = await acquireSourceLock(locations.lock, onProgress);
   let staging;
   let partialArchive;
   let finalArchive;
   try {
+    signal?.throwIfAborted();
     const afterLock = await validCachedSource(locations.active);
     if (afterLock?.metadata.sourceUrl === release.sourceUrl) {
       onProgress?.(100, `CMS source ${release.releaseId} is cached`);
@@ -385,7 +390,7 @@ export async function ensureNppesSource({
     await mkdir(staging, { recursive: false });
 
     onLog?.(`Preparing managed CMS source ${release.releaseId}.`);
-    const download = await downloadArchive({ release, destination: partialArchive, fetchImpl, onProgress });
+    const download = await downloadArchive({ release, destination: partialArchive, fetchImpl, onProgress, signal });
     await rename(partialArchive, finalArchive);
     const archiveHash = await hashFile(finalArchive);
     const directory = await openArchive(finalArchive);

@@ -9,5 +9,16 @@
   "source_policy": "config/source-policies/cms-nppes-organizations.json",
   "required_foundations": ["census-zbp-baseline", "us-census-geography"],
   "coverage_claim": "CMS organization health care providers and suppliers only; not all businesses and not independent proof of an open location.",
+  "current_verified_release": {
+    "release_id": "cms-nppes-organizations-20260903-013253062Z-7ee97568",
+    "source_release_id": "NPPES_Data_Dissemination_August_2026_V2",
+    "source_through": "2026-08-09",
+    "source_main_rows": 9726865,
+    "active_organization_npis": 1959633,
+    "primary_locations_with_us_zip": 1958089,
+    "accepted_nonprimary_practice_locations": 130691,
+    "accepted_other_names": 808030,
+    "complete_all_healthcare_businesses": false
+  },
   "documentation": "docs/CMS-NPPES-ORGANIZATIONS.md"
 }

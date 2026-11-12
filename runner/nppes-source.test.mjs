@@ -48,6 +48,18 @@ test('discovers the monthly CMS NPPES V2 release from the official anchor', asyn
   assert.equal(release.releaseId, 'NPPES_Data_Dissemination_August_2026_V2');
 });
 
+test('a pre-aborted managed source request performs no discovery or filesystem work', async () => {
+  const controller = new AbortController();
+  controller.abort(new Error('cancelled'));
+  let requests = 0;
+  await assert.rejects(ensureNppesSource({
+    rootDirectory: path.join(TEMP_DIR, 'nppes-pre-aborted-do-not-create'),
+    signal: controller.signal,
+    fetchImpl: async () => { requests += 1; throw new Error('must not request'); },
+  }), /cancelled/);
+  assert.equal(requests, 0);
+});
+
 test('downloads, validates, extracts, activates, and reuses a managed NPPES source', async () => {
   await mkdir(TEMP_DIR, { recursive: true });
   const rootDirectory = await mkdtemp(path.join(TEMP_DIR, 'nppes-source-test-'));

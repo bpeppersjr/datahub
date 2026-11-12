@@ -10,13 +10,14 @@ Official sources:
 
 CMS explicitly cautions that NPI issuance does not validate a provider's license or credentials. Accordingly, this source publishes `npi-active-as-of-source-release` or `npi-reactivated-as-of-source-release` only as NPI enumeration evidence. It never turns those values into a general “open business” status.
 
-## Prepare, build, and verify
+## Managed build and verification
 
 ```powershell
-npm run nppes:prepare
 npm run nppes-org:build
 npm run nppes-org:verify
 ```
+
+The build command is the app-owned end-to-end path: it discovers the current CMS monthly V2 release, reuses the validated managed source when the release URL is unchanged, resumes an interrupted archive when necessary, and then normalizes and verifies publication. `npm run nppes:prepare` remains an optional source-only operation. For an offline or reproducible run, `--source <prepared-directory>` bypasses discovery and download.
 
 The source manager:
 
