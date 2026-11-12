@@ -1,0 +1,15 @@
+import { readExactZipIndustryEvidenceWithTemporalQualificationV33 as prior } from "./exact-zip-industry-temporal-qualification-v3-3.mjs";
+import { readExactZipIndustryEvidenceV34 as matrix } from "./national-exact-zip-industry-evidence-matrix-v3-4-reader.mjs";
+import { readExactZipIndustrySummaryV34 as summary } from "./exact-zip-industry-summary-v3-4.mjs";
+
+const CHILDCARE = "retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e", ASSESSED = "2026-11-12T23:25:00.000Z";
+const dimensions = new Set(["childcare_pa_candidates", "childcare_ct_candidates", "childcare_md_candidates", "childcare_vt_candidates", "childcare_co_candidates", "childcare_ut_candidates", "childcare_ia_candidates"]);
+export async function readExactZipIndustryEvidenceWithTemporalQualificationV34(options = {}) {
+  const current = await matrix(options); options.signal?.throwIfAborted();
+  if (current.row === null) return { ...current, reason: "outside-retained-cohort", zip5: options.zip5, temporal_qualification: null };
+  const [previous, aggregate] = await Promise.all([prior(options), summary(options)]);
+  const rows = previous.temporal_qualification.rows.map((row) => { if (!dimensions.has(row.dimension_id)) return row; const cell = current.row.cells[row.dimension_id], reference = cell.temporal_status.source_reference_date; return { ...row, source_release_id: CHILDCARE, source_reference_at: reference, assessment_as_of: ASSESSED, review_qualification: "unmeasured", review_due_at: null, current_operations_verified: false, evidence_disposition: { raw_status: cell.status, evidence_state: cell.status === "positive" ? "evidence-present" : cell.status, lifecycle_status: "unmeasured", label: `${cell.status === "positive" ? "positive" : "absent from retained source rows"} · unmeasured`, current_operations_verified: false, additive: false, identity_merge_applied: false } }; });
+  const source_metadata = { ...previous.source_metadata };
+  for (const dimension of dimensions) source_metadata[dimension] = { ...source_metadata[dimension], source_manifest: `data/retained-childcare-zip-evidence/releases/${CHILDCARE}/manifest.json`, source_manifest_sha256: "4fa7e65399c3a123a723fab8aa2fa9919594db61fa34c0883c581e6cf01c14f0", source_release_id: CHILDCARE, accepted_candidate_rows: aggregate.retained_childcare_refresh.accepted_candidate_rows };
+  return { ...current, source_metadata, status_counts: aggregate.status_counts, cell_status_counts_by_dimension: Object.fromEntries(aggregate.dimensions.map((row) => [row.id, row.status_counts])), temporal_qualification: { ...previous.temporal_qualification, schema_version: "exact-zip-industry-temporal-qualification-view@3.4.0", rows, provenance: { ...previous.temporal_qualification.provenance, matrix_release_id: current.release_id, matrix_manifest_sha256: current.manifest_sha256 }, claims: { ...previous.temporal_qualification.claims, current_operations_verified: false, complete_all_businesses: false }, summary: { ...previous.temporal_qualification.summary } } };
+}

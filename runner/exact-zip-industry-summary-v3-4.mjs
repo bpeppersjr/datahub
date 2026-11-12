@@ -1,0 +1,17 @@
+import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { APP_ROOT } from "./paths.mjs";
+import { readExactZipIndustrySummaryV33 as prior } from "./exact-zip-industry-summary-v3-3.mjs";
+
+const RELEASE = "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1", MANIFEST = "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3", CHILDCARE = "retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e", CHILDCARE_MANIFEST = "4fa7e65399c3a123a723fab8aa2fa9919594db61fa34c0883c581e6cf01c14f0", ASSESSED = "2026-11-12T23:25:00.000Z";
+const scopes = { childcare_pa_candidates: "PA", childcare_ct_candidates: "CT", childcare_md_candidates: "MD", childcare_vt_candidates: "VT", childcare_co_candidates: "CO", childcare_ut_candidates: "UT", childcare_ia_candidates: "IA" };
+const hash = (value) => createHash("sha256").update(value).digest("hex"), check = (value) => { if (!value) throw Error("Exact-ZIP v3.4 summary rejected."); };
+export async function readExactZipIndustrySummaryV34(options = {}) {
+  const previous = await prior(options), root = options.root ?? APP_ROOT, manifestPath = path.join(root, "data/retained-childcare-zip-evidence/releases", CHILDCARE, "manifest.json"), manifestBytes = await readFile(manifestPath), manifest = JSON.parse(manifestBytes);
+  check(hash(manifestBytes) === CHILDCARE_MANIFEST && manifest.release_id === CHILDCARE && manifest.summary.accepted_candidate_rows === 12234);
+  const dimensions = previous.dimensions.map((dimension) => { const scope = scopes[dimension.id]; if (!scope) return dimension; const reference = manifest.sources[scope].provenance.source_updated_at ?? null; return { ...dimension, temporal_qualification: { ...dimension.temporal_qualification, source_release_id: CHILDCARE, source_reference_at: reference, assessment_as_of: ASSESSED, review_qualification: "unmeasured", review_due_at: null, current_operations_verified: false } }; });
+  const rows = dimensions.map(({ id, temporal_qualification }) => ({ dimension_id: id, ...temporal_qualification })), temporal = { ...previous.temporal_qualification, schema_version: "exact-zip-industry-temporal-summary-projection@3.4.0", matrix_release_id: RELEASE, matrix_manifest_sha256: MANIFEST, retained_assessment_dimension_counts: rows.reduce((out, row) => { out[row.assessment_as_of] = (out[row.assessment_as_of] ?? 0) + 1; return out; }, {}) };
+  const body = { ...temporal, projection_sha256: undefined }; delete body.projection_sha256; temporal.projection_sha256 = hash(JSON.stringify({ ...body, dimensions: rows }));
+  return { ...previous, schema_version: "national-exact-zip-industry-summary-view@3.4.0", release_id: RELEASE, manifest_sha256: MANIFEST, dimensions, temporal_qualification: temporal, retained_childcare_refresh: { source_release_id: CHILDCARE, source_manifest_sha256: CHILDCARE_MANIFEST, accepted_candidate_rows: 12234, represented_candidate_rows: 12231, out_of_cohort_candidate_rows: 1, missing_zip_candidate_rows: 1, invalid_zip_candidate_rows: 1 }, verification_scope: "Bounded v3.4 successor projection over the hash-pinned 51-dimension matrix. Seven retained-childcare dimensions bind v1.3; missing, invalid and out-of-cohort ZIP evidence remains separate. No childcare row is treated as a unique business, verified physical site or current operation." };
+}
