@@ -47,6 +47,8 @@ import { readZctaGdpModelApprovalPacket } from './zcta-gdp-model-approval-packet
 import { zctaGdpModelApprovalPacketHttp } from './zcta-gdp-model-approval-packet-http.mjs';
 import { readExactZipIndustryEvidenceWithTemporalQualificationV32 as readExactZipIndustryEvidenceWithTemporalQualification } from './exact-zip-industry-temporal-qualification-v3-2.mjs';
 import { exactZipIndustryEvidenceHttp } from './exact-zip-industry-evidence-http.mjs';
+import { readNationalBusinessLifecycleZipEvidence, readNationalBusinessLifecycleZipSummary } from './national-business-lifecycle-zip-evidence-reader.mjs';
+import { nationalBusinessLifecycleZipEvidenceHttp, nationalBusinessLifecycleZipSummaryHttp } from './national-business-lifecycle-zip-evidence-http.mjs';
 import { readExactZipIndustrySummaryV32 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-2.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
@@ -901,6 +903,12 @@ const server = http.createServer(async (request, response) => {
     if (url.pathname === '/api/business-map/exact-zip-industry-evidence') {
       await exactZipIndustryEvidenceHttp(request,response,url,readExactZipIndustryEvidenceWithTemporalQualification,json);
       return;
+    }
+    if(url.pathname==='/api/business-map/lifecycle-zip-summary'){
+      await nationalBusinessLifecycleZipSummaryHttp(request,response,url,readNationalBusinessLifecycleZipSummary,json);return;
+    }
+    if(url.pathname==='/api/business-map/lifecycle-zip-evidence'){
+      await nationalBusinessLifecycleZipEvidenceHttp(request,response,url,readNationalBusinessLifecycleZipEvidence,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/exact-zip-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'Exact-ZIP industry summary does not accept options.'});return;}
