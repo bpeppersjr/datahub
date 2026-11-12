@@ -10,7 +10,7 @@ All three responses were HTTP200/text/plain: service5,408 bytes, layer13,981 byt
 
 Original evidence location: `C:\\Master Data\\datahub\\data\\worktrees\\retained-feed-integration\\data\\business-sources\\fl-food\\gis-preflight\\jobs\\fd982c92-8370-4ae6-84b9-3d3d2986571c`.
 
-Nine files total 26244 bytes. No copy into main or production promotion has occurred. A later integrator-approved retained transfer must require an absent canonical destination UUID path, reject links, preserve exact bytes, copy supporting evidence before manifest publication, compare all hashes, and run the integrated native verifier offline. Do not rerun the source acquisition merely to transfer or integrate this receipt.
+Nine files total 26244 bytes. On November 12, 2026, the integrator confirmed the canonical destination UUID path was absent, rejected linked inputs, copied the eight supporting files before the manifest, compared every source/destination hash, and replayed the integrated native verifier offline. The canonical retained path is `data/business-sources/fl-food/gis-preflight/jobs/fd982c92-8370-4ae6-84b9-3d3d2986571c`; registration `config/datasets/fl-food-gis-preflight-evidence.json` pins the exact manifest and conservative claims. No source request, provider row, production enrollment, runtime pointer, acquisition authority or completeness claim accompanied the transfer. Do not rerun the source acquisition merely to transfer or integrate this receipt.
 
 | File | Bytes | SHA-256 |
 | --- | ---: | --- |

@@ -1,0 +1,30 @@
+{
+  "schema_version": "1.0.0",
+  "dataset_id": "fl-food-gis-preflight-evidence",
+  "status": "registered-retained-source-prerequisite",
+  "state": "FL",
+  "industry": "retail-consumer",
+  "publisher": "Florida Department of Agriculture and Consumer Services, Division of Food Safety",
+  "run_id": "fd982c92-8370-4ae6-84b9-3d3d2986571c",
+  "manifest_path": "data/business-sources/fl-food/gis-preflight/jobs/fd982c92-8370-4ae6-84b9-3d3d2986571c/manifest.json",
+  "manifest_sha256": "5a1a706238f47d7fd5fd056bed6020db1c8da25a2c184cb1a3cedd601bbaebc5",
+  "retained_file_count": 9,
+  "retained_bytes": 26244,
+  "source_request_count": 3,
+  "source_response_bytes": 19730,
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "claims": {
+    "metadata_contract_validated": true,
+    "native_transport_verified": true,
+    "provider_rows_acquired": false,
+    "source_rows": null,
+    "current_operations_verified": false,
+    "acquisition_ready": false,
+    "record_acquisition_use_basis_established": false,
+    "public_export_authorized": false,
+    "business_completeness": null,
+    "zip_coverage": null,
+    "zip4_joined": false
+  }
+}
