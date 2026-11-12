@@ -1,0 +1,38 @@
+{
+  "schema_version": "fl-food-fe-type-assessment@1.0.0",
+  "assessment_id": "fl-food-fe-type-partial-crosswalk-2026-11-12",
+  "observed_at": "2026-11-12",
+  "publisher": "Florida Department of Agriculture and Consumer Services, Division of Food Safety",
+  "dataset_field": "FE_TYPE",
+  "decision": "partial-publisher-evidenced-crosswalk-full-codebook-unresolved",
+  "sources": {
+    "gis_layer": "https://gis.fdacs.gov/mapping/rest/services/DFS/DFS_FOOD_SAFETY_FACILITIES_PUBLIC_VIEW/MapServer/layers",
+    "retail_program": "https://www.fdacs.gov/Business-Services/Food/Food-Establishments/Retail-Food-Program",
+    "permit_rule": "https://flrules.org/gateway/readFile.asp?File=5K-4.020.htm&sid=1&tid=4417591&type=1"
+  },
+  "confirmed_mappings": [
+    {"code":"111","publisher_label":"Supermarket","evidence_url":"https://foodpermit.fdacs.gov/Visit/Default.aspx?id=99997182219469","evidence_kind":"official-publisher-inspection-report","industry_category":"supermarket"},
+    {"code":"122","publisher_label":"Convenience Store/Prepackaged/No Food Service","evidence_url":"https://foodpermit.fdacs.gov/Visit/Default.aspx?id=99997182212873","evidence_kind":"official-publisher-inspection-report","industry_category":"convenience-store"},
+    {"code":"123","publisher_label":"Convenience Store Limited FS","evidence_url":"https://foodpermit.fdacs.gov/Visit/Default.aspx?id=99997182225002","evidence_kind":"official-publisher-inspection-report","industry_category":"convenience-store-limited-food-service"},
+    {"code":"124","publisher_label":"Convenience Store Significant FS AND/OR Packaged Ice","evidence_url":"https://foodpermit.fdacs.gov/Visit/Default.aspx?id=99997182252111","evidence_kind":"official-publisher-inspection-report","industry_category":"convenience-store-significant-food-service-or-packaged-ice"}
+  ],
+  "unresolved_gates": [
+    "complete-publisher-fe-type-codebook",
+    "current-codebook-edition-and-change-history",
+    "all-retail-layer-code-values-accounted-for",
+    "publisher-confirmed-gis-field-to-permit-category-contract",
+    "record-acquisition-use-basis",
+    "bounded-row-and-identifier-conservation",
+    "production-admission"
+  ],
+  "claims": {
+    "network_requests_by_assessment_record": 0,
+    "provider_rows_acquired": 0,
+    "complete_codebook_verified": false,
+    "unobserved_codes_classified": false,
+    "record_acquisition_authorized": false,
+    "current_operations_verified": false,
+    "business_completeness": null,
+    "production_admission": false
+  }
+}

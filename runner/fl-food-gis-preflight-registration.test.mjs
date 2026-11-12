@@ -4,7 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import { APP_ROOT } from "./paths.mjs";
 import { verifyFlFoodGisPreflight } from "./fl-food-gis-preflight.mjs";
-import { readFlFoodGisPreflightRegistration, validateFlFoodGisPreflightRegistrationForTest } from "./fl-food-gis-preflight-registration.mjs";
+import { readFlFoodGisPreflightRegistration, validateFlFoodFeTypeAssessmentForTest, validateFlFoodGisPreflightRegistrationForTest } from "./fl-food-gis-preflight-registration.mjs";
 
 const registrationPath = path.join(APP_ROOT, "config/datasets/fl-food-gis-preflight-evidence.json");
 
@@ -34,11 +34,25 @@ test("registered Florida retail metadata prerequisite replays exact canonical re
   assert.equal(verified.claims.providerRowsAcquired, false);
   assert.equal(verified.claims.currentOperationsVerified, false);
   const view = await readFlFoodGisPreflightRegistration();
-  assert.equal(view.schema_version, "fl-food-gis-preflight-registration-status@1.0.0");
+  assert.equal(view.schema_version, "fl-food-gis-preflight-registration-status@1.1.0");
   assert.equal(view.metadata_contract_validated, true);
   assert.equal(view.provider_rows_acquired, false);
   assert.equal(view.source_rows, null);
   assert.equal(view.claims.network_requests, 0);
+  assert.equal(view.classification.confirmed_code_count, 4);
+  assert.deepEqual(view.classification.confirmed_codes.map(row => row.code), ["111", "122", "123", "124"]);
+  assert.equal(view.classification.complete_codebook_verified, false);
+  assert.equal(view.classification.unresolved_gate_count, 7);
+  assert.match(view.classification.assessment_sha256, /^[a-f0-9]{64}$/);
+});
+
+test("Florida FE_TYPE assessment preserves a partial publisher-evidenced crosswalk", async () => {
+  const assessment = JSON.parse(await readFile(path.join(APP_ROOT, "config/source-assessments/fl-food-fe-type-partial-crosswalk-2026-11-12.json"), "utf8"));
+  assert.doesNotThrow(() => validateFlFoodFeTypeAssessmentForTest(assessment));
+  for (const mutate of [value => { value.claims.complete_codebook_verified = true; }, value => { value.claims.record_acquisition_authorized = true; }, value => { value.confirmed_mappings.push({ ...value.confirmed_mappings[0], code: "999" }); }, value => { value.unresolved_gates.pop(); }]) {
+    const changed = structuredClone(assessment); mutate(changed);
+    assert.throws(() => validateFlFoodFeTypeAssessmentForTest(changed), /classification assessment/);
+  }
 });
 
 test("Florida retail prerequisite registration cannot silently widen source authority", async () => {
