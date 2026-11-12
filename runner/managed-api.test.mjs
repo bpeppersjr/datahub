@@ -247,7 +247,7 @@ test("managed operation HTTP API fails closed when export lineage cannot be inde
   assert.equal(oregonRefresh.dispatchAvailable, true);
   assert.equal(oregonRefresh.retainedRelease.activeRegistrationsPublished, 559874);
   assert.equal(catalog.collectionSources.some(source => source.id === "or-business-registry"), false);
-  for(const sourceId of ["co-business-registry","ct-business-registry","pa-business-registry"]){const source=catalog.governedSourceServices.find(service=>service.sourceId===sourceId);assert.equal(source.readinessStatus,"AUTHORIZED");assert.equal(source.dispatchAvailable,true);assert.equal(typeof source.sourceUseNotice,"string");}
+  for(const sourceId of ["co-business-registry","ct-business-registry","de-business-licenses","pa-business-registry"]){const source=catalog.governedSourceServices.find(service=>service.sourceId===sourceId);assert.equal(source.readinessStatus,"AUTHORIZED");assert.equal(source.dispatchAvailable,true);assert.equal(typeof source.sourceUseNotice,"string");}
   const newYorkRefresh = catalog.governedSourceServices.find(service => service.sourceId === "ny-business-registry");
   assert.equal(newYorkRefresh.readinessStatus, "AUTHORIZED");
   assert.equal(newYorkRefresh.dispatchAvailable, true);

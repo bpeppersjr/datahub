@@ -1,0 +1,67 @@
+{
+  "schema_version": "state-business-source-existing-assessment@1.0.0",
+  "assessment_id": "de-existing-governed-source-2026-11-12",
+  "observed_at": "2026-11-12",
+  "state": { "abbreviation": "DE", "name": "Delaware" },
+  "decision": "existing-governed-source",
+  "controls": {
+    "official_primary_sources_only": true,
+    "metadata_requests": 1,
+    "aggregate_requests": 1,
+    "record_requests": 0,
+    "records_downloaded": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "source": {
+    "publisher": "Delaware Department of Finance, Division of Revenue",
+    "dataset_id": "5zy2-grhr",
+    "retained_release_id": "de-business-licenses-20260903-002309163Z-f955c045",
+    "observed_catalog": {
+      "metadata_url": "https://data.delaware.gov/api/views/5zy2-grhr",
+      "metadata_http_status": 200,
+      "metadata_bytes": 27417,
+      "metadata_sha256": "377011e5d7f4040698b1d6418d0d82c5999a0ff76e844d264a559700f927e62d",
+      "rows_updated_at": "2026-11-12T12:31:57.000Z",
+      "publication_stage": "published",
+      "license": "Public Domain",
+      "temporal_coverage": "current data",
+      "publishing_frequency": "Daily",
+      "column_count": 13,
+      "selected_schema_fingerprint": "711aa444cd76259bfaec1af54f718c22faa132337d0daf0b71ae47d46e5bb37b"
+    },
+    "observed_aggregate": {
+      "query_scope": "count-only-no-license-rows",
+      "http_status": 200,
+      "response_bytes": 50,
+      "response_sha256": "c9c93167beab2e4ab099886c57ca3bf301c61fe576e1221b5ac52591edc040b8",
+      "records": 74053,
+      "distinct_license_numbers": 72591
+    }
+  },
+  "access": {
+    "classification": "anonymous-api",
+    "summary": "Official published Public Domain current-license metadata and aggregate endpoints were anonymously accessible. No license rows were requested. Delaware Division of Corporations search automation remains prohibited and out of scope."
+  },
+  "fields": "The governed 13-field business-license and reported-address selection remains schema-compatible. Owner, officer, principal, agent, phone, email, and contact fields remain excluded.",
+  "status_semantics": "Current-license inclusion and validity dates are licensing evidence. They are not independent proof of continuous operation, good standing, solvency, public access, ownership, or an open storefront.",
+  "address_zip": "Reported license addresses and source coordinates are not verified operating premises. ZIP5 and ZIP+4 remain separate, and repeated rows are grouped by license number before organization-candidate publication.",
+  "temporal": "The retained source snapshot has 67,829 rows and 66,694 distinct license numbers dated 2026-09-02. The current aggregate has 74,053 rows and 72,591 distinct license numbers dated 2026-11-12. Differences establish refresh value only and are not net business creation, operation, closure, ownership, or completeness.",
+  "authorization": {
+    "retained_release_reuse_eligible": true,
+    "fresh_acquisition_authorized": false,
+    "autonomous_acquisition_authorized": false,
+    "production_pointer_change_authorized": false,
+    "active_business_claim_authorized": false
+  },
+  "citations": [
+    { "url": "https://data.delaware.gov/api/views/5zy2-grhr", "evidence": "Official metadata, publisher, publication state, Public Domain designation, source update, current-data scope, daily cadence, and column contract." },
+    { "url": "https://data.delaware.gov/resource/5zy2-grhr.json?$select=count(*)%20as%20records,%20count(distinct%20license_number)%20as%20distinct_licenses", "evidence": "Official aggregate-only row and distinct-license counts; no license rows." },
+    { "url": "https://icis.corp.delaware.gov/Ecorp/EntitySearch/NameSearch.aspx", "evidence": "Separate corporate search automation restriction; excluded from this Revenue source authorization." }
+  ],
+  "unresolved_gates": [],
+  "strongest_next_action": "Use only the authorization-bound Co*Tive Revenue-license snapshot operation. Independently verify schema, grouped license conservation, quarantine, content hashes, temporal metadata, and immutable release output before changing this source's pointer."
+}

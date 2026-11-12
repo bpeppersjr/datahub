@@ -6,6 +6,7 @@ import { APP_ROOT } from "./paths.mjs";
 const rows = [
   ["CO","co-business-registry","co-business-registry-good-standing-or-delinquent-organizations","verifyCoBusinessRegistry"],
   ["CT","ct-business-registry","ct-business-registry-active-organizations","verifyCtBusinessRegistry"],
+  ["DE","de-business-licenses","de-business-licenses-current","verifyDeBusinessLicenses"],
   ["FL","fl-business-registry","fl-business-registry-quarterly-active-entities","verifyFlBusinessRegistry"],
   ["IA","ia-business-registry","ia-business-registry-active-entities","verifyIaBusinessRegistry"],
   ["IL","il-business-registry","il-business-registry-active-organizations","verifyIllinoisBusinessRegistry"],

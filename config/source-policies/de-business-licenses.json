@@ -1,6 +1,6 @@
 {
   "policy_id": "de-business-licenses",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "Delaware Department of Finance, Division of Revenue",
   "ownership": "Official public current business-license records published through Delaware Open Data",
   "source_home": "https://data.delaware.gov/d/5zy2-grhr",
@@ -32,10 +32,12 @@
     "owner_officer_principal_agent_phone_email_and_contact_fields": "excluded-at-query-time"
   },
   "attribution": "Source: Delaware Department of Finance, Division of Revenue, Delaware Business Licenses, via data.delaware.gov.",
+  "source_terms_reviewed_at": "2026-11-12",
+  "required_application_notice": "Delaware publishes this current business-license dataset as Public Domain. Current-license rows, reported addresses, and source coordinates remain publisher assertions; they do not establish continuous operation, good standing, solvency, a verified physical site, ownership, or every business operating in Delaware. Record-level output remains local-review-only. Delaware's separate corporate-search automation restriction remains out of scope.",
   "retention": "Indefinite for immutable selected-field source and governed normalized records unless an approved retention rule applies.",
   "redistribution": "Aggregate counts may be redistributed with Delaware attribution, exact source refresh, source checksum, and license-scope limitations. Record-level normalized data remains local-review-only pending privacy review.",
   "contains_personal_data": true,
   "personal_data_handling": "Business names can identify sole proprietors and reported business addresses can be residences. The connector selects no owner, officer, principal, agent, phone, email, or contact fields and keeps source and normalized record-level artifacts local.",
   "contains_secrets": false,
-  "reviewed_at": "2026-09-01"
+  "reviewed_at": "2026-11-12"
 }

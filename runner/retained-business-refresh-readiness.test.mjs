@@ -41,11 +41,18 @@ test("five retained business refresh contracts are deterministic, pointer-bound 
 
 async function fixture(sourceId){
   const d=RETAINED_BUSINESS_REFRESH_DESCRIPTORS[sourceId],root=await mkdtemp(path.join(APP_ROOT,"data/tmp/retained-refresh-"));
-  const relatives=[`config/source-policies/${sourceId}.json`,`config/connectors/${sourceId}.json`,`config/datasets/${d.datasetId}.json`,`config/state-business-source-existing-assessments/${d.state.toLowerCase()}-2026-09-22.json`,`data/business-sources/${d.datasetId}/current.json`];
+  const relatives=[`config/source-policies/${sourceId}.json`,`config/connectors/${sourceId}.json`,`config/datasets/${d.datasetId}.json`,`config/state-business-source-existing-assessments/${d.state.toLowerCase()}-${d.assessmentDate??"2026-09-22"}.json`,`data/business-sources/${d.datasetId}/current.json`];
   const pointer=JSON.parse(await readFile(path.join(APP_ROOT,relatives[4]),"utf8"));relatives.push(`data/business-sources/${d.datasetId}/${pointer.manifest}`);
   for(const relative of relatives){await mkdir(path.dirname(path.join(root,relative)),{recursive:true});await cp(path.join(APP_ROOT,relative),path.join(root,relative));}
-  return {root,d,pointerPath:path.join(root,relatives[4]),manifestPath:path.join(root,relatives[5])};
+  return {root,d,assessmentPath:path.join(root,relatives[3]),pointerPath:path.join(root,relatives[4]),manifestPath:path.join(root,relatives[5])};
 }
+
+test("Delaware current aggregate assessment is hash-bound",async t=>{
+  const f=await fixture("de-business-licenses");t.after(()=>rm(f.root,{recursive:true,force:true}));
+  assert.equal((await getRetainedBusinessRefreshReadiness("de-business-licenses",{appRoot:f.root})).observedAssessment.observedAt,"2026-11-12");
+  const assessment=JSON.parse(await readFile(f.assessmentPath,"utf8"));assessment.source.observed_aggregate.records+=1;await writeFile(f.assessmentPath,JSON.stringify(assessment));
+  await assert.rejects(getRetainedBusinessRefreshReadiness("de-business-licenses",{appRoot:f.root}),/fixed source contract/);
+});
 
 test("copied pointer and manifest fixtures fail closed on identity and count drift",async t=>{
   for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){
@@ -64,7 +71,7 @@ test("copied pointer and manifest fixtures fail closed on identity and count dri
 test("managed previews allocate nothing and unauthorized retained starts reject",async t=>{
   const root=await mkdtemp(path.join(APP_ROOT,"data/tmp/retained-refresh-managed-"));t.after(()=>rm(root,{recursive:true,force:true}));let executions=0,writes=0;
   const service=new ManagedOperations({root,executor:async()=>{executions++;},receiptWriter:async()=>{writes++;}});t.after(()=>service.close());await service.ready;const before=await readdir(root);
-  for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.operationCreated,false);if(!["co-business-registry","ct-business-registry","pa-business-registry"].includes(sourceId))await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
+  for(const sourceId of RETAINED_BUSINESS_REFRESH_SOURCE_IDS){const plan=await service.sourceRefreshPlan({sourceId});assert.equal(plan.operationCreated,false);if(!["co-business-registry","ct-business-registry","de-business-licenses","pa-business-registry"].includes(sourceId))await assert.rejects(service.startSourceRefresh({sourceId}),error=>error.statusCode===409&&error.code==="ACQUISITION_NOT_AUTHORIZED");}
   assert.deepEqual(await readdir(root),before);assert.equal(executions,0);assert.equal(writes,0);assert.deepEqual(await service.list(),[]);
   const managedSource=await readFile(new URL("./managed-operations.mjs",import.meta.url),"utf8"),start=managedSource.slice(managedSource.indexOf("async startSourceRefresh"),managedSource.indexOf("async plan",managedSource.indexOf("async startSourceRefresh")));
   assert.ok(start.indexOf("const readiness=await dispatch.readiness()")<start.indexOf("ACQUISITION_NOT_AUTHORIZED"));
