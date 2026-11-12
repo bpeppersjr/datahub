@@ -21,17 +21,18 @@ import {
 } from "./state-access-view.mjs";
 
 const REPORT =
-  "data/state-access/reports/20261111215829-146e8e11-df71-4ed6-839f-f4fa8ecdf553.json";
+  "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json";
 test("bounded state-access view exposes exact temporal, aggregate, and typed directory evidence", async () => {
   const construction = await stateAccessView({
     state: "AL",
     industry: "construction",
   });
-  assert.equal(construction.temporalStatus.status, "missing-source-reference");
+  assert.equal(construction.temporalStatus.status, "no-positive-count-evidence");
   assert.equal(
     construction.exactBindings.length,
     construction.temporalStatus.positiveEvidenceItems,
   );
+  assert.equal(construction.exactBindings.length, 0);
   assert.equal(
     construction.contextTemporalEvidence.status,
     "within-review-window",
@@ -111,6 +112,14 @@ test("bounded state-access view exposes exact temporal, aggregate, and typed dir
   );
   assert.equal(Object.hasOwn(health, "appHandoff"), false);
   assert.equal(Object.hasOwn(health, "evidence"), false);
+  for (const [state, sourceReferenceAt] of [
+    ["PA", "2026-10-29T20:08:16.000Z"],
+    ["VT", "2026-10-14T19:56:37.000Z"],
+  ]) {
+    const current = await stateAccessView({ state, industry: "childcare" });
+    assert.equal(current.temporalStatus.status, "within-review-window");
+    assert.ok(current.exactBindings.some((row) => row.temporalEvidence.sourceReferenceAt === sourceReferenceAt));
+  }
 });
 test("state-access view fails closed on enrolled report drift and invalid selections", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), "state-access-view-"));
@@ -160,7 +169,7 @@ test("state-access enrollment rejects a hard-linked report", async (t) => {
 test("industry summary conserves exact operational 51 by 9 cells and false completeness claims", async () => {
   const view = await stateAccessIndustrySummary();
   assert.equal(view.schema_version, "state-access-industry-summary@1.5.0");
-  assert.equal(view.assessed_at, "2026-11-11T21:58:29.882Z");
+  assert.equal(view.assessed_at, "2026-11-12T16:42:05.717Z");
   assert.match(view.report_sha256, /^[a-f0-9]{64}$/);
   assert.equal(view.jurisdictions, 51);
   assert.equal(view.industry_cells, 459);

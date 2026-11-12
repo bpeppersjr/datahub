@@ -30,8 +30,8 @@ test('Administration puts maintained industries and Save before the independent 
   assert.match(rendered, /Evidence availability/);
   assert.match(rendered, /not the percent of businesses collected or nationwide industry completeness/);
   assert.match(rendered, /11 of 51 jurisdictions \(21\.6% evidence availability; completeness unknown\)/);
-  assert.match(rendered, /Unsupported: 39 · unmeasured: 2 · restricted sample: 1 · temporal review due\/unknown: 11/);
-  assert.match(rendered, /Assessed 2026-11-11/);
+  assert.match(rendered, /Unsupported: 39 · unmeasured: 2 · restricted sample: 1 · temporal review due\/unknown: 9/);
+  assert.match(rendered, /Assessed 2026-11-12/);
   inputs.find(node => !node.props.checked).props.onChange();
   tree = h.render();
   assert.match(text(tree), /Unsaved draft — persisted selection is unchanged/);
