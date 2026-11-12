@@ -10,7 +10,23 @@ const countBy = (rows, key) => rows.reduce((result, row) => {
 }, {});
 
 export async function readExactZipIndustryEvidenceWithTemporalQualificationV32(options = {}) {
-  const [previous, current, aggregate] = await Promise.all([prior(options), matrix(options), summary(options)]);
+  const current = await matrix(options);
+  options.signal?.throwIfAborted();
+  if (current.row === null) {
+    return {
+      schema_version: current.schema_version,
+      status: current.status,
+      reason: "outside-retained-cohort",
+      zip5: options.zip5,
+      row: null,
+      temporal_qualification: null,
+      release_id: current.release_id,
+      manifest_sha256: current.manifest_sha256,
+      full_matrix_replay_performed: current.full_matrix_replay_performed,
+      recursive_lineage_verified: current.recursive_lineage_verified,
+    };
+  }
+  const [previous, aggregate] = await Promise.all([prior(options), summary(options)]);
   const cell = current.row?.cells?.[ID], raw = cell?.status ?? "outside-source-denominator";
   const index = previous.temporal_qualification.rows.findIndex((row) => row.dimension_id === ID);
   if (index < 0) throw new Error("Exact-ZIP v3.2 New York qualification is unavailable.");

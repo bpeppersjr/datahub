@@ -175,7 +175,11 @@ const REPORTING_CHILDCARE_DIMENSIONS = [
 ];
 const ZIP_STATUS_REGISTRATION =
   "config/datasets/zip-source-native-status-distribution.json";
+const ZIP_STATUS_REGISTRATION_ARCHIVE =
+  "config/datasets/zip-source-native-status-distribution-v20261003.json";
 const ZIP_STATUS_PIN = {
+  registration_sha256:
+    "9c06bb1a5b8c130392fb077db368f28acc73b796ad17224e782805d11f8bc56f",
   release_id:
     "zip-source-native-status-f6ae96364838baab402d8bcd487cac04059f910af1b71bb9da6bf19424d50640",
   manifest_sha256:
@@ -884,10 +888,12 @@ function temporal(spec, manifest) {
   };
 }
 export async function nativeStatusEvidence(root, cohortKeys) {
-  const registration = await readPinned(root, ZIP_STATUS_REGISTRATION),
+  // Replay the original registration bytes while preserving the path recorded at publication.
+  const registration = await readPinned(root, ZIP_STATUS_REGISTRATION_ARCHIVE),
     rr = registration.value.retained_release;
   check(
-    registration.value.dataset_id === "zip-source-native-status-distribution" &&
+    registration.sha256 === ZIP_STATUS_PIN.registration_sha256 &&
+      registration.value.dataset_id === "zip-source-native-status-distribution" &&
       registration.value.status === "registered-local-derived-evidence" &&
       registration.value.runtime_pointer === null &&
       registration.value.production_enrollment === false &&

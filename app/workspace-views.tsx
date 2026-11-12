@@ -4658,6 +4658,18 @@ type ExactZipAddressRowGap = {
     source_reference_date: string;
   };
 };
+type ExactZipOutsideCohort = {
+  schema_version: "national-exact-zip-industry-evidence-row@3.2.0";
+  status: "absent";
+  reason: "outside-retained-cohort";
+  zip5: string;
+  row: null;
+  temporal_qualification: null;
+  release_id: string;
+  manifest_sha256: string;
+  full_matrix_replay_performed: false;
+  recursive_lineage_verified: true;
+};
 type ExactZipEvidence = {
   schema_version: "national-exact-zip-industry-evidence-matrix@1.9.0"|"national-exact-zip-industry-evidence-matrix@2.1.0";
   status: "present";
@@ -4720,21 +4732,74 @@ type ExactZipEvidence = {
 };
 const exactObject = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
+const EXACT_ZIP_V32_RELEASE = "national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629";
+const EXACT_ZIP_V32_MANIFEST = "d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1";
+const NY_RETAIL_FOOD_REFRESHED_SOURCE = {
+  source_release_id: "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",
+  source_reference_at: "2026-10-14T19:08:34.000Z",
+  review_due_at: "2027-02-11T19:08:34.000Z",
+} as const;
+const NY_RETAIL_FOOD_LOCATION_TEMPORAL = {
+  ...NY_RETAIL_FOOD_REFRESHED_SOURCE,
+  source_key: "ny_retail_food_store_license_sites",
+  review_qualification: "unmeasured",
+  semantic_class: "non-active-reporting",
+  source_status_term: "annual license snapshot membership",
+  assessment_as_of: "2026-10-02T16:30:00.000Z",
+} as const;
 const validV31MatrixRow=(value:unknown,zip:string)=>{if(value===null)return true;if(!exactObject(value)||value.zip5!==zip||!exactObject(value.cells))return false;return Object.keys(value.cells).length===51&&EXACT_ZIP_V30_SOURCES.every(source=>source in value.cells);};
 const validV31TemporalRows=(value:unknown)=>Array.isArray(value)&&value.length===51&&new Set(value.map(item=>exactObject(item)?item.dimension_id:null)).size===51&&Object.entries(EXACT_ZIP_V31_TEMPORAL_MAPPINGS).every(([id,key])=>{const item=value.find(candidate=>exactObject(candidate)&&candidate.dimension_id===id);return exactObject(item)&&item.source_key===key&&item.semantic_class==="non-active-reporting"&&item.review_qualification==="unmeasured"&&typeof item.source_release_id==="string"&&item.source_release_id.length>0&&item.current_operations_verified===false&&exactObject(item.evidence_disposition)&&item.evidence_disposition.lifecycle_status==="unmeasured"&&item.evidence_disposition.current_operations_verified===false;});
+function validNyRetailFoodLocationTemporal(rows: unknown): boolean {
+  const profile = Array.isArray(rows)
+    ? rows.find(row => exactObject(row) && row.dimension_id === "ny_retail_food_location_profiles")
+    : null;
+  return exactObject(profile) &&
+    Object.entries(NY_RETAIL_FOOD_LOCATION_TEMPORAL).every(([key, value]) => profile[key] === value) &&
+    profile.current_operations_verified === false &&
+    exactObject(profile.evidence_disposition) &&
+    profile.evidence_disposition.lifecycle_status === "unmeasured" &&
+    profile.evidence_disposition.current_operations_verified === false;
+}
 const exactZipDisposition=(cell_status:string,semantic:string,review:string)=>{const lifecycle_status=review==="unmapped"&&semantic==="unmapped"?"unmapped":review==="unmeasured"?"unmeasured":review==="stale"?"stale":semantic==="source-defined-current"?(cell_status==="positive"?"source-defined-current-positive-within-review-window":"source-defined-current-without-positive-evidence"):(cell_status==="positive"?"non-active-reporting-positive":"non-active-reporting-without-positive-evidence");return{cell_status,lifecycle_status,label:`${cell_status.replaceAll("-"," ")} · ${lifecycle_status.replaceAll("-"," ")}`,current_operations_verified:false}};
 function validExactZipEvidenceV21(value:unknown,zip:string):boolean{if(!exactObject(value)||value.schema_version!=="national-exact-zip-industry-evidence-matrix@2.1.0"||value.release_id!=="national-exact-zip-industry-evidence-matrix-1a72cd9340c8b230004a6b024b9679bbb613ce4174e91ec8b69eed7d6afaf9e3"||value.manifest_sha256!=="2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4"||value.full_matrix_replay_performed!==false||!exactObject(value.cell_status_counts_by_dimension)||Object.keys(value.cell_status_counts_by_dimension).length!==42)return false;const row=value.row,tq=value.temporal_qualification;if(row!==null&&(!exactObject(row)||row.schema_version!=="national-exact-zip-industry-evidence-row@2.1.0"||row.zip5!==zip||row.zip4!==null||!exactObject(row.cells)||Object.keys(row.cells).length!==42||EXACT_ZIP_V21_SOURCES.some(source=>!(source in row.cells))))return false;if(!exactObject(tq)||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@2.1.0"||tq.zip5!==zip||!Array.isArray(tq.rows)||tq.rows.length!==42||new Set(tq.rows.map(r=>exactObject(r)?r.dimension_id:null)).size!==42||!exactObject(tq.summary)||tq.summary.qualification_cell_total!==2024148||tq.summary.semantic_cell_total!==2024148||!exactObject(tq.provenance)||tq.provenance.matrix_release_id!==value.release_id||tq.provenance.matrix_manifest_sha256!==value.manifest_sha256)return false;return tq.rows.every(r=>exactObject(r)&&typeof r.dimension_id==="string"&&EXACT_ZIP_V21_SOURCES.includes(r.dimension_id as typeof EXACT_ZIP_V21_SOURCES[number])&&r.current_operations_verified===false&&exactObject(r.evidence_disposition)&&r.evidence_disposition.current_operations_verified===false);}
+function validExactZipOutsideCohort(value: unknown, zip: string): value is ExactZipOutsideCohort {
+  return /^\d{5}$/.test(zip) && sameClosed(value, {
+    schema_version: "national-exact-zip-industry-evidence-row@3.2.0",
+    status: "absent",
+    reason: "outside-retained-cohort",
+    zip5: zip,
+    row: null,
+    temporal_qualification: null,
+    release_id: EXACT_ZIP_V32_RELEASE,
+    manifest_sha256: EXACT_ZIP_V32_MANIFEST,
+    full_matrix_replay_performed: false,
+    recursive_lineage_verified: true,
+  });
+}
 export function validExactZipEvidence(
   value: unknown,
   zip: string,
 ): value is ExactZipEvidence {
   if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@3.2.0"&&exactObject(value.temporal_qualification)&&value.temporal_qualification.schema_version==="exact-zip-industry-temporal-qualification-view@3.2.0"){
     const row=value.row,tq=value.temporal_qualification,q=Array.isArray(tq.rows)?tq.rows.find(item=>exactObject(item)&&item.dimension_id==="ny_retail_food_license_address_evidence_count"):null;
-    return value.release_id==="national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629"&&value.manifest_sha256==="d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1"&&value.full_matrix_replay_performed===false&&value.recursive_lineage_verified===true&&exactObject(tq.summary)&&tq.summary.unmapped_dimension_count===0&&validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows)&&exactObject(q)&&q.source_release_id==="ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0"&&q.semantic_class==="non-active-reporting"&&q.review_qualification==="within-review-window"&&q.source_reference_at==="2026-10-14T19:08:34.000Z"&&q.review_due_at==="2027-02-11T19:08:34.000Z"&&q.current_operations_verified===false&&exactObject(q.evidence_disposition)&&["non-active-reporting-positive","non-active-reporting-without-positive-evidence"].includes(String(q.evidence_disposition.lifecycle_status))&&q.evidence_disposition.current_operations_verified===false;
+    return value.release_id===EXACT_ZIP_V32_RELEASE&&value.manifest_sha256===EXACT_ZIP_V32_MANIFEST&&
+      value.status==="present"&&row!==null&&tq.zip5===zip&&
+      value.full_matrix_replay_performed===false&&value.recursive_lineage_verified===true&&
+      exactObject(tq.summary)&&tq.summary.unmapped_dimension_count===0&&
+      validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows)&&validNyRetailFoodLocationTemporal(tq.rows)&&
+      exactObject(q)&&Object.entries(NY_RETAIL_FOOD_REFRESHED_SOURCE).every(([key, expected])=>q[key]===expected)&&
+      q.semantic_class==="non-active-reporting"&&q.review_qualification==="within-review-window"&&
+      q.current_operations_verified===false&&q.continuous_operation_verified===false&&q.site_occupancy_verified===false&&
+      q.public_access_verified===false&&q.unique_business_count===null&&q.coordinates_are_verified_premises===false&&
+      q.address_evidence_may_not_qualify_as_physical_site===true&&exactObject(q.evidence_disposition)&&
+      ["non-active-reporting-positive","non-active-reporting-without-positive-evidence"].includes(String(q.evidence_disposition.lifecycle_status))&&
+      q.evidence_disposition.current_operations_verified===false&&q.evidence_disposition.continuous_operation_verified===false&&
+      q.evidence_disposition.site_occupancy_verified===false&&q.evidence_disposition.public_access_verified===false&&
+      q.evidence_disposition.additive===false&&q.evidence_disposition.identity_merge_applied===false;
   }
   if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@3.0.0"&&exactObject(value.temporal_qualification)&&value.temporal_qualification.schema_version==="exact-zip-industry-temporal-qualification-view@3.1.0"){
     const row=value.row,tq=value.temporal_qualification;
-    return value.release_id==="national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9"&&value.manifest_sha256==="07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"&&value.full_matrix_replay_performed===false&&value.recursive_lineage_verified===true&&exactObject(tq.summary)&&tq.summary.unmapped_dimension_count===0&&validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows);
+    return value.release_id==="national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9"&&value.manifest_sha256==="07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"&&value.full_matrix_replay_performed===false&&value.recursive_lineage_verified===true&&exactObject(tq.summary)&&tq.summary.unmapped_dimension_count===0&&validV31MatrixRow(row,zip)&&validV31TemporalRows(tq.rows)&&validNyRetailFoodLocationTemporal(tq.rows);
   }
   if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@3.0.0"){const row=value.row,tq=value.temporal_qualification;if(value.release_id!=="national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9"||value.manifest_sha256!=="07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7"||value.full_matrix_replay_performed!==false||value.recursive_lineage_verified!==true||!exactObject(tq)||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@3.0.0"||!Array.isArray(tq.rows)||tq.rows.length!==51||new Set(tq.rows.map(r=>exactObject(r)?r.dimension_id:null)).size!==51||row!==null&&(!exactObject(row)||row.zip5!==zip||!exactObject(row.cells)||Object.keys(row.cells).length!==51||EXACT_ZIP_V30_SOURCES.some(source=>!(source in row.cells))))return false;const q=tq.rows.find(item=>exactObject(item)&&item.dimension_id==="ny_retail_food_license_address_evidence_count");return exactObject(q)&&q.semantic_class==="non-active-reporting"&&q.review_qualification==="stale"&&q.publisher_status==="New York Agriculture and Markets annual licensed retail-food-store snapshot"&&q.publisher_jurisdiction==="New York State"&&q.current_operations_verified===false&&q.continuous_operation_verified===false&&q.site_occupancy_verified===false&&q.public_access_verified===false&&q.unique_business_count===null&&q.coordinates_are_verified_premises===false&&q.address_evidence_may_not_qualify_as_physical_site===true&&q.record_export_policy==="local-review-only"&&q.aggregate_export_policy==="public-under-open-ny-terms-with-attribution-and-limitations"&&exactObject(q.evidence_disposition)&&["positive","measured-zero","outside-source-denominator"].includes(String(q.evidence_disposition.raw_status))&&q.evidence_disposition.lifecycle_status==="stale"&&q.evidence_disposition.current_operations_verified===false&&q.evidence_disposition.continuous_operation_verified===false&&q.evidence_disposition.site_occupancy_verified===false&&q.evidence_disposition.public_access_verified===false&&q.evidence_disposition.additive===false;}
   if(exactObject(value)&&value.schema_version==="national-exact-zip-industry-evidence-row@2.9.0"){const row=value.row,tq=value.temporal_qualification;if(value.release_id!=="national-exact-zip-industry-evidence-matrix-3533736fa5e0a27f0b4c5e4cb8e7d2af4aa04c2f0c97c4da7eff620df31f7ff7"||value.manifest_sha256!=="9c6fa25f318d3b89f7f24efa15340d56b38a72691e40e5c4ebde22b45281c975"||value.full_matrix_replay_performed!==false||value.recursive_lineage_verified!==true||!exactObject(tq)||tq.schema_version!=="exact-zip-industry-temporal-qualification-view@2.9.0"||!Array.isArray(tq.rows)||tq.rows.length!==50||new Set(tq.rows.map(r=>exactObject(r)?r.dimension_id:null)).size!==50||row!==null&&(!exactObject(row)||row.zip5!==zip||!exactObject(row.cells)||Object.keys(row.cells).length!==50||EXACT_ZIP_V29_SOURCES.some(source=>!(source in row.cells))))return false;const q=tq.rows.find(item=>exactObject(item)&&item.dimension_id==="chicago_current_active_business_license_physical_sites");return exactObject(q)&&q.semantic_class==="source-defined-current"&&q.review_qualification==="within-review-window"&&q.publisher_status==="City of Chicago municipal source-defined current selected official view snapshot"&&q.source_status_term==="City of Chicago municipal source-defined current selected official view snapshot; reported address jurisdiction is not inferred"&&q.publisher_jurisdiction==="City of Chicago"&&q.reported_address_jurisdiction_may_differ===true&&q.address_jurisdiction_inferred===false&&q.current_operations_verified===false&&q.continuous_operation_verified===false&&q.site_occupancy_verified===false&&q.public_access_verified===false&&q.unique_business_count===null&&q.record_export_policy==="local-review-only"&&exactObject(q.evidence_disposition)&&["positive","measured-zero","outside-source-denominator"].includes(String(q.evidence_disposition.raw_status))&&q.evidence_disposition.current_operations_verified===false&&q.evidence_disposition.continuous_operation_verified===false&&q.evidence_disposition.site_occupancy_verified===false&&q.evidence_disposition.public_access_verified===false&&q.evidence_disposition.additive===false;}
@@ -5707,7 +5772,7 @@ const EXACT_ZIP_V31_SUMMARY_CONTRACT = [
   ["chicago_license_location_profiles",[1033,0,0,47161,0],{"source_key":"chicago_active_business_license_sites","source_release_id":"chicago-active-business-licenses-2026-09-02-5509fc257e382b49","review_qualification":"within-review-window","semantic_class":"source-defined-current","source_reference_at":"2026-09-02T23:59:59.999Z","review_due_at":"2026-10-17T23:59:59.999Z","source_status_term":"current active municipal license","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
   ["dc_basic_license_location_profiles",[3125,0,0,45069,0],{"source_key":"dc_basic_business_license_sites","source_release_id":"dc-basic-business-licenses-2026-09-07-70f09a6a032c9408","review_qualification":"within-review-window","semantic_class":"source-defined-current","source_reference_at":"2026-09-07T04:00:00.000Z","review_due_at":"2026-10-22T04:00:00.000Z","source_status_term":"Active basic business license","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
   ["la_registered_location_profiles",[5371,0,0,42823,0],{"source_key":"la_active_business_location_accounts","source_release_id":"la-active-businesses-2026-08-15-7a4190d1dfe2b2ac","review_qualification":"within-review-window","semantic_class":"source-defined-current","source_reference_at":"2026-08-15T15:37:22.000Z","review_due_at":"2026-10-29T15:37:22.000Z","source_status_term":"active business location account","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
-  ["ny_retail_food_location_profiles",[1498,0,0,46696,0],{"source_key":"ny_retail_food_store_license_sites","source_release_id":"ny-retail-food-stores-2025-09-30-9dfbb0199594dab8","review_qualification":"stale","semantic_class":"non-active-reporting","source_reference_at":"2025-09-30T15:15:15.000Z","review_due_at":"2026-01-28T15:15:15.000Z","source_status_term":"annual license snapshot membership","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
+  ["ny_retail_food_location_profiles",[1498,0,0,46696,0],NY_RETAIL_FOOD_LOCATION_TEMPORAL],
   ["nyc_dcwp_license_location_profiles",[1550,0,0,46644,0],{"source_key":"nyc_dcwp_active_license_sites","source_release_id":"nyc-dcwp-active-premises-2026-08-20-6c47b96b3ab94aec","review_qualification":"within-review-window","semantic_class":"source-defined-current","source_reference_at":"2026-08-20T13:24:53.000Z","review_due_at":"2026-10-04T13:24:53.000Z","source_status_term":"Active premises license","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
   ["tx_sales_tax_outlet_profiles",[2156,0,0,46038,0],{"source_key":"tx_active_sales_tax_permit_outlets","source_release_id":"tx-active-sales-tax-2026-08-29-98b90d177d81493e","review_qualification":"within-review-window","semantic_class":"source-defined-current","source_reference_at":"2026-08-29T08:21:49.000Z","review_due_at":"2026-10-13T08:21:49.000Z","source_status_term":"active sales-tax permit","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
   ["broad_org_co_organization_addresses",[18133,0,0,30061,0],{"source_key":"co_business_registry_good_standing_or_delinquent_organizations","source_release_id":"co-business-registry-2026-09-02-42884e178198747a","review_qualification":"within-review-window","semantic_class":"non-active-reporting","source_reference_at":"2026-09-02T11:28:49.000Z","review_due_at":"2026-10-17T11:28:49.000Z","source_status_term":"Good Standing or Delinquent registry status","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
@@ -5733,13 +5798,13 @@ const EXACT_ZIP_V31_SUMMARY_CONTRACT = [
   ["ny_retail_food_license_address_evidence_count",[1500,36336,10358,0,0],{"source_key":"ny-retail-food-store-license-sites","source_release_id":"ny-retail-food-stores-2025-09-30-9dfbb0199594dab8","review_qualification":"stale","semantic_class":"non-active-reporting","source_reference_at":"2025-09-30T15:15:15.000Z","review_due_at":"2026-01-28T15:15:15.000Z","source_status_term":"annual current-snapshot membership; current operation, site qualification, and occupancy remain unverified","assessment_as_of":"2026-10-02T16:30:00.000Z"}],
 ] as const;
 const EXACT_ZIP_V31_SUMMARY_ROOT_KEYS = ["schema_version","available","release_id","manifest_sha256","created_at","zip5_rows","source_dimensions","industry_cells","status_counts","evidence_disposition_counts","temporal_status_counts","temporal_qualification","omitted_industries_status","coverage_gaps","geography_cohort","entity_resolution","dimensions","verification_scope","claims","raw_status_counts","evidence_state_counts","zbp_dispositions","linkage_dispositions","ca_abc_dispositions","dc_bbl_dispositions","tx_sales_tax_dispositions","la_active_listing_dispositions","ak_active_license_dispositions","chicago_active_license_dispositions","ny_retail_food_license_address_dispositions"] as const;
-const EXACT_ZIP_V31_SUMMARY_TEMPORAL = {"release_id":"exact-zip-industry-temporal-qualification-v2-1-runtime-projection","manifest_sha256":"2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4","assessment_as_of":"2026-10-02T16:30:00.000Z","dimension_counts":{"within-review-window":29,"stale":2,"unmeasured":20,"unmapped":0},"semantic_dimension_counts":{"source-defined-current":25,"non-active-reporting":20,"unmapped":0,"annual-aggregate":1,"linkage-readiness":1,"publisher-active-snapshot":3,"unknown-source-status":1}} as const;
+const EXACT_ZIP_V31_SUMMARY_TEMPORAL = {"release_id":"exact-zip-industry-temporal-qualification-v2-1-runtime-projection","manifest_sha256":"2cd2cf73795af46956230ccbaa6de4e7b771967730c7181b6ba674b3ef2c3ea4","assessment_as_of":"2026-10-02T16:30:00.000Z","dimension_counts":{"within-review-window":29,"stale":1,"unmeasured":21,"unmapped":0},"semantic_dimension_counts":{"source-defined-current":25,"non-active-reporting":20,"unmapped":0,"annual-aggregate":1,"linkage-readiness":1,"publisher-active-snapshot":3,"unknown-source-status":1}} as const;
 const EXACT_ZIP_V31_SUMMARY_STATUS = {"positive":422869,"measured-zero":493268,"outside-source-denominator":129923,"absent-from-retained-source-rows":1398594,"unavailable":13240} as const;
 const EXACT_ZIP_V31_SUMMARY_RAW = {"positive":340508,"measured-zero":248869,"outside-source-denominator":57452,"absent-from-retained-source-rows":1377319,"unavailable":0,"measured-positive":34954,"not-published-for-zip":2874,"outside-zbp-zcta-evidence-union":10366,"retained-linkage-evidence-row":26919,"no-retained-linkage-decisions":21275,"ca-abc:positive":2920,"ca-abc:measured-zero":34908,"ca-abc:outside-source-denominator":10366,"dc-bbl:positive":3125,"dc-bbl:measured-zero":34703,"dc-bbl:outside-source-denominator":10366,"tx-sales-tax:positive":2156,"tx-sales-tax:measured-zero":35672,"tx-sales-tax:outside-source-denominator":10366,"la-active-list:positive":5371,"la-active-list:measured-zero":32457,"la-active-list:outside-source-denominator":10366,"ak-active-license:positive":4383,"ak-active-license:measured-zero":33528,"ak-active-license:outside-source-denominator":10283,"chicago-active-license:positive":1033,"chicago-active-license:measured-zero":36795,"chicago-active-license:outside-source-denominator":10366,"ny-retail-food-license-address:positive":1500,"ny-retail-food-license-address:measured-zero":36336,"ny-retail-food-license-address:outside-source-denominator":10358} as const;
 const EXACT_ZIP_V32_SUMMARY_CONTRACT = EXACT_ZIP_V31_SUMMARY_CONTRACT.map(row => row[0] === "ny_retail_food_license_address_evidence_count"
-  ? [row[0],[1497,36339,10358,0,0],{...row[2],source_release_id:"ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",review_qualification:"within-review-window",source_reference_at:"2026-10-14T19:08:34.000Z",review_due_at:"2027-02-11T19:08:34.000Z"}] as const
+  ? [row[0],[1497,36339,10358,0,0],{...row[2],...NY_RETAIL_FOOD_REFRESHED_SOURCE,review_qualification:"within-review-window"}] as const
   : row);
-const EXACT_ZIP_V32_SUMMARY_TEMPORAL = {...EXACT_ZIP_V31_SUMMARY_TEMPORAL,dimension_counts:{"within-review-window":30,"stale":1,"unmeasured":20,"unmapped":0}} as const;
+const EXACT_ZIP_V32_SUMMARY_TEMPORAL = {...EXACT_ZIP_V31_SUMMARY_TEMPORAL,dimension_counts:{"within-review-window":30,"stale":0,"unmeasured":21,"unmapped":0}} as const;
 const EXACT_ZIP_V32_SUMMARY_STATUS = {...EXACT_ZIP_V31_SUMMARY_STATUS,positive:422866,"measured-zero":493271} as const;
 const EXACT_ZIP_V32_SUMMARY_RAW = {...EXACT_ZIP_V31_SUMMARY_RAW,"ny-retail-food-license-address:positive":1497,"ny-retail-food-license-address:measured-zero":36339} as const;
 const EXACT_ZIP_V31_SUMMARY_GAPS = {"out_of_cohort_source_records":4,"out_of_cohort_zip_count":4,"source_quality_gap_records":3,"address_gap_dimensions":10,"address_rows_without_eligible_zip5":4399807,"meaning":"Retained source-row quality and ZIP-assignment gaps, including the separately conserved Minnesota missing/out-of-cohort rows and pharmacy nonprimary ZIP+4 kept separate. Not missing-business counts."} as const;
@@ -5825,7 +5890,7 @@ function validExactZipIndustrySummaryContract(input:unknown,spec:{schema:string;
   } catch { return false; }
 }
 function validExactZipIndustrySummaryV31(input:unknown):boolean{return validExactZipIndustrySummaryContract(input,{schema:"national-exact-zip-industry-summary-view@3.1.0",release:"national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9",manifest:"07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7",contract:EXACT_ZIP_V31_SUMMARY_CONTRACT,temporal:EXACT_ZIP_V31_SUMMARY_TEMPORAL,status:EXACT_ZIP_V31_SUMMARY_STATUS,raw:EXACT_ZIP_V31_SUMMARY_RAW});}
-function validExactZipIndustrySummaryV32(input:unknown):boolean{return validExactZipIndustrySummaryContract(input,{schema:"national-exact-zip-industry-summary-view@3.2.0",release:"national-exact-zip-industry-evidence-matrix-761d2ac95b7f954a0bd2c55039649030ce360f8c5bc6187f82c834241490b629",manifest:"d4b2c8f50112fd16bea00769c3ac93b98b1ac2d14f334a3f9e448616931f01d1",contract:EXACT_ZIP_V32_SUMMARY_CONTRACT,temporal:EXACT_ZIP_V32_SUMMARY_TEMPORAL,status:EXACT_ZIP_V32_SUMMARY_STATUS,raw:EXACT_ZIP_V32_SUMMARY_RAW});}
+function validExactZipIndustrySummaryV32(input:unknown):boolean{return validExactZipIndustrySummaryContract(input,{schema:"national-exact-zip-industry-summary-view@3.2.0",release:EXACT_ZIP_V32_RELEASE,manifest:EXACT_ZIP_V32_MANIFEST,contract:EXACT_ZIP_V32_SUMMARY_CONTRACT,temporal:EXACT_ZIP_V32_SUMMARY_TEMPORAL,status:EXACT_ZIP_V32_SUMMARY_STATUS,raw:EXACT_ZIP_V32_SUMMARY_RAW});}
 type DispositionCount={cell_status:string;lifecycle_status:string;label:string;current_operations_verified:false;count:number};
 type ExactZipIndustrySummary={schema_version:`national-exact-zip-industry-summary-view@${string}`;available:true;release_id:string;manifest_sha256:string;created_at:null;zip5_rows:number;source_dimensions:number;industry_cells:number;status_counts:Record<string,number>;evidence_disposition_counts:{total_cells:number;by_cell_status:Record<string,number>;by_lifecycle_status:Record<string,number>;joined:DispositionCount[]};temporal_status_counts:{"source-referenced-current-operation-unverified":number;"source-reference-unresolved":number};temporal_qualification:{release_id:string;manifest_sha256:string;assessment_as_of:string;dimension_counts:{"within-review-window":number;stale:number;unmeasured:number;unmapped:number};semantic_dimension_counts:{"source-defined-current":number;"non-active-reporting":number;unmapped:number}};omitted_industries_status:"unavailable-not-materialized";coverage_gaps:{out_of_cohort_source_records:number;out_of_cohort_zip_count:number;source_quality_gap_records:number;address_gap_dimensions:number;address_rows_without_eligible_zip5:number;meaning:string};geography_cohort:{same_code_census_zcta:number;source_contributed_without_same_code_zcta:number;denominator_only_without_same_code_zcta:number;explicit_placeholder:number;without_same_code_zcta_total:number;cohort_release_id:string;cohort_manifest_sha256:string;created_at:string};entity_resolution:{evidence_zip_count:number;no_decision_zip_count:number;evidence_zip_percent:number;no_decision_zip_percent:number;site_alias_groups:number;establishment_alias_groups:number;unapplied_review_candidates:number;release_id:string;manifest_sha256:string;created_at:string;benchmark_gate_passed:false;entity_resolution_applied:false};dimensions:Array<{id:string;status_counts:Record<string,number>;positive_zip_percent:number;measured_status_percent:number;evidence_disposition_counts:{total_cells:number;joined:DispositionCount[]};temporal_qualification:{source_key:string|null;source_release_id:string|null;review_qualification:"within-review-window"|"stale"|"unmeasured"|"unmapped";semantic_class:"source-defined-current"|"non-active-reporting"|"unmapped";source_reference_at:string|null;review_due_at:string|null;source_status_term:string|null;assessment_as_of:string}}>;verification_scope:string;claims:{authoritative_current_usps_zip_denominator:null;current_operation_verified:false;all_business_completeness:false;additive_cross_industry_total:false;non_zcta_means_invalid_zip:false;omitted_industries_measured:false;network_requests:0}};
 type MnConstructionEvidenceStatus={schema_version:'mn-construction-exact-zip-evidence-status@1.0.0';available:true;dimension_id:'mn_residential_construction_credential_reported_address_rows';source_reference_at:string;source:{dataset_id:'mn-construction-credential-reporting';release_id:string;manifest_sha256:string;artifact_sha256:string};registration_sha256:string;summary:{source_credential_rows:11456;zip5_credential_rows:11455;missing_reported_zip5_rows:1;reported_zip4_rows:0;positive_zip5_rows:961;projected_credential_rows:11455};claims:{unique_business_count:null;physical_site_count:null;current_operations_verified:false;all_business_completeness_percent:null;geographic_assignment_performed:false;geocode_created:false;zip4_aggregated:false;network_requests:0;acquisition_performed:false;current_pointer_written:false;record_unit:'publisher-business-credential-row';nonadditive:true;public_export_authorized:false;production_enrollment:false;matrix_admission_performed:false};verification_scope:string};
@@ -6027,7 +6092,7 @@ function GovernedIndustryStatus({state}:{state:string}){return <section classNam
 export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   const [result, setResult] = useState<{
       zip: string;
-      view: ExactZipEvidence | null;
+      view: ExactZipEvidence | ExactZipOutsideCohort | null;
       failure: boolean;
     } | null>(null),
     view = result?.zip === zip ? result.view : null,
@@ -6035,14 +6100,14 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
   useEffect(() => {
     if (!zip) return;
     const controller = new AbortController();
-    void runnerJson<ExactZipEvidence>(
+    void runnerJson<unknown>(
       `/api/business-map/exact-zip-industry-evidence?zip=${encodeURIComponent(zip)}`,
       { signal: controller.signal },
     )
       .then((value) => {
         if (controller.signal.aborted) return;
         setResult(
-          validExactZipEvidence(value, zip)
+          validExactZipOutsideCohort(value, zip) || validExactZipEvidence(value, zip)
             ? { zip, view: value, failure: false }
             : { zip, view: null, failure: true },
         );
@@ -6065,6 +6130,13 @@ export function ExactZipIndustryEvidencePanel({ zip }: { zip: string }) {
         {failure
           ? "Exact 43-source ZIP matrix evidence is unavailable or malformed; no cell was interpreted."
           : `Loading 43-source matrix evidence for ZIP ${zip}…`}
+      </p>
+    );
+  if (view.status === "absent")
+    return (
+      <p role="status">
+        ZIP {zip} is outside the retained evidence cohort. USPS validity,
+        state and Census ZCTA relationships, and business activity remain unknown.
       </p>
     );
   if (!view.row)

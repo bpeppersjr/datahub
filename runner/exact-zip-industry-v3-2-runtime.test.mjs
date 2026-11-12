@@ -24,7 +24,12 @@ test("v3.2 summary conserves the 51-dimension matrix and refreshed New York coun
     "outside-source-denominator": 10358, "absent-from-retained-source-rows": 0, unavailable: 0 });
   assert.equal(dimension.temporal_qualification.review_qualification, "within-review-window");
   assert.deepEqual(value.temporal_qualification.dimension_counts,
-    { "within-review-window": 30, stale: 1, unmeasured: 20, unmapped: 0 });
+    { "within-review-window": 30, stale: 0, unmeasured: 21, unmapped: 0 });
+  const profile = value.dimensions.find(row => row.id === "ny_retail_food_location_profiles");
+  assert.equal(profile.temporal_qualification.source_release_id, dimension.temporal_qualification.source_release_id);
+  assert.equal(profile.temporal_qualification.review_qualification, "unmeasured");
+  assert.equal(profile.status_counts.positive, 1498);
+  assert.equal(profile.status_counts["absent-from-retained-source-rows"], 46696);
 });
 
 test("v3.2 temporal view preserves non-active reporting and refreshed provenance", async () => {
@@ -34,5 +39,8 @@ test("v3.2 temporal view preserves non-active reporting and refreshed provenance
   assert.equal(row.review_qualification, "within-review-window");
   assert.equal(row.current_operations_verified, false);
   assert.equal(row.source_release_id, "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0");
+  assert.equal(row.source_reference_at, "2026-10-14T19:08:34.000Z");
+  assert.equal(row.review_due_at, "2027-02-11T19:08:34.000Z");
+  assert.equal(row.evidence_disposition.additive, false);
   assert.equal(value.temporal_qualification.provenance.matrix_release_id, value.release_id);
 });

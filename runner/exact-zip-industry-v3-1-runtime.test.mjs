@@ -12,19 +12,24 @@ test("v3.1 maps all retained temporal placeholders without changing matrix count
   assert.equal(value.schema_version, "national-exact-zip-industry-summary-view@3.1.0");
   assert.deepEqual([value.source_dimensions, value.industry_cells, value.dimensions.length], [51, 2457894, 51]);
   assert.equal(value.temporal_qualification.dimension_counts.unmapped, 0);
-  assert.equal(value.temporal_qualification.dimension_counts.unmeasured, 20);
   assert.equal(value.temporal_qualification.semantic_dimension_counts.unmapped, 0);
   assert.equal(value.temporal_qualification.semantic_dimension_counts["non-active-reporting"], 20);
   assert.equal(value.evidence_disposition_counts.by_lifecycle_status.unmapped, undefined);
-  assert.equal(value.evidence_disposition_counts.by_lifecycle_status.unmeasured, 722910);
+  assert.equal(value.evidence_disposition_counts.by_lifecycle_status.unmeasured, 771104);
   assert.equal(value.evidence_disposition_counts.joined.reduce((sum, row) => sum + row.count, 0), value.industry_cells);
   assert.equal(value.release_id, previous.release_id);
   assert.equal(value.manifest_sha256, previous.manifest_sha256);
   assert.deepEqual(value.status_counts, previous.status_counts);
   assert.deepEqual(value.raw_status_counts, previous.raw_status_counts);
   assert.equal(value.zip5_rows,48194);
-  assert.deepEqual(value.temporal_qualification.dimension_counts,{"within-review-window":29,stale:2,unmeasured:20,unmapped:0});
+  assert.deepEqual(value.temporal_qualification.dimension_counts,{"within-review-window":29,stale:1,unmeasured:21,unmapped:0});
   assert.deepEqual(value.temporal_qualification.semantic_dimension_counts,{"source-defined-current":25,"non-active-reporting":20,unmapped:0,"annual-aggregate":1,"linkage-readiness":1,"publisher-active-snapshot":3,"unknown-source-status":1});
+  const nyProfile = value.dimensions.find(row => row.id === "ny_retail_food_location_profiles");
+  const nyAddress = value.dimensions.find(row => row.id === "ny_retail_food_license_address_evidence_count");
+  assert.equal(nyProfile.temporal_qualification.source_release_id, "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0");
+  assert.equal(nyProfile.temporal_qualification.review_qualification, "unmeasured");
+  assert.equal(nyAddress.temporal_qualification.source_release_id, "ny-retail-food-stores-2025-09-30-9dfbb0199594dab8");
+  assert.equal(nyAddress.temporal_qualification.review_qualification, "stale");
   for (const mapping of TEMPORAL_MAPPINGS_V31) {
     const dimension = value.dimensions.find((row) => row.id === mapping.dimension_id);
     assert.equal(dimension.temporal_qualification.source_key, mapping.source_key);

@@ -6,8 +6,8 @@ import {cp,mkdtemp,readFile,readdir,rm,writeFile} from 'node:fs/promises';
 import {APP_ROOT} from './paths.mjs';
 import {publishZipSourceStatusIndex,readValidatedZipSourceStatus,readZipSourceStatusEnvelope,ZIP_SOURCE_STATUS_TEST_HOOKS} from './zip-source-status-index.mjs';
 
-const release='zip-source-native-status-f6ae96364838baab402d8bcd487cac04059f910af1b71bb9da6bf19424d50640';
-const sourceDir=path.join(APP_ROOT,'data/zip-source-native-status-distribution/releases',release);
+const installedRegistration=JSON.parse(await readFile(new URL('../config/datasets/zip-source-native-status-distribution.json',import.meta.url),'utf8'));
+const sourceDir=path.dirname(path.join(APP_ROOT,installedRegistration.retained_release.manifest));
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const row=(overrides={})=>({id:'profile-1',source_id:'source-a',release_id:'release-a',kind:'present',status:'{"value":"native"}',observed:'2026-01-01T00:00:00.000Z',...overrides});
 async function* values(items){for(const item of items)yield item;}
@@ -34,6 +34,20 @@ async function fixture(){const dir=await mkdtemp(path.join(APP_ROOT,'data/tmp/st
 async function rewrite(f,value){const bytes=Buffer.from(`${JSON.stringify(value)}\n`);await writeFile(path.join(f.dir,'manifest.json'),bytes);f.registration.retained_release.manifest_sha256=sha(bytes);await writeFile(f.registrationPath,`${JSON.stringify(f.registration)}\n`);}
 
 test('runtime rejects exact artifact-roster and source-conservation drift',async()=>{for(const mutate of [m=>m.artifacts.pop(),m=>m.artifacts[0].path=m.artifacts[1].path,m=>m.source_conservation[0].records++,m=>m.source_conservation[0].source_id=m.source_conservation[1].source_id]){const f=await fixture();try{mutate(f.manifest);await rewrite(f,f.manifest);const value=await readZipSourceStatusEnvelope({root:APP_ROOT,registrationPath:f.registrationPath,zip5:'10001'});assert.equal(value.status,'corrupt-release');}finally{await rm(f.dir,{recursive:true,force:true});}}});
+
+test('runtime classifies a valid status envelope with superseded coverage lineage as incompatible', async () => {
+ const f = await fixture();
+ try {
+  f.manifest.bindings.coverage.release_id = 'national-business-coverage-views-20260911-040908332Z-f01c882a';
+  await rewrite(f, f.manifest);
+  const value = await readZipSourceStatusEnvelope({root: APP_ROOT, registrationPath: f.registrationPath, zip5: '10001'});
+  assert.equal(value.status, 'incompatible-lineage');
+  assert.equal(value.available, false);
+  assert.deepEqual(value.rows, []);
+ } finally {
+  await rm(f.dir, {recursive: true, force: true});
+ }
+});
 
 test('runtime rejects index and selected byte-range tampering',async()=>{for(const name of ['index-10.json','zip-10.jsonl']){const f=await fixture();try{const file=path.join(f.dir,name),bytes=await readFile(file);if(name.startsWith('index'))bytes[Math.floor(bytes.length/2)]^=1;else{const index=JSON.parse(await readFile(path.join(f.dir,'index-10.json'),'utf8')),range=index.find(x=>x.zip5==='10001');bytes[range.offset+Math.floor(range.bytes/2)]^=1;}await writeFile(file,bytes);await assert.rejects(readValidatedZipSourceStatus({root:APP_ROOT,registrationPath:f.registrationPath,zip5:'10001'}),/integrity|range|Unexpected token|JSON/);}finally{await rm(f.dir,{recursive:true,force:true});}}});
 

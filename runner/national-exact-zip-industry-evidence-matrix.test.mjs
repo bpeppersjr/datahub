@@ -584,7 +584,7 @@ test("registry-location integration rejects a tampered native-status lineage pin
       await fs.readFile(
         path.join(
           APP_ROOT,
-          "config/datasets/zip-source-native-status-distribution.json",
+          "config/datasets/zip-source-native-status-distribution-v20261003.json",
         ),
         "utf8",
       ),
@@ -592,7 +592,7 @@ test("registry-location integration rejects a tampered native-status lineage pin
     source.retained_release.manifest_sha256 = "0".repeat(64);
     const target = path.join(
       root,
-      "config/datasets/zip-source-native-status-distribution.json",
+      "config/datasets/zip-source-native-status-distribution-v20261003.json",
     );
     await fs.mkdir(path.dirname(target), { recursive: true });
     await fs.writeFile(target, JSON.stringify(source));

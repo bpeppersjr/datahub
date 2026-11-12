@@ -1,5 +1,5 @@
 {
-  "created_at": "2026-11-12T04:14:13.318Z",
+  "created_at": "2026-11-12T05:26:08.927Z",
   "artifact_sha256": {
     "gap-ledger.json": "2c8a008698d7992d3a5af6ef84875e734622f939ae4476c7073225e99ac28d8a",
     "national-summary.json": "a084b557906ef77097e58683309ffd8f3c85363cfba46138e6d16073a7838310",
@@ -136,9 +136,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-de8539508011bf3b5d1ca05cbd13c5ab22b7517657e9e838fbcbb4640626879f",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-de8539508011bf3b5d1ca05cbd13c5ab22b7517657e9e838fbcbb4640626879f/manifest.json",
-  "manifest_sha256": "6234ed1484890a42b0bea824668c19276cc8609928571247241c8c99ca52e4a0",
+  "release_id": "national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf/manifest.json",
+  "manifest_sha256": "a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

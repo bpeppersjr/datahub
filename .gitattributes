@@ -28,3 +28,5 @@ config/national-goal-evidence-federation.json text eol=lf
 config/connectors/national-goal-evidence-federation.json text eol=lf
 config/schemas/national-goal-evidence-federation.schema.json text eol=lf
 config/source-policies/national-goal-evidence-federation.json text eol=lf
+data/zip-source-native-status-distribution/releases/** -text -diff
+config/datasets/zip-source-native-status-distribution-v20261003.json text eol=lf

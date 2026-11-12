@@ -27,7 +27,13 @@ test("v3.2 selected-state operational industry view validates refreshed provenan
   assert.equal(h.render("validOperationalIndustryCrosswalkView",value,"NY"),true);
   h.render("OperationalIndustryCrosswalkStatus",{state:"NY"});await flush();const rendered=text(h.render("OperationalIndustryCrosswalkStatus",{state:"NY"}));
   assert.match(rendered,/New York · operational industry evidence/);assert.match(rendered,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
-  for(const mutate of [v=>{v.provenance.summary_release_id="invented"},v=>{v.provenance.crosswalk_sha256="0".repeat(64)},v=>{v.industries.find(row=>row.id==="retail-consumer").dimensions.find(row=>row.id==="ny_retail_food_license_address_evidence_count").temporal_qualification.review_qualification="stale"}]){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validOperationalIndustryCrosswalkView",invalid,"NY"),false);}
+  const retailDimension = (view, id) => view.industries.find(row=>row.id==="retail-consumer").dimensions.find(row=>row.id===id);
+  for(const mutate of [
+    v=>{v.provenance.summary_release_id="invented"},
+    v=>{v.provenance.crosswalk_sha256="0".repeat(64)},
+    v=>{retailDimension(v,"ny_retail_food_license_address_evidence_count").temporal_qualification.review_qualification="stale"},
+    v=>{retailDimension(v,"ny_retail_food_location_profiles").temporal_qualification.review_qualification="within-review-window"},
+  ]){const invalid=structuredClone(value);mutate(invalid);assert.equal(h.render("validOperationalIndustryCrosswalkView",invalid,"NY"),false);}
   h.close();
 });
 
@@ -36,11 +42,53 @@ test("v3.2 national and ZIP views accept only the refreshed governed New York re
   assert.equal(h.render("validExactZipIndustrySummary",summary),true);
   assert.equal(h.render("validExactZipEvidence",evidence,"10001"),true);
   const renderedSummary=text((h.render("ExactZipIndustryNationalSummary"),await flush(),h.render("ExactZipIndustryNationalSummary")));
-  assert.match(renderedSummary,/30 dimensions are within review window; 1 is stale; 20 are unmeasured/);
+  assert.match(renderedSummary,/30 dimensions are within review window; 0 is stale; 21 are unmeasured/);
   assert.match(renderedSummary,/ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0/);
   for(const mutate of [v=>{v.manifest_sha256="0".repeat(64)},v=>{v.status_counts.positive++},v=>{v.dimensions.at(-1).temporal_qualification.review_qualification="stale"},v=>{v.ny_retail_food_license_address_dispositions[0].site_occupancy_verified=true}]){const invalid=structuredClone(summary);mutate(invalid);assert.equal(h.render("validExactZipIndustrySummary",invalid),false);}
-  for(const mutate of [v=>{v.release_id="invented"},v=>{v.temporal_qualification.rows.at(-1).review_qualification="stale"},v=>{v.temporal_qualification.rows.at(-1).current_operations_verified=true}]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
+  const temporal = (view, id) => view.temporal_qualification.rows.find(row=>row.dimension_id===id);
+  for(const mutate of [
+    v=>{v.release_id="invented"},
+    v=>{v.row=null},
+    v=>{v.temporal_qualification.zip5="10002"},
+    v=>{temporal(v,"ny_retail_food_license_address_evidence_count").review_qualification="stale"},
+    v=>{temporal(v,"ny_retail_food_license_address_evidence_count").current_operations_verified=true},
+    v=>{temporal(v,"ny_retail_food_license_address_evidence_count").evidence_disposition.additive=true},
+    v=>{temporal(v,"ny_retail_food_location_profiles").source_release_id="ny-retail-food-stores-2025-09-30-9dfbb0199594dab8"},
+    v=>{temporal(v,"ny_retail_food_location_profiles").review_qualification="within-review-window"},
+  ]){const invalid=structuredClone(evidence);mutate(invalid);assert.equal(h.render("validExactZipEvidence",invalid,"10001"),false);}
   h.close();
+});
+
+test("v3.2 ZIP view reports verified cohort absence and rejects unpinned or inferred results", async () => {
+  const zip = "00100";
+  const result = await readExactZipIndustryEvidenceWithTemporalQualificationV32({ zip5: zip });
+  const h = harness(async () => result);
+  h.render("ExactZipIndustryEvidencePanel", { zip });
+  await flush();
+  const rendered = text(h.render("ExactZipIndustryEvidencePanel", { zip }));
+  assert.match(rendered, /ZIP 00100 is outside the retained evidence cohort/);
+  assert.match(rendered, /USPS validity, state and Census ZCTA relationships, and business activity remain unknown/);
+  assert.doesNotMatch(rendered, /measured zero|no cell was interpreted/);
+  h.close();
+
+  for (const invalid of [
+    { ...result, zip5: "10001" },
+    { ...result, manifest_sha256: "0".repeat(64) },
+    { ...result, recursive_lineage_verified: false },
+    { ...result, usps_validity: false },
+    { ...result, state_assignment: "NY" },
+    { ...result, zcta_geoid: zip },
+    { ...result, temporal_qualification: { rows: [] } },
+    { ...result, row: { zip5: zip, count: 0 } },
+  ]) {
+    const failed = harness(async () => invalid);
+    failed.render("ExactZipIndustryEvidencePanel", { zip });
+    await flush();
+    const output = text(failed.render("ExactZipIndustryEvidencePanel", { zip }));
+    assert.match(output, /unavailable or malformed/);
+    assert.doesNotMatch(output, /outside the retained evidence cohort/);
+    failed.close();
+  }
 });
 
 test("v3.1 national summary renders all retained source mappings and rejects contract drift",async()=>{
@@ -50,7 +98,7 @@ test("v3.1 national summary renders all retained source mappings and rejects con
   const rendered=text(h.render("ExactZipIndustryNationalSummary"));
   assert.match(rendered,/48,194 retained ZIP5 keys × 51 governed source dimensions = 2,457,894 evidence cells/);
   assert.match(rendered,/25 dimensions use a publisher-defined current status; 20 are non-active reporting; 0 are unmapped/);
-  assert.match(rendered,/29 dimensions are within review window; 2 is stale; 20 are unmeasured; 0 are unmapped/);
+  assert.match(rendered,/29 dimensions are within review window; 1 is stale; 21 are unmeasured; 0 are unmapped/);
   for(const mapping of TEMPORAL_MAPPINGS_V31){
     const row=value.dimensions.find(row=>row.id===mapping.dimension_id);
     assert.match(rendered,new RegExp(mapping.source_key));
