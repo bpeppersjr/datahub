@@ -2870,7 +2870,7 @@ test("operational industry summary conserves all state rows and shows comparable
   assert.match(text(national), /Unknown — no retained temporal source key/);
   assert.match(text(national), /publisher currency unmeasured in retained source contract/);
   assert.match(text(national), /retained observation 2026-09-07T19:10:25.331Z/);
-  assert.match(text(national), /State source-access assessment as of 2026-11-11/);
+  assert.match(text(national), new RegExp(`State source-access assessment as of ${evidence.assessed_at.slice(0, 10)}`));
   assert.match(text(national), /share of the 50 states and D\.C\. with retained evidence/);
   const selected = h.render('OperationalMaintenanceIntent', {state:'NH'});
   assert.equal(nodes(selected).filter(node => node.type === 'tr').length, 9 * 2);
