@@ -55,6 +55,8 @@ import { readNationalBusinessLifecycleIndustryJurisdiction, readNationalBusiness
 import { nationalBusinessLifecycleIndustryJurisdictionHttp, nationalBusinessLifecycleIndustryJurisdictionSummaryHttp } from './national-business-lifecycle-industry-jurisdiction-evidence-http.mjs';
 import { readNationalBusinessLifecycleIndustryZipEvidence, readNationalBusinessLifecycleIndustryZipSummary } from './national-business-lifecycle-industry-zip-evidence-reader.mjs';
 import { nationalBusinessLifecycleIndustryZipEvidenceHttp, nationalBusinessLifecycleIndustryZipSummaryHttp } from './national-business-lifecycle-industry-zip-evidence-http.mjs';
+import { readNationalIrsEoSupplementalIndustryJurisdiction, readNationalIrsEoSupplementalIndustrySummary, readNationalIrsEoSupplementalIndustryZip } from './national-irs-eo-supplemental-industry-evidence-reader.mjs';
+import { nationalIrsEoSupplementalIndustryJurisdictionHttp, nationalIrsEoSupplementalIndustrySummaryHttp, nationalIrsEoSupplementalIndustryZipHttp } from './national-irs-eo-supplemental-industry-evidence-http.mjs';
 import { readExactZipIndustrySummaryV32 as readExactZipIndustrySummary } from './exact-zip-industry-summary-v3-2.mjs';
 import { readOperationalIndustryEvidenceSummary } from './operational-industry-evidence-summary.mjs';
 import { operationalIndustryEvidenceSummaryHttp } from './operational-industry-evidence-summary-http.mjs';
@@ -933,6 +935,15 @@ const server = http.createServer(async (request, response) => {
     }
     if(url.pathname==='/api/business-map/lifecycle-industry-zip'){
       await nationalBusinessLifecycleIndustryZipEvidenceHttp(request,response,url,readNationalBusinessLifecycleIndustryZipEvidence,json);return;
+    }
+    if(url.pathname==='/api/business-map/irs-eo-supplemental-industry-summary'){
+      await nationalIrsEoSupplementalIndustrySummaryHttp(request,response,url,readNationalIrsEoSupplementalIndustrySummary,json);return;
+    }
+    if(url.pathname==='/api/business-map/irs-eo-supplemental-industry-zip'){
+      await nationalIrsEoSupplementalIndustryZipHttp(request,response,url,readNationalIrsEoSupplementalIndustryZip,json);return;
+    }
+    if(url.pathname==='/api/business-map/irs-eo-supplemental-industry-jurisdiction'){
+      await nationalIrsEoSupplementalIndustryJurisdictionHttp(request,response,url,readNationalIrsEoSupplementalIndustryJurisdiction,json);return;
     }
     if(request.method==='GET'&&url.pathname==='/api/business-map/exact-zip-industry-summary'){
       if([...url.searchParams.keys()].length){json(response,400,{error:'Exact-ZIP industry summary does not accept options.'});return;}

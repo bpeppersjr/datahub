@@ -1,21 +1,1253 @@
-'use client';
-import {useEffect,useState} from'react';import registration from'../config/datasets/national-business-lifecycle-industry-jurisdiction-evidence.json';import{runnerJson}from'./runner-client';
-const industries=['retail-consumer','health-care','financial-services','transportation','construction','tax-exempt-organizations','sales-tax-outlets','local-business-licenses','childcare']as const,life=['source-defined-current','non-active-reporting','unknown','contradictory']as const,review=['within-review-window','stale','unmeasured','unmapped']as const,segments=['construction','retail-consumer','financial-services','transportation','health-care','childcare']as const,special=['multi-state-material','zcta-overlay-unresolved','non-zcta-unassigned','explicit-placeholder']as const;
-const labels:Record<string,string>={'retail-consumer':'Retail / consumer','health-care':'Health care','financial-services':'Financial services',transportation:'Transportation',construction:'Construction','tax-exempt-organizations':'Tax-exempt organizations','sales-tax-outlets':'Sales-tax outlets','local-business-licenses':'Local business licenses',childcare:'Childcare'},EPA='epa-echo-exporter-active-facility',FSIS='usda-fsis-active-mpi-directory';
-const industryRoutes:Record<string,string[]>={'retail-consumer':['california-abc-daily-active-licenses','new-york-agriculture-markets-retail-food-stores','usda-snap-current-retailers',EPA],'health-care':['cms-nppes-monthly-v2',EPA],'financial-services':['fdic-bankfind-current-structure','ncua-final-quarterly-call-report',EPA],transportation:['fmcsa-company-census-active-us-principal-office',EPA],construction:[EPA],'tax-exempt-organizations':[],'sales-tax-outlets':['texas-comptroller-active-sales-tax-permits'],'local-business-licenses':['alaska-dcced-active-business-licenses','city-of-chicago-bacp-current-active-business-licenses','dc-dlcp-active-basic-business-licenses','los-angeles-office-of-finance-active-businesses','nyc-dcwp-issued-licenses-active-premises'],childcare:[EPA]};
-type Counts=Record<string,number>;type Release={release_id:string;registration_sha256:string;manifest_sha256:string;artifact_sha256:string;exact_zip_manifest_sha256:string;jurisdiction_manifest_sha256:string;jurisdiction_artifact_sha256:string;epa_manifest_sha256:string;epa_zip_artifact_sha256:string};type Index={scope_id:string;state_fips:string;state_name:string;postal_abbreviation:string};
-type Claims={record_unit:'registry-location-profile-lifecycle-membership';source_relative_lifecycle_evidence:true;governed_jurisdiction_disposition_reused:true;all_60_scopes_retained:true;special_scopes_separate:true;multi_state_evidence_allocated:false;usps_zip_state_assignment:false;zip_prefix_assignment:false;reported_state_assignment:false;fractional_allocation:false;mapped_source_record_union_separate_from_industry_assignments:true;industry_assignments_additive:false;cross_source_additivity:false;unique_business_count:null;active_business_count:null;current_operating_business_count:null;all_business_completeness:null;industry_completeness:null;current_operation_verified:false;active_business_eligible:false;identity_resolution_applied:false;authoritative_current_usps_zip_denominator:null;zip4_joined:false;network_requests:0;source_acquisition_performed:false;current_pointer_written:false;production_enrollment:false};
-type Epa={source_record_count:number;mapped_source_record_union_count:number;industry_assignment_count:number;multisegment_record_count:number;partially_unmapped_record_count:number;unresolved_source_record_count:number;segment_assignment_counts:Counts;lifecycle_evidence_counts:Counts;review_status_counts:Counts};type Source={source_id:string;source_assignment_count:number;lifecycle_evidence_assignment_counts:Counts;review_status_assignment_counts:Counts};type Industry={industry_id:string;source_assignment_count:number;lifecycle_evidence_assignment_counts:Counts;review_status_assignment_counts:Counts;sources:Source[]};type Unmapped={source_id:string;unmapped_reason:string;source_membership_count:number;lifecycle_evidence_counts:Counts;review_status_counts:Counts};
-type Scope={schema_version:string;scope_id:string;scope_kind:string;scope_label:string;state_geo_id:string|null;state_fips:string|null;state_name:string|null;postal_abbreviation:string|null;zip5_rows:number;source_membership_count:number;lifecycle_evidence_counts:Counts;review_status_counts:Counts;mapped_source_record_union_count:number;unresolved_source_record_count:number;industry_assignment_count:number;industries:Industry[];epa_refinement:Epa;unmapped_sources:Unmapped[]};
-type Summary={scope_rows:number;state_scope_rows:number;territory_scope_rows:number;special_scope_rows:number;geography_scope_counts:Counts;zip5_rows:number;source_membership_count:number;lifecycle_evidence_counts:Counts;review_status_counts:Counts;mapped_source_record_union_count:number;unresolved_source_record_count:number;industry_assignment_count:number;industry_assignment_counts:Counts;epa_refinement:Omit<Epa,'segment_assignment_counts'|'lifecycle_evidence_counts'|'review_status_counts'>};type SummaryView={schema_version:string;release:Release;summary:Summary;scopes:{states:Index[];territories:Index[];special:Array<{scope_id:string;scope_label:string}>};claims:Claims};type Lookup={schema_version:string;release:Release;status:string;scope:Scope;claims:Claims};
-const expectedClaims:Claims={record_unit:'registry-location-profile-lifecycle-membership',source_relative_lifecycle_evidence:true,governed_jurisdiction_disposition_reused:true,all_60_scopes_retained:true,special_scopes_separate:true,multi_state_evidence_allocated:false,usps_zip_state_assignment:false,zip_prefix_assignment:false,reported_state_assignment:false,fractional_allocation:false,mapped_source_record_union_separate_from_industry_assignments:true,industry_assignments_additive:false,cross_source_additivity:false,unique_business_count:null,active_business_count:null,current_operating_business_count:null,all_business_completeness:null,industry_completeness:null,current_operation_verified:false,active_business_eligible:false,identity_resolution_applied:false,authoritative_current_usps_zip_denominator:null,zip4_joined:false,network_requests:0,source_acquisition_performed:false,current_pointer_written:false,production_enrollment:false};
-const PINS={registration:'fee5ead43901852b940c4df492de8f0b5fda51f91c9e5fb7305c1ec0199d3f38',exactZip:'830eaec18ee614250e9234386e6fb897a4891e67a2188b6bf39bf16a03e15f4c',jurisdiction:'d2f2114dfdbf6788eea0dd2335c9a9383673d61baf557486ebd2e8aba7ffbf41',jurisdictionArtifact:'d29f7047dfe713fd9e95ede930edd0d2642eaa59158e3d2398ee3d5945658c84',epa:'bb154192843c65ccb7723259c6fda50725a2c7c9e4999477608b61f1fd716dc7',epaZip:'f47b129512c75389897c44b849ca89da0926d4269aad39ae67d80008cb4fa266'};
-const exact=(v:unknown,k:readonly string[])=>!!v&&typeof v==='object'&&!Array.isArray(v)&&Object.keys(v).sort().join('|')===[...k].sort().join('|'),same=(a:unknown,b:unknown)=>JSON.stringify(a)===JSON.stringify(b),sum=(v:Counts)=>Object.values(v).reduce((a,b)=>a+b,0),counts=(v:unknown,k:readonly string[])=>exact(v,k)&&k.every(x=>Number.isSafeInteger((v as Counts)[x])&&(v as Counts)[x]>=0),add=(rows:Counts[],keys:readonly string[])=>Object.fromEntries(keys.map(k=>[k,rows.reduce((n,row)=>n+row[k],0)]));
-const validRelease=(v:unknown):v is Release=>exact(v,['release_id','registration_sha256','manifest_sha256','artifact_sha256','exact_zip_manifest_sha256','jurisdiction_manifest_sha256','jurisdiction_artifact_sha256','epa_manifest_sha256','epa_zip_artifact_sha256'])&&(v as Release).release_id===registration.retained_release.release_id&&(v as Release).manifest_sha256===registration.retained_release.manifest_sha256&&(v as Release).artifact_sha256===registration.retained_release.artifact_sha256&&(v as Release).registration_sha256===PINS.registration&&(v as Release).exact_zip_manifest_sha256===PINS.exactZip&&(v as Release).jurisdiction_manifest_sha256===PINS.jurisdiction&&(v as Release).jurisdiction_artifact_sha256===PINS.jurisdictionArtifact&&(v as Release).epa_manifest_sha256===PINS.epa&&(v as Release).epa_zip_artifact_sha256===PINS.epaZip;
-const validEpa=(v:unknown):v is Epa=>{if(!exact(v,['source_record_count','mapped_source_record_union_count','industry_assignment_count','multisegment_record_count','partially_unmapped_record_count','unresolved_source_record_count','segment_assignment_counts','lifecycle_evidence_counts','review_status_counts']))return false;const e=v as Epa;return[e.source_record_count,e.mapped_source_record_union_count,e.industry_assignment_count,e.multisegment_record_count,e.partially_unmapped_record_count,e.unresolved_source_record_count].every(x=>Number.isSafeInteger(x)&&x>=0)&&e.mapped_source_record_union_count+e.unresolved_source_record_count===e.source_record_count&&e.industry_assignment_count>=e.mapped_source_record_union_count&&e.multisegment_record_count<=e.mapped_source_record_union_count&&e.partially_unmapped_record_count<=e.mapped_source_record_union_count&&counts(e.segment_assignment_counts,segments)&&sum(e.segment_assignment_counts)===e.industry_assignment_count&&counts(e.lifecycle_evidence_counts,life)&&sum(e.lifecycle_evidence_counts)===e.source_record_count&&counts(e.review_status_counts,review)&&sum(e.review_status_counts)===e.source_record_count};
-const validScope=(r:Scope,postal:string)=>{if(!exact(r,['schema_version','scope_id','scope_kind','scope_label','state_geo_id','state_fips','state_name','postal_abbreviation','zip5_rows','source_membership_count','lifecycle_evidence_counts','review_status_counts','mapped_source_record_union_count','unresolved_source_record_count','industry_assignment_count','industries','epa_refinement','unmapped_sources'])||r.schema_version!=='national-business-lifecycle-industry-jurisdiction-evidence-row@1.1.0'||r.scope_kind!=='state'||r.scope_id!==`state:${r.state_fips}`||r.state_geo_id!==r.scope_id||r.postal_abbreviation!==postal||typeof r.state_name!=='string'||![r.zip5_rows,r.source_membership_count,r.mapped_source_record_union_count,r.unresolved_source_record_count,r.industry_assignment_count].every(x=>Number.isSafeInteger(x)&&x>=0)||r.mapped_source_record_union_count+r.unresolved_source_record_count!==r.source_membership_count||r.industry_assignment_count<r.mapped_source_record_union_count||!counts(r.lifecycle_evidence_counts,life)||sum(r.lifecycle_evidence_counts)!==r.source_membership_count||!counts(r.review_status_counts,review)||sum(r.review_status_counts)!==r.source_membership_count||!validEpa(r.epa_refinement)||!Array.isArray(r.industries)||r.industries.length!==9)return false;let epaAssignment=0;for(let i=0;i<9;i++){const x=r.industries[i],allowed=industryRoutes[industries[i]];if(!exact(x,['industry_id','source_assignment_count','lifecycle_evidence_assignment_counts','review_status_assignment_counts','sources'])||x.industry_id!==industries[i]||!Number.isSafeInteger(x.source_assignment_count)||x.source_assignment_count<0||!counts(x.lifecycle_evidence_assignment_counts,life)||sum(x.lifecycle_evidence_assignment_counts)!==x.source_assignment_count||!counts(x.review_status_assignment_counts,review)||sum(x.review_status_assignment_counts)!==x.source_assignment_count||!Array.isArray(x.sources)||x.sources.length!==allowed.length)return false;let assigned=0;for(let j=0;j<x.sources.length;j++){const s=x.sources[j];if(!exact(s,['source_id','source_assignment_count','lifecycle_evidence_assignment_counts','review_status_assignment_counts'])||s.source_id!==allowed[j]||!Number.isSafeInteger(s.source_assignment_count)||s.source_assignment_count<0||!counts(s.lifecycle_evidence_assignment_counts,life)||sum(s.lifecycle_evidence_assignment_counts)!==s.source_assignment_count||!counts(s.review_status_assignment_counts,review)||sum(s.review_status_assignment_counts)!==s.source_assignment_count)return false;assigned+=s.source_assignment_count}if(assigned!==x.source_assignment_count||!same(add(x.sources.map(s=>s.lifecycle_evidence_assignment_counts),life),x.lifecycle_evidence_assignment_counts)||!same(add(x.sources.map(s=>s.review_status_assignment_counts),review),x.review_status_assignment_counts))return false;const epa=x.sources.find(s=>s.source_id===EPA)?.source_assignment_count??0;if(epa!==(r.epa_refinement.segment_assignment_counts[x.industry_id]??0))return false;epaAssignment+=epa}if(!Array.isArray(r.unmapped_sources)||r.unmapped_sources.length!==1)return false;const u=r.unmapped_sources[0];if(!exact(u,['source_id','unmapped_reason','source_membership_count','lifecycle_evidence_counts','review_status_counts'])||u.source_id!==FSIS||typeof u.unmapped_reason!=='string'||!u.unmapped_reason||!Number.isSafeInteger(u.source_membership_count)||u.source_membership_count<0||!counts(u.lifecycle_evidence_counts,life)||sum(u.lifecycle_evidence_counts)!==u.source_membership_count||!counts(u.review_status_counts,review)||sum(u.review_status_counts)!==u.source_membership_count)return false;const assignment=sum(Object.fromEntries(r.industries.map(x=>[x.industry_id,x.source_assignment_count])));return assignment===r.industry_assignment_count&&epaAssignment===r.epa_refinement.industry_assignment_count&&r.industry_assignment_count-r.mapped_source_record_union_count===r.epa_refinement.industry_assignment_count-r.epa_refinement.mapped_source_record_union_count&&r.unresolved_source_record_count===r.epa_refinement.unresolved_source_record_count+u.source_membership_count};
-const validIndex=(r:unknown,kind:'state'|'territory')=>exact(r,['scope_id','state_fips','state_name','postal_abbreviation'])&&new RegExp(`^${kind}:\\d{2}$`).test((r as Index).scope_id)&&(r as Index).scope_id.endsWith((r as Index).state_fips)&&typeof(r as Index).state_name==='string'&&/^[A-Z]{2}$/.test((r as Index).postal_abbreviation);
-export function validLifecycleIndustrySummary(input:unknown):input is SummaryView{if(!exact(input,['schema_version','release','summary','scopes','claims']))return false;const v=input as SummaryView,s=v.summary,e=s.epa_refinement,totals={'retail-consumer':484508,'health-care':2118021,'financial-services':101618,transportation:2242612,construction:93917,'tax-exempt-organizations':0,'sales-tax-outlets':885097,'local-business-licenses':856795,childcare:177};if(v.schema_version!=='national-business-lifecycle-industry-jurisdiction-evidence-runtime-summary@1.1.0'||!validRelease(v.release)||!same(v.claims,expectedClaims)||!exact(s,['scope_rows','state_scope_rows','territory_scope_rows','special_scope_rows','geography_scope_counts','zip5_rows','source_membership_count','lifecycle_evidence_counts','review_status_counts','mapped_source_record_union_count','unresolved_source_record_count','industry_assignment_count','industry_assignment_counts','epa_refinement'])||s.scope_rows!==60||s.state_scope_rows!==51||s.territory_scope_rows!==5||s.special_scope_rows!==4||s.zip5_rows!==48194||s.source_membership_count!==8011213||s.mapped_source_record_union_count!==6780627||s.unresolved_source_record_count!==1230586||s.industry_assignment_count!==6782745||s.mapped_source_record_union_count+s.unresolved_source_record_count!==s.source_membership_count||!same(s.industry_assignment_counts,totals)||sum(s.industry_assignment_counts)!==s.industry_assignment_count||!same(s.geography_scope_counts,{state:33455,territory:149,'multi-state-material':184,'zcta-overlay-unresolved':3,'non-zcta-unassigned':14402,'explicit-placeholder':1})||!counts(s.lifecycle_evidence_counts,life)||sum(s.lifecycle_evidence_counts)!==s.source_membership_count||!counts(s.review_status_counts,review)||sum(s.review_status_counts)!==s.source_membership_count||!same(e,{source_record_count:1517826,mapped_source_record_union_count:294477,industry_assignment_count:296595,multisegment_record_count:2107,partially_unmapped_record_count:25035,unresolved_source_record_count:1223349})||!exact(v.scopes,['states','territories','special']))return false;const a=v.scopes;return Array.isArray(a.states)&&a.states.length===51&&a.states.every(x=>validIndex(x,'state'))&&a.states.every((x,i)=>!i||a.states[i-1].state_fips<x.state_fips)&&Array.isArray(a.territories)&&a.territories.length===5&&a.territories.every(x=>validIndex(x,'territory'))&&a.territories.every((x,i)=>!i||a.territories[i-1].state_fips<x.state_fips)&&Array.isArray(a.special)&&a.special.length===4&&a.special.every((x,i)=>exact(x,['scope_id','scope_label'])&&x.scope_id===special[i]&&typeof x.scope_label==='string')}
-export function validLifecycleIndustryLookup(input:unknown,postal:string):input is Lookup{if(!exact(input,['schema_version','release','status','scope','claims']))return false;const v=input as Lookup;return v.schema_version==='national-business-lifecycle-industry-jurisdiction-evidence-runtime-lookup@1.1.0'&&v.status==='governed-source-relative-industry-memberships'&&validRelease(v.release)&&same(v.claims,expectedClaims)&&validScope(v.scope,postal)}
-const n=(x:number)=>x.toLocaleString('en-US');
-export default function LifecycleIndustryJurisdictionPanel({maintainedIndustries,maintenanceAvailable}:{maintainedIndustries:string[];maintenanceAvailable:boolean}){const[summary,setSummary]=useState<SummaryView|null>(null),[summaryFailed,setSummaryFailed]=useState(false),[state,setState]=useState(''),[lookup,setLookup]=useState<{state:string;view:Lookup|null;failed:boolean}|null>(null);useEffect(()=>{const c=new AbortController();void runnerJson<unknown>('/api/business-map/lifecycle-industry-jurisdiction-summary',{signal:c.signal}).then(v=>{if(!c.signal.aborted){if(validLifecycleIndustrySummary(v))setSummary(v);else setSummaryFailed(true)}}).catch(()=>{if(!c.signal.aborted)setSummaryFailed(true)});return()=>c.abort()},[]);useEffect(()=>{if(!state)return;const requested=state,c=new AbortController();void runnerJson<unknown>(`/api/business-map/lifecycle-industry-jurisdiction?state=${encodeURIComponent(state)}`,{signal:c.signal}).then(v=>{if(!c.signal.aborted)setLookup({state:requested,view:validLifecycleIndustryLookup(v,requested)?v:null,failed:!validLifecycleIndustryLookup(v,requested)})}).catch(e=>{if(!c.signal.aborted&&e?.name!=='AbortError')setLookup({state:requested,view:null,failed:true})});return()=>c.abort()},[state]);const current=lookup?.state===state?lookup:null,row=current?.view?.scope,fsis=row?.unmapped_sources[0];return <section className="industry-summary" aria-label="Lifecycle evidence by operational industry and jurisdiction"><h3>Lifecycle status by industry and state</h3><p>Industry assignments are source-relative and overlapping—not unique businesses, additive totals, verified current operations, or completeness.</p>{summary?<><label>State or D.C. <select aria-label="Lifecycle industry state" value={state} onChange={e=>setState(e.target.value)}><option value="">Select a state</option>{summary.scopes.states.map(x=><option key={x.scope_id} value={x.postal_abbreviation}>{x.state_name} ({x.postal_abbreviation})</option>)}</select></label><p><strong>National allocation context:</strong> {n(summary.summary.mapped_source_record_union_count)} distinct mapped source records · {n(summary.summary.industry_assignment_count)} overlapping industry assignments · {n(summary.summary.unresolved_source_record_count)} unresolved source records.</p><details><summary>Territory and special-scope boundaries</summary><p>Territories remain five separate scopes: {summary.scopes.territories.map(x=>x.postal_abbreviation).join(', ')}. Special scopes remain separate: {summary.scopes.special.map(x=>x.scope_label).join(' · ')}. Their records are not allocated to states or industries without governed evidence.</p></details></>:summaryFailed?<p role="status">National industry-lifecycle context is unavailable. Existing Industry Status and maintenance controls remain available.</p>:<p role="status">Verifying national industry-lifecycle context…</p>}{state&&!current&&<p role="status">Verifying lifecycle evidence for {state}…</p>}{current?.failed&&<p role="status">Lifecycle-by-industry evidence for {state} is unavailable. Existing Industry Status and maintenance controls remain available.</p>}{row&&<><div className="representation-table" role="region" aria-label={`${state} lifecycle evidence for all operational industries`} tabIndex={0}><table><thead><tr><th>Industry</th><th>Maintenance intent</th><th>Industry memberships (overlapping)</th><th>Lifecycle evidence</th><th>Review evidence</th></tr></thead><tbody>{row.industries.map(x=><tr key={x.industry_id}><th>{labels[x.industry_id]??x.industry_id}</th><td>{maintenanceAvailable?(maintainedIndustries.includes(x.industry_id)?'Selected for maintenance':'Not selected — retained evidence remains visible'):'Maintenance intent unavailable — retained evidence remains visible'}</td><td>{x.source_assignment_count===0?<><strong>0</strong><small>No governed lifecycle memberships assigned to this industry in this layer.</small></>:n(x.source_assignment_count)}</td><td>Current {n(x.lifecycle_evidence_assignment_counts['source-defined-current'])} · non-active {n(x.lifecycle_evidence_assignment_counts['non-active-reporting'])} · unknown {n(x.lifecycle_evidence_assignment_counts.unknown)} · contradictory {n(x.lifecycle_evidence_assignment_counts.contradictory)}</td><td>Within window {n(x.review_status_assignment_counts['within-review-window'])} · stale {n(x.review_status_assignment_counts.stale)} · unmeasured {n(x.review_status_assignment_counts.unmeasured)} · unmapped {n(x.review_status_assignment_counts.unmapped)}</td></tr>)}</tbody></table></div><details><summary>Mapping and overlap context</summary><p><strong>{row.scope_label}:</strong> {n(row.mapped_source_record_union_count)} distinct mapped records · {n(row.industry_assignment_count)} overlapping industry assignments · {n(row.unresolved_source_record_count)} unresolved source records.</p><p><strong>EPA refined segment evidence:</strong> {n(row.epa_refinement.mapped_source_record_union_count)} distinct records with a segment · {n(row.epa_refinement.industry_assignment_count)} assignments · {n(row.epa_refinement.multisegment_record_count)} multisegment · {n(row.epa_refinement.partially_unmapped_record_count)} partially unmapped · {n(row.epa_refinement.unresolved_source_record_count)} with no mapped segment.</p><p>Multisegment and partially-unmapped records overlap the EPA mapped-record union; neither is added to unresolved records.</p><p><strong>FSIS residual:</strong> {n(fsis?.source_membership_count??0)} retained records remain outside the operational-industry mapping. {fsis?.unmapped_reason}</p></details><p className="entity-method-note">Industry assignments overlap and must not be summed as distinct records or businesses. No unique-business count, completeness percentage, verified current operation, active-business numerator, USPS ZIP assignment, prefix assignment, reported-state assignment, or special-scope allocation is asserted.</p></>}</section>}
+"use client";
+import { useEffect, useState } from "react";
+import registration from "../config/datasets/national-business-lifecycle-industry-jurisdiction-evidence.json";
+import supplementalRegistration from "../config/datasets/national-irs-eo-supplemental-industry-evidence.json";
+import { runnerJson } from "./runner-client";
+const industries = [
+    "retail-consumer",
+    "health-care",
+    "financial-services",
+    "transportation",
+    "construction",
+    "tax-exempt-organizations",
+    "sales-tax-outlets",
+    "local-business-licenses",
+    "childcare",
+  ] as const,
+  life = [
+    "source-defined-current",
+    "non-active-reporting",
+    "unknown",
+    "contradictory",
+  ] as const,
+  review = ["within-review-window", "stale", "unmeasured", "unmapped"] as const,
+  segments = [
+    "construction",
+    "retail-consumer",
+    "financial-services",
+    "transportation",
+    "health-care",
+    "childcare",
+  ] as const,
+  special = [
+    "multi-state-material",
+    "zcta-overlay-unresolved",
+    "non-zcta-unassigned",
+    "explicit-placeholder",
+  ] as const;
+const labels: Record<string, string> = {
+    "retail-consumer": "Retail / consumer",
+    "health-care": "Health care",
+    "financial-services": "Financial services",
+    transportation: "Transportation",
+    construction: "Construction",
+    "tax-exempt-organizations": "Tax-exempt organizations",
+    "sales-tax-outlets": "Sales-tax outlets",
+    "local-business-licenses": "Local business licenses",
+    childcare: "Childcare",
+  },
+  EPA = "epa-echo-exporter-active-facility",
+  FSIS = "usda-fsis-active-mpi-directory";
+const industryRoutes: Record<string, string[]> = {
+  "retail-consumer": [
+    "california-abc-daily-active-licenses",
+    "new-york-agriculture-markets-retail-food-stores",
+    "usda-snap-current-retailers",
+    EPA,
+  ],
+  "health-care": ["cms-nppes-monthly-v2", EPA],
+  "financial-services": [
+    "fdic-bankfind-current-structure",
+    "ncua-final-quarterly-call-report",
+    EPA,
+  ],
+  transportation: ["fmcsa-company-census-active-us-principal-office", EPA],
+  construction: [EPA],
+  "tax-exempt-organizations": [],
+  "sales-tax-outlets": ["texas-comptroller-active-sales-tax-permits"],
+  "local-business-licenses": [
+    "alaska-dcced-active-business-licenses",
+    "city-of-chicago-bacp-current-active-business-licenses",
+    "dc-dlcp-active-basic-business-licenses",
+    "los-angeles-office-of-finance-active-businesses",
+    "nyc-dcwp-issued-licenses-active-premises",
+  ],
+  childcare: [EPA],
+};
+type Counts = Record<string, number>;
+type Release = {
+  release_id: string;
+  registration_sha256: string;
+  manifest_sha256: string;
+  artifact_sha256: string;
+  exact_zip_manifest_sha256: string;
+  jurisdiction_manifest_sha256: string;
+  jurisdiction_artifact_sha256: string;
+  epa_manifest_sha256: string;
+  epa_zip_artifact_sha256: string;
+};
+type Index = {
+  scope_id: string;
+  state_fips: string;
+  state_name: string;
+  postal_abbreviation: string;
+};
+type Claims = {
+  record_unit: "registry-location-profile-lifecycle-membership";
+  source_relative_lifecycle_evidence: true;
+  governed_jurisdiction_disposition_reused: true;
+  all_60_scopes_retained: true;
+  special_scopes_separate: true;
+  multi_state_evidence_allocated: false;
+  usps_zip_state_assignment: false;
+  zip_prefix_assignment: false;
+  reported_state_assignment: false;
+  fractional_allocation: false;
+  mapped_source_record_union_separate_from_industry_assignments: true;
+  industry_assignments_additive: false;
+  cross_source_additivity: false;
+  unique_business_count: null;
+  active_business_count: null;
+  current_operating_business_count: null;
+  all_business_completeness: null;
+  industry_completeness: null;
+  current_operation_verified: false;
+  active_business_eligible: false;
+  identity_resolution_applied: false;
+  authoritative_current_usps_zip_denominator: null;
+  zip4_joined: false;
+  network_requests: 0;
+  source_acquisition_performed: false;
+  current_pointer_written: false;
+  production_enrollment: false;
+};
+type Epa = {
+  source_record_count: number;
+  mapped_source_record_union_count: number;
+  industry_assignment_count: number;
+  multisegment_record_count: number;
+  partially_unmapped_record_count: number;
+  unresolved_source_record_count: number;
+  segment_assignment_counts: Counts;
+  lifecycle_evidence_counts: Counts;
+  review_status_counts: Counts;
+};
+type Source = {
+  source_id: string;
+  source_assignment_count: number;
+  lifecycle_evidence_assignment_counts: Counts;
+  review_status_assignment_counts: Counts;
+};
+type Industry = {
+  industry_id: string;
+  source_assignment_count: number;
+  lifecycle_evidence_assignment_counts: Counts;
+  review_status_assignment_counts: Counts;
+  sources: Source[];
+};
+type Unmapped = {
+  source_id: string;
+  unmapped_reason: string;
+  source_membership_count: number;
+  lifecycle_evidence_counts: Counts;
+  review_status_counts: Counts;
+};
+type Scope = {
+  schema_version: string;
+  scope_id: string;
+  scope_kind: string;
+  scope_label: string;
+  state_geo_id: string | null;
+  state_fips: string | null;
+  state_name: string | null;
+  postal_abbreviation: string | null;
+  zip5_rows: number;
+  source_membership_count: number;
+  lifecycle_evidence_counts: Counts;
+  review_status_counts: Counts;
+  mapped_source_record_union_count: number;
+  unresolved_source_record_count: number;
+  industry_assignment_count: number;
+  industries: Industry[];
+  epa_refinement: Epa;
+  unmapped_sources: Unmapped[];
+};
+type Summary = {
+  scope_rows: number;
+  state_scope_rows: number;
+  territory_scope_rows: number;
+  special_scope_rows: number;
+  geography_scope_counts: Counts;
+  zip5_rows: number;
+  source_membership_count: number;
+  lifecycle_evidence_counts: Counts;
+  review_status_counts: Counts;
+  mapped_source_record_union_count: number;
+  unresolved_source_record_count: number;
+  industry_assignment_count: number;
+  industry_assignment_counts: Counts;
+  epa_refinement: Omit<
+    Epa,
+    | "segment_assignment_counts"
+    | "lifecycle_evidence_counts"
+    | "review_status_counts"
+  >;
+};
+type SummaryView = {
+  schema_version: string;
+  release: Release;
+  summary: Summary;
+  scopes: {
+    states: Index[];
+    territories: Index[];
+    special: Array<{ scope_id: string; scope_label: string }>;
+  };
+  claims: Claims;
+};
+type Lookup = {
+  schema_version: string;
+  release: Release;
+  status: string;
+  scope: Scope;
+  claims: Claims;
+};
+type SupplementalRelease = {
+  release_id: string;
+  registration_sha256: string;
+  manifest_sha256: string;
+  scope_artifact_sha256: string;
+  reported_jurisdictions_artifact_sha256: string;
+  summary_artifact_sha256: string;
+  source_manifest_sha256: string;
+  overlay_manifest_sha256: string;
+  jurisdiction_manifest_sha256: string;
+  jurisdiction_artifact_sha256: string;
+  refresh_assessment_sha256: string;
+};
+type SupplementalRefresh = {
+  selected_source_posting_date: string;
+  assessment_as_of: string;
+  review_status: string;
+  selected_release_stale: boolean;
+  newer_edition_observed: boolean;
+  newer_edition_observed_not_collected: boolean;
+  observed_posting_date: string;
+  observed_source_page_claimed_records: number;
+  observed_records_downloaded: number;
+  observed_count_is_not_net_organization_creation: boolean;
+};
+type SupplementalScope = {
+  schema_version: string;
+  scope_id: string;
+  scope_kind: string;
+  scope_label: string;
+  state_geo_id: string | null;
+  state_fips: string | null;
+  state_name: string | null;
+  postal_abbreviation: string | null;
+  zip5_rows: number;
+  positive_zip5_rows: number;
+  organization_membership_count: number;
+  evidence_kind: string;
+  industry: string;
+  review_status: string;
+};
+type SupplementalLookup = {
+  schema_version: string;
+  release: SupplementalRelease;
+  refresh: SupplementalRefresh;
+  status: string;
+  scope: SupplementalScope;
+  reported_filing_address_comparison: {
+    comparison_kind: string;
+    reported_filing_address_jurisdiction: string;
+    governed_geography_membership_count: number;
+    reported_filing_address_membership_count: number;
+  } | null;
+  claims: Record<string, unknown>;
+};
+type SupplementalSummary = {
+  schema_version: string;
+  release: SupplementalRelease;
+  refresh: SupplementalRefresh;
+  summary: Record<string, unknown>;
+  scopes: {
+    states: Index[];
+    territories: Index[];
+    special: Array<{ scope_id: string; scope_label: string }>;
+  };
+  reported_filing_address_jurisdictions: Array<{
+    reported_filing_address_jurisdiction: string;
+    organization_membership_count: number;
+  }>;
+  claims: Record<string, unknown>;
+};
+const expectedClaims: Claims = {
+  record_unit: "registry-location-profile-lifecycle-membership",
+  source_relative_lifecycle_evidence: true,
+  governed_jurisdiction_disposition_reused: true,
+  all_60_scopes_retained: true,
+  special_scopes_separate: true,
+  multi_state_evidence_allocated: false,
+  usps_zip_state_assignment: false,
+  zip_prefix_assignment: false,
+  reported_state_assignment: false,
+  fractional_allocation: false,
+  mapped_source_record_union_separate_from_industry_assignments: true,
+  industry_assignments_additive: false,
+  cross_source_additivity: false,
+  unique_business_count: null,
+  active_business_count: null,
+  current_operating_business_count: null,
+  all_business_completeness: null,
+  industry_completeness: null,
+  current_operation_verified: false,
+  active_business_eligible: false,
+  identity_resolution_applied: false,
+  authoritative_current_usps_zip_denominator: null,
+  zip4_joined: false,
+  network_requests: 0,
+  source_acquisition_performed: false,
+  current_pointer_written: false,
+  production_enrollment: false,
+};
+const PINS = {
+  registration:
+    "fee5ead43901852b940c4df492de8f0b5fda51f91c9e5fb7305c1ec0199d3f38",
+  exactZip: "830eaec18ee614250e9234386e6fb897a4891e67a2188b6bf39bf16a03e15f4c",
+  jurisdiction:
+    "d2f2114dfdbf6788eea0dd2335c9a9383673d61baf557486ebd2e8aba7ffbf41",
+  jurisdictionArtifact:
+    "d29f7047dfe713fd9e95ede930edd0d2642eaa59158e3d2398ee3d5945658c84",
+  epa: "bb154192843c65ccb7723259c6fda50725a2c7c9e4999477608b61f1fd716dc7",
+  epaZip: "f47b129512c75389897c44b849ca89da0926d4269aad39ae67d80008cb4fa266",
+};
+const exact = (v: unknown, k: readonly string[]) =>
+    !!v &&
+    typeof v === "object" &&
+    !Array.isArray(v) &&
+    Object.keys(v).sort().join("|") === [...k].sort().join("|"),
+  same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b),
+  sum = (v: Counts) => Object.values(v).reduce((a, b) => a + b, 0),
+  counts = (v: unknown, k: readonly string[]) =>
+    exact(v, k) &&
+    k.every(
+      (x) => Number.isSafeInteger((v as Counts)[x]) && (v as Counts)[x] >= 0,
+    ),
+  add = (rows: Counts[], keys: readonly string[]) =>
+    Object.fromEntries(
+      keys.map((k) => [k, rows.reduce((n, row) => n + row[k], 0)]),
+    );
+const supplementalPins = {
+    registration:
+      "09fcf954fd84f622adc08e736d517b594ae760992e9964ac6c3c17183dfd9029",
+    manifest:
+      "ea1f62b477375269fc829562172137c3368b54f5596ad2aa69d51ae1b60d8aa1",
+    scopes: "c65867324217a85fa7c47235f1056e67e2ae1fa7eb1e475282912a1ef3053d95",
+    reported:
+      "12be8e625923b4d97773a202f057713f06c72feaa570846853a5cd3c134db53d",
+    summary: "3875515521d403de10629707015071b3ebabb9db374f40856dcc6a26c6b84e4d",
+    source: "999233d73e42eac72a094d1248d6790680d39d276c3a9e849a496d01ed5288f8",
+    overlay: "3fadc44772bcf2166d5e777d268028f3427342f7bfd0aab0a7706b92058581ce",
+    jurisdiction:
+      "d2f2114dfdbf6788eea0dd2335c9a9383673d61baf557486ebd2e8aba7ffbf41",
+    jurisdictionArtifact:
+      "d29f7047dfe713fd9e95ede930edd0d2642eaa59158e3d2398ee3d5945658c84",
+    assessment:
+      "61c5dbfec39137eeea10945dd4a2b167da8d9e955611f71a3512df8f4f3520a5",
+  },
+  supplementalClaims = {
+    evidence_kind: "supplemental-non-active-reporting-membership",
+    industry: "tax-exempt-organizations",
+    filing_address_only: true,
+    lifecycle_base_denominator_changed: false,
+    lifecycle_base_assignments_changed: false,
+    unique_business_count: null,
+    current_operation_verified: false,
+    physical_site_verified: false,
+    complete_all_nonprofits: false,
+    all_business_completeness: null,
+    additive_to_business_or_industry_totals: false,
+    authoritative_current_usps_zip_validity: null,
+    zip4_joined: false,
+    geography_disposition_and_reported_jurisdiction_are_separate: true,
+    state_inferred_from_zip_prefix: false,
+    reported_jurisdiction_overwrites_geography_disposition: false,
+    network_requests: 0,
+    source_acquisition_performed: false,
+    current_pointer_written: false,
+    production_enrollment: false,
+  },
+  supplementalRefresh = {
+    selected_source_posting_date: "2026-08-11",
+    assessment_as_of: "2026-11-12",
+    review_status: "stale",
+    selected_release_stale: true,
+    newer_edition_observed: true,
+    newer_edition_observed_not_collected: true,
+    observed_posting_date: "2026-10-13",
+    observed_source_page_claimed_records: 1975975,
+    observed_records_downloaded: 0,
+    observed_count_is_not_net_organization_creation: true,
+  };
+const validSupplementalRelease = (v: unknown): v is SupplementalRelease =>
+  exact(v, [
+    "release_id",
+    "registration_sha256",
+    "manifest_sha256",
+    "scope_artifact_sha256",
+    "reported_jurisdictions_artifact_sha256",
+    "summary_artifact_sha256",
+    "source_manifest_sha256",
+    "overlay_manifest_sha256",
+    "jurisdiction_manifest_sha256",
+    "jurisdiction_artifact_sha256",
+    "refresh_assessment_sha256",
+  ]) &&
+  (v as SupplementalRelease).release_id ===
+    supplementalRegistration.retained_release.release_id &&
+  (v as SupplementalRelease).registration_sha256 ===
+    supplementalPins.registration &&
+  (v as SupplementalRelease).manifest_sha256 === supplementalPins.manifest &&
+  (v as SupplementalRelease).scope_artifact_sha256 ===
+    supplementalPins.scopes &&
+  (v as SupplementalRelease).reported_jurisdictions_artifact_sha256 ===
+    supplementalPins.reported &&
+  (v as SupplementalRelease).summary_artifact_sha256 ===
+    supplementalPins.summary &&
+  (v as SupplementalRelease).source_manifest_sha256 ===
+    supplementalPins.source &&
+  (v as SupplementalRelease).overlay_manifest_sha256 ===
+    supplementalPins.overlay &&
+  (v as SupplementalRelease).jurisdiction_manifest_sha256 ===
+    supplementalPins.jurisdiction &&
+  (v as SupplementalRelease).jurisdiction_artifact_sha256 ===
+    supplementalPins.jurisdictionArtifact &&
+  (v as SupplementalRelease).refresh_assessment_sha256 ===
+    supplementalPins.assessment;
+const validSupplementalScope = (
+  v: unknown,
+  postal: string,
+): v is SupplementalScope =>
+  exact(v, [
+    "schema_version",
+    "scope_id",
+    "scope_kind",
+    "scope_label",
+    "state_geo_id",
+    "state_fips",
+    "state_name",
+    "postal_abbreviation",
+    "zip5_rows",
+    "positive_zip5_rows",
+    "organization_membership_count",
+    "evidence_kind",
+    "industry",
+    "review_status",
+  ]) &&
+  (v as SupplementalScope).schema_version ===
+    "national-irs-eo-supplemental-industry-evidence-scope@1.0.0" &&
+  (v as SupplementalScope).scope_kind === "state" &&
+  (v as SupplementalScope).scope_id ===
+    `state:${(v as SupplementalScope).state_fips}` &&
+  (v as SupplementalScope).state_geo_id === (v as SupplementalScope).scope_id &&
+  (v as SupplementalScope).postal_abbreviation === postal &&
+  typeof (v as SupplementalScope).state_name === "string" &&
+  [
+    (v as SupplementalScope).zip5_rows,
+    (v as SupplementalScope).positive_zip5_rows,
+    (v as SupplementalScope).organization_membership_count,
+  ].every((x) => Number.isSafeInteger(x) && x >= 0) &&
+  (v as SupplementalScope).positive_zip5_rows <=
+    (v as SupplementalScope).zip5_rows &&
+  (v as SupplementalScope).evidence_kind ===
+    "supplemental-non-active-reporting-membership" &&
+  (v as SupplementalScope).industry === "tax-exempt-organizations" &&
+  (v as SupplementalScope).review_status === "stale";
+export function validIrsEoSupplementalJurisdictionSummary(
+  input: unknown,
+): input is SupplementalSummary {
+  if (
+    !exact(input, [
+      "schema_version",
+      "release",
+      "refresh",
+      "summary",
+      "scopes",
+      "reported_filing_address_jurisdictions",
+      "claims",
+    ])
+  )
+    return false;
+  const v = input as SupplementalSummary,
+    s = v.summary as Record<string, unknown>;
+  return (
+    v.schema_version ===
+      "national-irs-eo-supplemental-industry-evidence-runtime-summary@1.0.0" &&
+    validSupplementalRelease(v.release) &&
+    same(v.refresh, supplementalRefresh) &&
+    same(v.claims, supplementalClaims) &&
+    s.schema_version ===
+      "national-irs-eo-supplemental-industry-evidence-summary@1.0.0" &&
+    s.zip5_rows === 48194 &&
+    s.positive_zip5_rows === 36950 &&
+    s.organization_membership_count === 1955841 &&
+    s.evidence_kind === "supplemental-non-active-reporting-membership" &&
+    s.industry === "tax-exempt-organizations" &&
+    s.review_status === "stale" &&
+    s.lifecycle_base_changed === false &&
+    same(s.claims, supplementalClaims) &&
+    exact(v.scopes, ["states", "territories", "special"]) &&
+    Array.isArray(v.scopes.states) &&
+    v.scopes.states.length === 51 &&
+    Array.isArray(v.scopes.territories) &&
+    v.scopes.territories.length === 5 &&
+    Array.isArray(v.scopes.special) &&
+    v.scopes.special.length === 4 &&
+    Array.isArray(v.reported_filing_address_jurisdictions) &&
+    v.reported_filing_address_jurisdictions.length === 56 &&
+    v.reported_filing_address_jurisdictions.reduce(
+      (n, x) => n + x.organization_membership_count,
+      0,
+    ) === 1955841
+  );
+}
+export function validIrsEoSupplementalJurisdictionLookup(
+  input: unknown,
+  postal: string,
+): input is SupplementalLookup {
+  if (
+    !exact(input, [
+      "schema_version",
+      "release",
+      "refresh",
+      "status",
+      "scope",
+      "reported_filing_address_comparison",
+      "claims",
+    ])
+  )
+    return false;
+  const v = input as SupplementalLookup,
+    c = v.reported_filing_address_comparison;
+  return (
+    v.schema_version ===
+      "national-irs-eo-supplemental-industry-evidence-runtime-jurisdiction@1.0.0" &&
+    validSupplementalRelease(v.release) &&
+    same(v.refresh, supplementalRefresh) &&
+    same(v.claims, supplementalClaims) &&
+    [
+      "governed-supplemental-memberships",
+      "governed-zero-supplemental-memberships",
+    ].includes(v.status) &&
+    validSupplementalScope(v.scope, postal) &&
+    v.status ===
+      (v.scope.organization_membership_count
+        ? "governed-supplemental-memberships"
+        : "governed-zero-supplemental-memberships") &&
+    !!c &&
+    exact(c, [
+      "comparison_kind",
+      "reported_filing_address_jurisdiction",
+      "governed_geography_membership_count",
+      "reported_filing_address_membership_count",
+    ]) &&
+    c.comparison_kind === "separate-marginals-not-record-linkage" &&
+    c.reported_filing_address_jurisdiction === postal &&
+    c.governed_geography_membership_count ===
+      v.scope.organization_membership_count &&
+    Number.isSafeInteger(c.reported_filing_address_membership_count) &&
+    c.reported_filing_address_membership_count >= 0
+  );
+}
+const validRelease = (v: unknown): v is Release =>
+  exact(v, [
+    "release_id",
+    "registration_sha256",
+    "manifest_sha256",
+    "artifact_sha256",
+    "exact_zip_manifest_sha256",
+    "jurisdiction_manifest_sha256",
+    "jurisdiction_artifact_sha256",
+    "epa_manifest_sha256",
+    "epa_zip_artifact_sha256",
+  ]) &&
+  (v as Release).release_id === registration.retained_release.release_id &&
+  (v as Release).manifest_sha256 ===
+    registration.retained_release.manifest_sha256 &&
+  (v as Release).artifact_sha256 ===
+    registration.retained_release.artifact_sha256 &&
+  (v as Release).registration_sha256 === PINS.registration &&
+  (v as Release).exact_zip_manifest_sha256 === PINS.exactZip &&
+  (v as Release).jurisdiction_manifest_sha256 === PINS.jurisdiction &&
+  (v as Release).jurisdiction_artifact_sha256 === PINS.jurisdictionArtifact &&
+  (v as Release).epa_manifest_sha256 === PINS.epa &&
+  (v as Release).epa_zip_artifact_sha256 === PINS.epaZip;
+const validEpa = (v: unknown): v is Epa => {
+  if (
+    !exact(v, [
+      "source_record_count",
+      "mapped_source_record_union_count",
+      "industry_assignment_count",
+      "multisegment_record_count",
+      "partially_unmapped_record_count",
+      "unresolved_source_record_count",
+      "segment_assignment_counts",
+      "lifecycle_evidence_counts",
+      "review_status_counts",
+    ])
+  )
+    return false;
+  const e = v as Epa;
+  return (
+    [
+      e.source_record_count,
+      e.mapped_source_record_union_count,
+      e.industry_assignment_count,
+      e.multisegment_record_count,
+      e.partially_unmapped_record_count,
+      e.unresolved_source_record_count,
+    ].every((x) => Number.isSafeInteger(x) && x >= 0) &&
+    e.mapped_source_record_union_count + e.unresolved_source_record_count ===
+      e.source_record_count &&
+    e.industry_assignment_count >= e.mapped_source_record_union_count &&
+    e.multisegment_record_count <= e.mapped_source_record_union_count &&
+    e.partially_unmapped_record_count <= e.mapped_source_record_union_count &&
+    counts(e.segment_assignment_counts, segments) &&
+    sum(e.segment_assignment_counts) === e.industry_assignment_count &&
+    counts(e.lifecycle_evidence_counts, life) &&
+    sum(e.lifecycle_evidence_counts) === e.source_record_count &&
+    counts(e.review_status_counts, review) &&
+    sum(e.review_status_counts) === e.source_record_count
+  );
+};
+const validScope = (r: Scope, postal: string) => {
+  if (
+    !exact(r, [
+      "schema_version",
+      "scope_id",
+      "scope_kind",
+      "scope_label",
+      "state_geo_id",
+      "state_fips",
+      "state_name",
+      "postal_abbreviation",
+      "zip5_rows",
+      "source_membership_count",
+      "lifecycle_evidence_counts",
+      "review_status_counts",
+      "mapped_source_record_union_count",
+      "unresolved_source_record_count",
+      "industry_assignment_count",
+      "industries",
+      "epa_refinement",
+      "unmapped_sources",
+    ]) ||
+    r.schema_version !==
+      "national-business-lifecycle-industry-jurisdiction-evidence-row@1.1.0" ||
+    r.scope_kind !== "state" ||
+    r.scope_id !== `state:${r.state_fips}` ||
+    r.state_geo_id !== r.scope_id ||
+    r.postal_abbreviation !== postal ||
+    typeof r.state_name !== "string" ||
+    ![
+      r.zip5_rows,
+      r.source_membership_count,
+      r.mapped_source_record_union_count,
+      r.unresolved_source_record_count,
+      r.industry_assignment_count,
+    ].every((x) => Number.isSafeInteger(x) && x >= 0) ||
+    r.mapped_source_record_union_count + r.unresolved_source_record_count !==
+      r.source_membership_count ||
+    r.industry_assignment_count < r.mapped_source_record_union_count ||
+    !counts(r.lifecycle_evidence_counts, life) ||
+    sum(r.lifecycle_evidence_counts) !== r.source_membership_count ||
+    !counts(r.review_status_counts, review) ||
+    sum(r.review_status_counts) !== r.source_membership_count ||
+    !validEpa(r.epa_refinement) ||
+    !Array.isArray(r.industries) ||
+    r.industries.length !== 9
+  )
+    return false;
+  let epaAssignment = 0;
+  for (let i = 0; i < 9; i++) {
+    const x = r.industries[i],
+      allowed = industryRoutes[industries[i]];
+    if (
+      !exact(x, [
+        "industry_id",
+        "source_assignment_count",
+        "lifecycle_evidence_assignment_counts",
+        "review_status_assignment_counts",
+        "sources",
+      ]) ||
+      x.industry_id !== industries[i] ||
+      !Number.isSafeInteger(x.source_assignment_count) ||
+      x.source_assignment_count < 0 ||
+      !counts(x.lifecycle_evidence_assignment_counts, life) ||
+      sum(x.lifecycle_evidence_assignment_counts) !==
+        x.source_assignment_count ||
+      !counts(x.review_status_assignment_counts, review) ||
+      sum(x.review_status_assignment_counts) !== x.source_assignment_count ||
+      !Array.isArray(x.sources) ||
+      x.sources.length !== allowed.length
+    )
+      return false;
+    let assigned = 0;
+    for (let j = 0; j < x.sources.length; j++) {
+      const s = x.sources[j];
+      if (
+        !exact(s, [
+          "source_id",
+          "source_assignment_count",
+          "lifecycle_evidence_assignment_counts",
+          "review_status_assignment_counts",
+        ]) ||
+        s.source_id !== allowed[j] ||
+        !Number.isSafeInteger(s.source_assignment_count) ||
+        s.source_assignment_count < 0 ||
+        !counts(s.lifecycle_evidence_assignment_counts, life) ||
+        sum(s.lifecycle_evidence_assignment_counts) !==
+          s.source_assignment_count ||
+        !counts(s.review_status_assignment_counts, review) ||
+        sum(s.review_status_assignment_counts) !== s.source_assignment_count
+      )
+        return false;
+      assigned += s.source_assignment_count;
+    }
+    if (
+      assigned !== x.source_assignment_count ||
+      !same(
+        add(
+          x.sources.map((s) => s.lifecycle_evidence_assignment_counts),
+          life,
+        ),
+        x.lifecycle_evidence_assignment_counts,
+      ) ||
+      !same(
+        add(
+          x.sources.map((s) => s.review_status_assignment_counts),
+          review,
+        ),
+        x.review_status_assignment_counts,
+      )
+    )
+      return false;
+    const epa =
+      x.sources.find((s) => s.source_id === EPA)?.source_assignment_count ?? 0;
+    if (
+      epa !== (r.epa_refinement.segment_assignment_counts[x.industry_id] ?? 0)
+    )
+      return false;
+    epaAssignment += epa;
+  }
+  if (!Array.isArray(r.unmapped_sources) || r.unmapped_sources.length !== 1)
+    return false;
+  const u = r.unmapped_sources[0];
+  if (
+    !exact(u, [
+      "source_id",
+      "unmapped_reason",
+      "source_membership_count",
+      "lifecycle_evidence_counts",
+      "review_status_counts",
+    ]) ||
+    u.source_id !== FSIS ||
+    typeof u.unmapped_reason !== "string" ||
+    !u.unmapped_reason ||
+    !Number.isSafeInteger(u.source_membership_count) ||
+    u.source_membership_count < 0 ||
+    !counts(u.lifecycle_evidence_counts, life) ||
+    sum(u.lifecycle_evidence_counts) !== u.source_membership_count ||
+    !counts(u.review_status_counts, review) ||
+    sum(u.review_status_counts) !== u.source_membership_count
+  )
+    return false;
+  const assignment = sum(
+    Object.fromEntries(
+      r.industries.map((x) => [x.industry_id, x.source_assignment_count]),
+    ),
+  );
+  return (
+    assignment === r.industry_assignment_count &&
+    epaAssignment === r.epa_refinement.industry_assignment_count &&
+    r.industry_assignment_count - r.mapped_source_record_union_count ===
+      r.epa_refinement.industry_assignment_count -
+        r.epa_refinement.mapped_source_record_union_count &&
+    r.unresolved_source_record_count ===
+      r.epa_refinement.unresolved_source_record_count +
+        u.source_membership_count
+  );
+};
+const validIndex = (r: unknown, kind: "state" | "territory") =>
+  exact(r, ["scope_id", "state_fips", "state_name", "postal_abbreviation"]) &&
+  new RegExp(`^${kind}:\\d{2}$`).test((r as Index).scope_id) &&
+  (r as Index).scope_id.endsWith((r as Index).state_fips) &&
+  typeof (r as Index).state_name === "string" &&
+  /^[A-Z]{2}$/.test((r as Index).postal_abbreviation);
+export function validLifecycleIndustrySummary(
+  input: unknown,
+): input is SummaryView {
+  if (
+    !exact(input, ["schema_version", "release", "summary", "scopes", "claims"])
+  )
+    return false;
+  const v = input as SummaryView,
+    s = v.summary,
+    e = s.epa_refinement,
+    totals = {
+      "retail-consumer": 484508,
+      "health-care": 2118021,
+      "financial-services": 101618,
+      transportation: 2242612,
+      construction: 93917,
+      "tax-exempt-organizations": 0,
+      "sales-tax-outlets": 885097,
+      "local-business-licenses": 856795,
+      childcare: 177,
+    };
+  if (
+    v.schema_version !==
+      "national-business-lifecycle-industry-jurisdiction-evidence-runtime-summary@1.1.0" ||
+    !validRelease(v.release) ||
+    !same(v.claims, expectedClaims) ||
+    !exact(s, [
+      "scope_rows",
+      "state_scope_rows",
+      "territory_scope_rows",
+      "special_scope_rows",
+      "geography_scope_counts",
+      "zip5_rows",
+      "source_membership_count",
+      "lifecycle_evidence_counts",
+      "review_status_counts",
+      "mapped_source_record_union_count",
+      "unresolved_source_record_count",
+      "industry_assignment_count",
+      "industry_assignment_counts",
+      "epa_refinement",
+    ]) ||
+    s.scope_rows !== 60 ||
+    s.state_scope_rows !== 51 ||
+    s.territory_scope_rows !== 5 ||
+    s.special_scope_rows !== 4 ||
+    s.zip5_rows !== 48194 ||
+    s.source_membership_count !== 8011213 ||
+    s.mapped_source_record_union_count !== 6780627 ||
+    s.unresolved_source_record_count !== 1230586 ||
+    s.industry_assignment_count !== 6782745 ||
+    s.mapped_source_record_union_count + s.unresolved_source_record_count !==
+      s.source_membership_count ||
+    !same(s.industry_assignment_counts, totals) ||
+    sum(s.industry_assignment_counts) !== s.industry_assignment_count ||
+    !same(s.geography_scope_counts, {
+      state: 33455,
+      territory: 149,
+      "multi-state-material": 184,
+      "zcta-overlay-unresolved": 3,
+      "non-zcta-unassigned": 14402,
+      "explicit-placeholder": 1,
+    }) ||
+    !counts(s.lifecycle_evidence_counts, life) ||
+    sum(s.lifecycle_evidence_counts) !== s.source_membership_count ||
+    !counts(s.review_status_counts, review) ||
+    sum(s.review_status_counts) !== s.source_membership_count ||
+    !same(e, {
+      source_record_count: 1517826,
+      mapped_source_record_union_count: 294477,
+      industry_assignment_count: 296595,
+      multisegment_record_count: 2107,
+      partially_unmapped_record_count: 25035,
+      unresolved_source_record_count: 1223349,
+    }) ||
+    !exact(v.scopes, ["states", "territories", "special"])
+  )
+    return false;
+  const a = v.scopes;
+  return (
+    Array.isArray(a.states) &&
+    a.states.length === 51 &&
+    a.states.every((x) => validIndex(x, "state")) &&
+    a.states.every((x, i) => !i || a.states[i - 1].state_fips < x.state_fips) &&
+    Array.isArray(a.territories) &&
+    a.territories.length === 5 &&
+    a.territories.every((x) => validIndex(x, "territory")) &&
+    a.territories.every(
+      (x, i) => !i || a.territories[i - 1].state_fips < x.state_fips,
+    ) &&
+    Array.isArray(a.special) &&
+    a.special.length === 4 &&
+    a.special.every(
+      (x, i) =>
+        exact(x, ["scope_id", "scope_label"]) &&
+        x.scope_id === special[i] &&
+        typeof x.scope_label === "string",
+    )
+  );
+}
+export function validLifecycleIndustryLookup(
+  input: unknown,
+  postal: string,
+): input is Lookup {
+  if (!exact(input, ["schema_version", "release", "status", "scope", "claims"]))
+    return false;
+  const v = input as Lookup;
+  return (
+    v.schema_version ===
+      "national-business-lifecycle-industry-jurisdiction-evidence-runtime-lookup@1.1.0" &&
+    v.status === "governed-source-relative-industry-memberships" &&
+    validRelease(v.release) &&
+    same(v.claims, expectedClaims) &&
+    validScope(v.scope, postal)
+  );
+}
+const n = (x: number) => x.toLocaleString("en-US");
+export default function LifecycleIndustryJurisdictionPanel({
+  maintainedIndustries,
+  maintenanceAvailable,
+}: {
+  maintainedIndustries: string[];
+  maintenanceAvailable: boolean;
+}) {
+  const [summary, setSummary] = useState<SummaryView | null>(null),
+    [summaryFailed, setSummaryFailed] = useState(false),
+    [state, setState] = useState(""),
+    [lookup, setLookup] = useState<{
+      state: string;
+      view: Lookup | null;
+      failed: boolean;
+    } | null>(null),
+    [supplementalSummary, setSupplementalSummary] =
+      useState<SupplementalSummary | null>(null),
+    [supplementalSummaryFailed, setSupplementalSummaryFailed] = useState(false),
+    [supplementalLookup, setSupplementalLookup] = useState<{
+      state: string;
+      view: SupplementalLookup | null;
+      failed: boolean;
+    } | null>(null);
+  useEffect(() => {
+    const c = new AbortController();
+    void runnerJson<unknown>(
+      "/api/business-map/lifecycle-industry-jurisdiction-summary",
+      { signal: c.signal },
+    )
+      .then((v) => {
+        if (!c.signal.aborted) {
+          if (validLifecycleIndustrySummary(v)) setSummary(v);
+          else setSummaryFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!c.signal.aborted) setSummaryFailed(true);
+      });
+    return () => c.abort();
+  }, []);
+  useEffect(() => {
+    const c = new AbortController();
+    void runnerJson<unknown>(
+      "/api/business-map/irs-eo-supplemental-industry-summary",
+      { signal: c.signal },
+    )
+      .then((v) => {
+        if (!c.signal.aborted) {
+          if (validIrsEoSupplementalJurisdictionSummary(v))
+            setSupplementalSummary(v);
+          else setSupplementalSummaryFailed(true);
+        }
+      })
+      .catch(() => {
+        if (!c.signal.aborted) setSupplementalSummaryFailed(true);
+      });
+    return () => c.abort();
+  }, []);
+  useEffect(() => {
+    if (!state) return;
+    const requested = state,
+      c = new AbortController();
+    void runnerJson<unknown>(
+      `/api/business-map/lifecycle-industry-jurisdiction?state=${encodeURIComponent(state)}`,
+      { signal: c.signal },
+    )
+      .then((v) => {
+        if (!c.signal.aborted)
+          setLookup({
+            state: requested,
+            view: validLifecycleIndustryLookup(v, requested) ? v : null,
+            failed: !validLifecycleIndustryLookup(v, requested),
+          });
+      })
+      .catch((e) => {
+        if (!c.signal.aborted && e?.name !== "AbortError")
+          setLookup({ state: requested, view: null, failed: true });
+      });
+    return () => c.abort();
+  }, [state]);
+  useEffect(() => {
+    if (!state) return;
+    const requested = state,
+      c = new AbortController();
+    void runnerJson<unknown>(
+      `/api/business-map/irs-eo-supplemental-industry-jurisdiction?state=${encodeURIComponent(state)}`,
+      { signal: c.signal },
+    )
+      .then((v) => {
+        if (!c.signal.aborted)
+          setSupplementalLookup({
+            state: requested,
+            view: validIrsEoSupplementalJurisdictionLookup(v, requested)
+              ? v
+              : null,
+            failed: !validIrsEoSupplementalJurisdictionLookup(v, requested),
+          });
+      })
+      .catch((e) => {
+        if (!c.signal.aborted && e?.name !== "AbortError")
+          setSupplementalLookup({ state: requested, view: null, failed: true });
+      });
+    return () => c.abort();
+  }, [state]);
+  const current = lookup?.state === state ? lookup : null,
+    row = current?.view?.scope,
+    fsis = row?.unmapped_sources[0],
+    supplementalCurrent =
+      supplementalLookup?.state === state ? supplementalLookup : null,
+    supplemental = supplementalCurrent?.view;
+  return (
+    <section
+      className="industry-summary"
+      aria-label="Lifecycle evidence by operational industry and jurisdiction"
+    >
+      <h3>Lifecycle status by industry and state</h3>
+      <p>
+        Industry assignments are source-relative and overlapping—not unique
+        businesses, additive totals, verified current operations, or
+        completeness.
+      </p>
+      {summary ? (
+        <>
+          <label>
+            State or D.C.{" "}
+            <select
+              aria-label="Lifecycle industry state"
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+            >
+              <option value="">Select a state</option>
+              {summary.scopes.states.map((x) => (
+                <option key={x.scope_id} value={x.postal_abbreviation}>
+                  {x.state_name} ({x.postal_abbreviation})
+                </option>
+              ))}
+            </select>
+          </label>
+          <p>
+            <strong>National allocation context:</strong>{" "}
+            {n(summary.summary.mapped_source_record_union_count)} distinct
+            mapped source records ·{" "}
+            {n(summary.summary.industry_assignment_count)} overlapping industry
+            assignments · {n(summary.summary.unresolved_source_record_count)}{" "}
+            unresolved source records.
+          </p>
+          <details>
+            <summary>Territory and special-scope boundaries</summary>
+            <p>
+              Territories remain five separate scopes:{" "}
+              {summary.scopes.territories
+                .map((x) => x.postal_abbreviation)
+                .join(", ")}
+              . Special scopes remain separate:{" "}
+              {summary.scopes.special.map((x) => x.scope_label).join(" · ")}.
+              Their records are not allocated to states or industries without
+              governed evidence.
+            </p>
+          </details>
+        </>
+      ) : summaryFailed ? (
+        <p role="status">
+          National industry-lifecycle context is unavailable. Existing Industry
+          Status and maintenance controls remain available.
+        </p>
+      ) : (
+        <p role="status">Verifying national industry-lifecycle context…</p>
+      )}
+      {supplementalSummary && (
+        <p>
+          <strong>National IRS supplemental context:</strong>{" "}
+          {n(
+            supplementalSummary.summary.organization_membership_count as number,
+          )}{" "}
+          current-extract EIN organization memberships · filing addresses only ·
+          non-active reporting · stale review. A newer edition dated{" "}
+          {supplementalSummary.refresh.observed_posting_date} was observed but
+          not collected.
+        </p>
+      )}
+      {supplementalSummaryFailed && (
+        <p role="status">
+          IRS EO supplemental evidence is unavailable. Lifecycle industry status
+          remains available.
+        </p>
+      )}
+      {state && !current && (
+        <p role="status">Verifying lifecycle evidence for {state}…</p>
+      )}
+      {current?.failed && (
+        <p role="status">
+          Lifecycle-by-industry evidence for {state} is unavailable. Existing
+          Industry Status and maintenance controls remain available.
+        </p>
+      )}
+      {state && !supplementalCurrent && !supplementalSummaryFailed && (
+        <p role="status">Verifying IRS EO supplemental evidence for {state}…</p>
+      )}
+      {supplementalCurrent?.failed && (
+        <p role="status">
+          IRS EO supplemental evidence for {state} is unavailable. Lifecycle
+          industry status remains available.
+        </p>
+      )}
+      {row && (
+        <>
+          <div
+            className="representation-table"
+            role="region"
+            aria-label={`${state} lifecycle evidence for all operational industries`}
+            tabIndex={0}
+          >
+            <table>
+              <thead>
+                <tr>
+                  <th>Industry</th>
+                  <th>Maintenance intent</th>
+                  <th>Industry memberships (overlapping)</th>
+                  <th>Lifecycle evidence</th>
+                  <th>Review evidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {row.industries.map((x) => (
+                  <tr key={x.industry_id}>
+                    <th>{labels[x.industry_id] ?? x.industry_id}</th>
+                    <td>
+                      {maintenanceAvailable
+                        ? maintainedIndustries.includes(x.industry_id)
+                          ? "Selected for maintenance"
+                          : "Not selected — retained evidence remains visible"
+                        : "Maintenance intent unavailable — retained evidence remains visible"}
+                    </td>
+                    <td>
+                      {x.source_assignment_count === 0 ? (
+                        <>
+                          <strong>0</strong>
+                          <small>
+                            {x.industry_id === "tax-exempt-organizations" ? (
+                              <>
+                                0 lifecycle assignments.
+                                {supplemental && (
+                                  <>
+                                    {" "}
+                                    {n(
+                                      supplemental.scope
+                                        .organization_membership_count,
+                                    )}{" "}
+                                    supplemental IRS current-extract EIN
+                                    organization memberships · filing address
+                                    only · non-active reporting · stale review.
+                                    Newer edition observed, not collected.
+                                  </>
+                                )}
+                              </>
+                            ) : (
+                              "No governed lifecycle memberships assigned to this industry in this layer."
+                            )}
+                          </small>
+                        </>
+                      ) : (
+                        n(x.source_assignment_count)
+                      )}
+                    </td>
+                    <td>
+                      Current{" "}
+                      {n(
+                        x.lifecycle_evidence_assignment_counts[
+                          "source-defined-current"
+                        ],
+                      )}{" "}
+                      · non-active{" "}
+                      {n(
+                        x.lifecycle_evidence_assignment_counts[
+                          "non-active-reporting"
+                        ],
+                      )}{" "}
+                      · unknown{" "}
+                      {n(x.lifecycle_evidence_assignment_counts.unknown)} ·
+                      contradictory{" "}
+                      {n(x.lifecycle_evidence_assignment_counts.contradictory)}
+                    </td>
+                    <td>
+                      Within window{" "}
+                      {n(
+                        x.review_status_assignment_counts[
+                          "within-review-window"
+                        ],
+                      )}{" "}
+                      · stale {n(x.review_status_assignment_counts.stale)} ·
+                      unmeasured{" "}
+                      {n(x.review_status_assignment_counts.unmeasured)} ·
+                      unmapped {n(x.review_status_assignment_counts.unmapped)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {supplemental?.reported_filing_address_comparison && (
+            <p className="entity-method-note">
+              IRS governed geography and reported filing-address counts are
+              separate marginals, not record linkage; the reported
+              filing-address count is not added to the governed count.
+            </p>
+          )}
+          <details>
+            <summary>Mapping and overlap context</summary>
+            <p>
+              <strong>{row.scope_label}:</strong>{" "}
+              {n(row.mapped_source_record_union_count)} distinct mapped records
+              · {n(row.industry_assignment_count)} overlapping industry
+              assignments · {n(row.unresolved_source_record_count)} unresolved
+              source records.
+            </p>
+            <p>
+              <strong>EPA refined segment evidence:</strong>{" "}
+              {n(row.epa_refinement.mapped_source_record_union_count)} distinct
+              records with a segment ·{" "}
+              {n(row.epa_refinement.industry_assignment_count)} assignments ·{" "}
+              {n(row.epa_refinement.multisegment_record_count)} multisegment ·{" "}
+              {n(row.epa_refinement.partially_unmapped_record_count)} partially
+              unmapped · {n(row.epa_refinement.unresolved_source_record_count)}{" "}
+              with no mapped segment.
+            </p>
+            <p>
+              Multisegment and partially-unmapped records overlap the EPA
+              mapped-record union; neither is added to unresolved records.
+            </p>
+            <p>
+              <strong>FSIS residual:</strong>{" "}
+              {n(fsis?.source_membership_count ?? 0)} retained records remain
+              outside the operational-industry mapping. {fsis?.unmapped_reason}
+            </p>
+          </details>
+          <p className="entity-method-note">
+            Industry assignments overlap and must not be summed as distinct
+            records or businesses. IRS supplemental memberships are not
+            lifecycle assignments or additive totals. No unique-business count,
+            completeness percentage, verified current operation, physical-site
+            verification, active-business numerator, USPS ZIP assignment, prefix
+            assignment, reported-state assignment, or special-scope allocation
+            is asserted.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}

@@ -294,6 +294,8 @@
     "business-lifecycle-industry-jurisdiction:build": "node scripts/build-national-business-lifecycle-industry-jurisdiction-evidence-v1-1.mjs",
     "business-lifecycle-industry-jurisdiction:verify": "node scripts/verify-national-business-lifecycle-industry-jurisdiction-evidence-v1-1.mjs",
     "business-lifecycle-industry-jurisdiction:v1:verify": "node scripts/verify-national-business-lifecycle-industry-jurisdiction-evidence.mjs",
+    "irs-eo-supplemental-industry:build": "node scripts/build-national-irs-eo-supplemental-industry-evidence.mjs",
+    "irs-eo-supplemental-industry:verify": "node scripts/verify-national-irs-eo-supplemental-industry-evidence.mjs",
     "business-lifecycle-industry-zip:build": "node scripts/build-national-business-lifecycle-industry-zip-evidence-v1-1.mjs",
     "business-lifecycle-industry-zip:verify": "node scripts/verify-national-business-lifecycle-industry-zip-evidence-v1-1.mjs",
     "business-lifecycle-industry-zip:v1:verify": "node scripts/verify-national-business-lifecycle-industry-zip-evidence.mjs",

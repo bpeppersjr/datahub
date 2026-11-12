@@ -61,6 +61,12 @@ next-env.d.ts
 !/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-a1c2f181ccef283559dd8a1ec1223deb731cc18d44b4bcda33bec579815bceb1/*
 !/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/
 !/data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/*
+!/data/national-irs-eo-supplemental-industry-evidence/
+/data/national-irs-eo-supplemental-industry-evidence/*
+!/data/national-irs-eo-supplemental-industry-evidence/releases/
+/data/national-irs-eo-supplemental-industry-evidence/releases/*
+!/data/national-irs-eo-supplemental-industry-evidence/releases/national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65/
+!/data/national-irs-eo-supplemental-industry-evidence/releases/national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65/*
 !/data/national-business-lifecycle-industry-zip-evidence/
 /data/national-business-lifecycle-industry-zip-evidence/*
 !/data/national-business-lifecycle-industry-zip-evidence/releases/
