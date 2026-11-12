@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { compareStateCoverageForReassessment, compareChildcareCoverageForReassessment, currentCoverageProjection, loadStateCoverageReassessment, COVERAGE_REASSESSMENT, COVERAGE_REASSESSMENTS } from './state-coverage-reassessment.mjs';
 import { TN_COVERAGE_REASSESSMENT, compareTennesseeCoverageForReassessment, getReviewedHistoricalEligibilityRows } from './state-coverage-reassessment.mjs';
+import { MN_CREDENTIAL_COVERAGE_REASSESSMENT, NOVEMBER_COVERAGE_REASSESSMENT, compareNovemberCoverageForReassessment } from './state-coverage-reassessment.mjs';
 
 function rows(){return Array.from({length:56},(_,i)=>({postal_abbreviation:String.fromCharCode(65+Math.floor(i/26),65+i%26),state_fips:String(i),is_50_states_or_dc:i<51,
   registry_evidence:{reported_address_profile_count:100,coordinate_assigned_profile_count:10,source_profile_counts_by_reported_address_state:{}},
@@ -106,4 +107,52 @@ test('Tennessee exact delta rejects source, matching, ZIP, point, lineage and un
   ];
   for(const mutate of mutations){const altered=structuredClone(current.currentRows);mutate(altered);assert.throws(()=>compareTennesseeCoverageForReassessment(before.currentRows,altered));}
   await assert.rejects(loadStateCoverageReassessment({dataset_id:'national-business-coverage-views',release_id:TN_COVERAGE_REASSESSMENT.currentRelease,manifest:`releases/${COVERAGE_REASSESSMENT.currentRelease}/manifest.json`}),/no reviewed/);
+});
+
+test('November refresh carries the original catalog eligibility and only changes the NY profile projection since September 11', async () => {
+  const before = await loadProof(MN_CREDENTIAL_COVERAGE_REASSESSMENT);
+  const current = await loadProof(NOVEMBER_COVERAGE_REASSESSMENT);
+  const priorStates = new Map(before.states.map(row => [row.state, row]));
+  assert.deepEqual(current.reviewedTransitionChangedStates, ['NY']);
+  assert.deepEqual(getReviewedHistoricalEligibilityRows(current, current.currentRows),
+    getReviewedHistoricalEligibilityRows(before, before.currentRows));
+  assert.throws(() => getReviewedHistoricalEligibilityRows(current, before.currentRows), /unaltered/);
+  assert.deepEqual(current.reviewedCredentialReporting, before.reviewedCredentialReporting);
+  assert.deepEqual(current.reviewedRetainedCandidateAdditions, before.reviewedRetainedCandidateAdditions);
+  assert.match(current.semantics, /profiles.*business completeness/i);
+  for (const state of current.states) {
+    const prior = priorStates.get(state.state);
+    assert.deepEqual(state.historical_coverage, prior.historical_coverage);
+    assert.equal(state.source_scope_status, prior.source_scope_status);
+    assert.deepEqual(Object.keys(state.source_profile_counts).sort(), Object.keys(prior.source_profile_counts).sort());
+    assert.equal(state.current_coverage.reported_profiles - prior.current_coverage.reported_profiles, state.state === 'NY' ? -622 : 0);
+    assert.equal(state.current_coverage.coordinate_profiles - prior.current_coverage.coordinate_profiles, state.state === 'NY' ? -541 : 0);
+  }
+  const observedAt = (proof, state) => proof.currentRows.find(row => row.postal_abbreviation === state).registry_evidence.latest_observed_at;
+  for (const state of ['NY', 'PA']) {
+    assert.equal(observedAt(before, state), '2026-09-07T17:57:49.194Z');
+    assert.equal(observedAt(current, state), '2026-11-11T23:21:47.684Z');
+  }
+});
+
+test('November refresh rejects unreviewed jurisdiction, source, timestamp, lineage and completeness changes', async () => {
+  const before = await loadProof(MN_CREDENTIAL_COVERAGE_REASSESSMENT);
+  const current = await loadProof(NOVEMBER_COVERAGE_REASSESSMENT);
+  const ny = rows => rows.find(row => row.postal_abbreviation === 'NY');
+  const mutations = [
+    rows => { rows[1] = rows[0]; },
+    rows => { rows[0].state_fips = '99'; },
+    rows => { rows[0].registry_evidence.source_profile_counts_by_reported_address_state.future = 1; },
+    rows => { ny(rows).registry_evidence.source_profile_counts_by_coordinate_assigned_state.future = 1; },
+    rows => { ny(rows).registry_evidence.source_profile_counts_by_reported_address_state['new-york-agriculture-markets-retail-food-stores']++; },
+    rows => { ny(rows).registry_evidence.matching_profile_count++; },
+    rows => { rows[0].registry_evidence.latest_observed_at = '2026-11-11T23:21:47.684Z'; },
+    rows => { rows[0].lineage.geography_release_id = 'future'; },
+    rows => { rows[0].complete_all_businesses = true; },
+  ];
+  for (const mutate of mutations) {
+    const altered = structuredClone(current.currentRows);
+    mutate(altered);
+    assert.throws(() => compareNovemberCoverageForReassessment(before.currentRows, altered));
+  }
 });

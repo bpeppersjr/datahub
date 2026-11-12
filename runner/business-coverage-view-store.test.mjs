@@ -406,11 +406,14 @@ test("projects exact HOLD and bounded-connector permissions from the governed ca
   }
   const hold = states.find((state) => state.postal_abbreviation === "MI").latest_source_assessment;
   assert.equal(hold.decision, "hold");
+  assert.equal(hold.coverage_release_id, "national-business-coverage-views-20260902-115337634Z-ba689784");
   assert.equal(hold.coverage_release_matches_current, false);
   assert.equal(hold.coverage_applicability_status, "reviewed-compatible");
+  assert.equal(hold.observed_at, "2026-10-03");
   assert.equal(hold.observation_freshness_status, "not-evaluated-no-age-policy");
-  assert.equal(hold.coverage_reconciliation_id, "state-coverage-reassessment-20260911-mn-credentials");
+  assert.equal(hold.coverage_reconciliation_id, "state-coverage-reassessment-20261112-ny-retail-food-refresh");
   assert.equal(hold.authorized_next_action_type, "written-preflight-inquiry");
+  assert.equal(hold.autonomous_acquisition_authorized, false);
   assert.equal(hold.offline_fixture_connector_authorized, false);
 });
 
