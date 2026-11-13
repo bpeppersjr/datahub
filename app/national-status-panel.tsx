@@ -149,6 +149,23 @@ type View = {
     required_exclusions: string[];
     strongest_bounded_next_action: string;
     authority: Record<string, false>;
+    connector_readiness: null | {
+      schema_version: "broad-organization-connector-readiness@1.0.0";
+      status: "zero-row-ready-gap-unresolved";
+      connector_path: string;
+      connector_sha256: string;
+      policy_path: string;
+      policy_sha256: string;
+      assessment_path: string;
+      assessment_sha256: string;
+      required_source_files: number;
+      source_rows_read: 0;
+      network_requests: 0;
+      actions_performed: 0;
+      unresolved_gates: string[];
+      broad_layer_gap_resolved: false;
+      authority: Record<string, false>;
+    };
   };
   census_zbp_zip_profile_index: {
     reference_year: number;
@@ -722,6 +739,24 @@ export function NationalStatusPanel({ state }: { state: string }) {
                           .strongest_bounded_next_action
                       }
                     </p>
+                    {selected.view.broad_gap_authorization.connector_readiness && (
+                      <div className="status-callout">
+                        <strong>Offline connector readiness</strong>
+                        <p>
+                          Ready to validate a separately authorized, operator-supplied
+                          package of {n(selected.view.broad_gap_authorization.connector_readiness.required_source_files)} required source files.
+                        </p>
+                        <p>
+                          Source rows read: 0 · network requests: 0 · actions performed:
+                          0 · broad-layer gap remains unresolved.
+                        </p>
+                        <p>
+                          Readiness is implementation evidence only. Acquisition,
+                          publication, national admission, and production authority all
+                          remain false.
+                        </p>
+                      </div>
+                    )}
                     <p>
                       Review evidence only. No acquisition, contact, download,
                       payment, record request, or production change is authorized.

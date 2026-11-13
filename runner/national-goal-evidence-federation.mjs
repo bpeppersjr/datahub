@@ -1282,6 +1282,10 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       1_100_000,
       signal,
     ),
+    connectorWave = broadAuthorizationProgram.supplemental_evidence?.find(
+      (row) => row.schema_version === "broad-organization-offline-connector-readiness-wave@1.0.0",
+    ),
+    illinoisConnector = connectorWave?.states?.find((row) => row.state === "IL"),
     broadAuthorizationStates = broadAuthorizationProgram.states.map((row) => ({
       state: row.state_abbreviation,
       wave: row.wave,
@@ -1294,6 +1298,32 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       strongest_bounded_next_action:
         row.assessment_snapshot.strongest_bounded_next_action,
       authority: row.authority,
+      connector_readiness:
+        row.state_abbreviation === "IL"
+          ? {
+              schema_version: "broad-organization-connector-readiness@1.0.0",
+              status: "zero-row-ready-gap-unresolved",
+              connector_path: illinoisConnector?.connector_path,
+              connector_sha256: illinoisConnector?.connector_sha256,
+              policy_path: illinoisConnector?.policy_path,
+              policy_sha256: illinoisConnector?.policy_sha256,
+              assessment_path: illinoisConnector?.assessment_path,
+              assessment_sha256: illinoisConnector?.assessment_sha256,
+              required_source_files: illinoisConnector?.required_source_files,
+              source_rows_read: connectorWave?.controls?.source_rows_read,
+              network_requests: connectorWave?.controls?.network_requests,
+              actions_performed: 0,
+              unresolved_gates: illinoisConnector?.unresolved_gates,
+              broad_layer_gap_resolved: false,
+              authority: {
+                acquisition_authorized: false,
+                row_bearing_preflight_authorized: false,
+                publication_authorized: false,
+                national_admission_authorized: false,
+                production_change_authorized: false,
+              },
+            }
+          : null,
     }));
   check(
     broadAuthorizationManifest.state_count === 40 &&
@@ -1307,6 +1337,13 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       broadAuthorizationProgram.scope.gate_items === 371 &&
       broadAuthorizationProgram.scope.gate_key_count === 121 &&
       broadAuthorizationProgram.wave_state_abbreviations.length === 4 &&
+      connectorWave?.wave_id === "broad-organization-offline-connector-readiness-wave-2026-11-12" &&
+      connectorWave.broad_layer_gaps_resolved === 0 &&
+      Object.values(connectorWave.controls).every((value) => value === 0 || value === false) &&
+      illinoisConnector?.connector_sha256 === "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c" &&
+      illinoisConnector.policy_sha256 === "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8" &&
+      illinoisConnector.assessment_sha256 === "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323" &&
+      illinoisConnector.required_source_files === 5 &&
       broadAuthorizationStates.length === 40 &&
       broadAuthorizationStates.reduce((n, row) => n + row.gate_count, 0) === 371 &&
       new Set(broadAuthorizationStates.flatMap((row) => row.gate_keys)).size === 121 &&
@@ -1323,6 +1360,8 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
           row.strongest_bounded_next_action.length > 0 &&
           Object.values(row.authority).every((value) => value === false),
       ) &&
+      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).length === 1 &&
+      broadAuthorizationStates.find((row) => row.state === "IL")?.connector_readiness?.unresolved_gates.length === 7 &&
       broadAuthorizationProgram.scope.acquisition_authorized === false &&
       broadAuthorizationProgram.scope.evidence_request_authorized === false &&
       broadAuthorizationProgram.scope.source_actions_performed === 0 &&
@@ -1331,7 +1370,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
     "broad-gap authorization conservation and authority boundary",
   );
   const broadGapAuthorizationSidecar = {
-    schema_version: `${DATASET}-broad-gap-authorization@1.0.0`,
+    schema_version: `${DATASET}-broad-gap-authorization@1.1.0`,
     release_id: broadAuthorizationManifest.release_id,
     manifest_sha256: inputs.broad_gap_authorization_manifest.proof.sha256,
     artifact_sha256: r.declaration(

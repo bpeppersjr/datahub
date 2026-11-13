@@ -1216,6 +1216,7 @@ export async function readNationalStatus({
               strongest_bounded_next_action:
                 broadGap.strongest_bounded_next_action,
               authority: broadGap.authority,
+              connector_readiness: broadGap.connector_readiness,
             }
           : null,
         claims: pin.claims,

@@ -6,6 +6,12 @@ import ts from 'typescript';
 import { readNationalStatus } from './national-status.mjs';
 import { validNationalStatus } from '../app/national-status-validation.mjs';
 const source=await readFile(new URL('../app/national-status-panel.tsx',import.meta.url),'utf8'),code=ts.transpileModule(source,{compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+
+test('National Status exposes bounded connector readiness without widening authority',()=>{
+  for(const phrase of ['Offline connector readiness','required source files','Source rows read: 0','broad-layer gap remains unresolved','Acquisition,','publication, national admission, and production authority all','remain false']) assert.match(source,new RegExp(phrase));
+  assert.match(source,/connector_readiness\.required_source_files/);
+  assert.match(source,/connector_readiness &&/);
+});
 const jsx=(type,props)=>({type,props}),text=t=>t==null||typeof t==='boolean'?'':typeof t!=='object'?String(t):Array.isArray(t)?t.map(text).join(''):text(t.props?.children);
 const flush=()=>new Promise(done=>setImmediate(done));
 function find(tree,type){if(Array.isArray(tree))return tree.flatMap(t=>find(t,type));if(!tree||typeof tree!=='object')return [];return [...(tree.type===type?[tree]:[]),...find(tree.props?.children,type)]}

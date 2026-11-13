@@ -218,7 +218,8 @@ function validateNationalStatus(v, state = null) {
           integer(row.source_assignment_count),
       ) &&
       (v.broad_gap_authorization === null ||
-        (v.broad_gap_authorization.status === "current-broad-gap" &&
+        (exact(v.broad_gap_authorization, ["status", "decision", "assessment_id", "observed_at", "wave", "gate_count", "gate_keys", "required_exclusions", "strongest_bounded_next_action", "authority", "connector_readiness"]) &&
+          v.broad_gap_authorization.status === "current-broad-gap" &&
           v.broad_gap_authorization.decision === "hold" &&
           integer(v.broad_gap_authorization.wave) &&
           integer(v.broad_gap_authorization.gate_count) &&
@@ -229,7 +230,25 @@ function validateNationalStatus(v, state = null) {
             "string" &&
           Object.values(v.broad_gap_authorization.authority).every(
             (value) => value === false,
-          )))
+          ) &&
+          (v.state === "IL"
+            ? exact(v.broad_gap_authorization.connector_readiness, ["schema_version", "status", "connector_path", "connector_sha256", "policy_path", "policy_sha256", "assessment_path", "assessment_sha256", "required_source_files", "source_rows_read", "network_requests", "actions_performed", "unresolved_gates", "broad_layer_gap_resolved", "authority"]) &&
+              v.broad_gap_authorization.connector_readiness.schema_version === "broad-organization-connector-readiness@1.0.0" &&
+              v.broad_gap_authorization.connector_readiness.status === "zero-row-ready-gap-unresolved" &&
+              v.broad_gap_authorization.connector_readiness.connector_path === "config/connectors/il-business-registry.json" &&
+              v.broad_gap_authorization.connector_readiness.connector_sha256 === "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c" &&
+              v.broad_gap_authorization.connector_readiness.policy_path === "config/source-policies/il-business-registry.json" &&
+              v.broad_gap_authorization.connector_readiness.policy_sha256 === "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8" &&
+              v.broad_gap_authorization.connector_readiness.assessment_path === "config/state-business-source-assessments/il-2026-10-03.json" &&
+              v.broad_gap_authorization.connector_readiness.assessment_sha256 === "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323" &&
+              v.broad_gap_authorization.connector_readiness.required_source_files === 5 &&
+              v.broad_gap_authorization.connector_readiness.source_rows_read === 0 &&
+              v.broad_gap_authorization.connector_readiness.network_requests === 0 &&
+              v.broad_gap_authorization.connector_readiness.actions_performed === 0 &&
+              v.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved === false &&
+              equal(v.broad_gap_authorization.connector_readiness.unresolved_gates, v.broad_gap_authorization.gate_keys) &&
+              Object.values(v.broad_gap_authorization.connector_readiness.authority).every(value => value === false)
+            : v.broad_gap_authorization.connector_readiness === null)))
     );
   if (v.kind === "summary") {
     if (
