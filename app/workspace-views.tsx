@@ -1561,15 +1561,15 @@ export function BroadGapAdjacentEvidencePanel({
 
 const OBJECTIVE_READINESS_ROWS = [
   ["geography", "achieved"],
-  ["entity-geography-relationship", "partial"],
-  ["postal-denominator", "blocked"],
+  ["entity-geography-relationship", "nonblocking-partial"],
+  ["postal-denominator", "not-required"],
   ["source-authorization-policy-and-provenance", "partial"],
   ["broad-state-coverage", "blocked"],
-  ["industry-coverage", "unmeasured"],
+  ["industry-coverage", "reported-unknown-completeness"],
   ["temporal-and-current-operation", "blocked"],
   ["lifecycle-eligibility", "blocked"],
   ["reconciliation-and-benchmark", "blocked"],
-  ["all-business-completeness-denominator", "unmeasured"],
+  ["all-business-completeness-denominator", "not-required"],
   ["reporting-only-site-qualification", "partial"],
   ["business-entity-source-policy-provenance", "achieved"],
 ] as const;
@@ -1625,7 +1625,7 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
   const sha = (item: unknown) => typeof item === "string" && /^[a-f0-9]{64}$/.test(item);
   if (!exactKeys(value, ["schema_version", "available", "status", "assessment_as_of", "acceptance", "requirements_ledger", "broad_jurisdiction_gap_count", "claims", "lineage"])) return false;
   const payload = value as NationalObjectiveReadiness;
-  if (payload.schema_version !== "national-zip-objective-readiness-api@1.8.0" || payload.available !== true || payload.status !== "not-accepted" ||
+  if (payload.schema_version !== "national-zip-objective-readiness-api@1.9.0" || payload.available !== true || payload.status !== "not-accepted" ||
       payload.acceptance?.accepted !== false || !exactKeys(payload.acceptance, ["accepted", "blockers", "blocker_details"]) || payload.broad_jurisdiction_gap_count !== 40 || !Array.isArray(payload.requirements_ledger) ||
       payload.requirements_ledger.length !== OBJECTIVE_READINESS_ROWS.length || !Array.isArray(payload.acceptance.blockers) ||
       !Array.isArray(payload.acceptance.blocker_details)) return false;
@@ -1661,11 +1661,10 @@ export function validNationalObjectiveReadiness(value: unknown): value is Nation
     if (Object.hasOwn(row, "percent") || Object.hasOwn(row, "completion_percent")) return false;
   }
   const requiredBlockers = ["entity-resolution-benchmark-gate-not-passed", "entity-resolution-not-applied",
-    "nationwide-industry-universe-unmeasured", "broad-jurisdiction-source-gaps", "current-operation-not-independently-verified",
-    "reporting-only-sites-not-eligible-or-verified", "entity-geography-relationship-not-complete",
+    "broad-jurisdiction-source-gaps", "current-operation-not-independently-verified",
+    "reporting-only-sites-not-eligible-or-verified",
     "lifecycle-active-eligibility-not-established", "lifecycle-unmeasured-records-present", "lifecycle-unknown-or-contradictory"];
-  const acceptanceBlockers = ["authoritative-current-usps-denominator-unavailable", "complete-current-delivery-zip-registry-not-established",
-    "all-business-universe-unmeasured", "current-business-operations-not-independently-verified", ...requiredBlockers];
+  const acceptanceBlockers = [...requiredBlockers];
   if (payload.acceptance.blockers.length !== acceptanceBlockers.length || acceptanceBlockers.some((code, index) => payload.acceptance.blockers[index] !== code) ||
       payload.acceptance.blocker_details.length !== requiredBlockers.length || !requiredBlockers.every(code => payload.acceptance.blockers.includes(code) && payload.acceptance.blocker_details.some(item => item.code === code)) ||
       payload.acceptance.blocker_details.some(item => !exactKeys(item, item.code === "broad-jurisdiction-source-gaps" || item.code === "lifecycle-unmeasured-records-present" || item.code === "lifecycle-unknown-or-contradictory" || item.code === "reporting-only-sites-not-eligible-or-verified" ? ["code", "count"] : item.code === "lifecycle-active-eligibility-not-established" ? ["code", "eligible_count", "profile_count", "verified_current_operation_count"] : ["code"])) ||
@@ -1817,11 +1816,9 @@ function NationalObjectiveReadinessCard({ value, unavailable }: { value: Nationa
     "current-business-operations-not-independently-verified": "Current operation not independently verified",
     "entity-resolution-benchmark-gate-not-passed": "Entity-resolution benchmark gate not passed",
     "entity-resolution-not-applied": "Entity resolution not applied",
-    "nationwide-industry-universe-unmeasured": "Nationwide industry universe unmeasured",
     "broad-jurisdiction-source-gaps": "Broad-jurisdiction source gaps: 40",
-    "current-operation-not-independently-verified": "Temporal/current operation not independently verified",
+    "current-operation-not-independently-verified": "Current operation not independently verified",
     "reporting-only-sites-not-eligible-or-verified": "Reporting-only sites not eligible or verified: 13,182",
-    "entity-geography-relationship-not-complete": "Entity geography is partial: postal validity and point coverage are incomplete",
     "lifecycle-active-eligibility-not-established": "Lifecycle eligibility not established: 0 / 8,011,213 eligible",
     "lifecycle-unmeasured-records-present": "Lifecycle review unmeasured: 23,608",
     "lifecycle-unknown-or-contradictory": "Lifecycle records unknown or contradictory: 635,899",
@@ -1829,11 +1826,11 @@ function NationalObjectiveReadinessCard({ value, unavailable }: { value: Nationa
   return (
     <section className="objective-readiness-card" aria-label="Optional national completeness context">
       <div className="objective-readiness-heading"><div><span>Optional completeness context</span><strong>Nonblocking</strong></div><small>Assessment {value.assessment_as_of} · report-only</small></div>
-      <p className="objective-readiness-caveat">These legacy completeness criteria do not block the map, retained business evidence, industry reporting, or unresolved geography. Governed dataset availability is not all-business completeness.</p>
+      <p className="objective-readiness-caveat">A universal ZIP or all-business denominator, complete industry universe, and complete entity geocoding are not required. Private, dedicated, non-ZCTA and unresolved spaces do not block the map or status. Completeness remains unknown and is never inferred.</p>
       <div className="objective-readiness-ledger" aria-label="Twelve objective readiness requirements">
         {value.requirements_ledger.map((row) => <div key={row.requirement}><span>{row.requirement.replaceAll("-", " ")}</span><strong>{row.status}</strong>{row.requirement === "broad-state-coverage" && <small>{row.current_gap_count} broad jurisdiction gaps / {row.jurisdiction_count} jurisdictions</small>}{row.requirement === "temporal-and-current-operation" && <small>Effective source status: {row.effective_source_defined_current_membership_sources} source-defined current · {row.effective_non_active_reporting_sources} non-active reporting · {row.effective_annual_aggregate_sources} annual aggregate · {row.effective_unknown_status_sources} unknown. Publisher cohort provenance retains {row.source_cohort_current_membership_sources} current-labelled sources; Los Angeles contributes {row.mismatch_profiles?.toLocaleString("en-US")} null-status profiles to the unknown class. Current operation remains unverified.</small>}{row.requirement === "entity-geography-relationship" && <small>{row.profile_count?.toLocaleString("en-US")} profiles / {row.registry_profile_count?.toLocaleString("en-US")} registry profiles; {row.point_assignment_counts?.["assigned-single-county"]?.toLocaleString("en-US")} county assignments from retained source points, {row.point_assignment_counts?.["missing-geocode"]?.toLocaleString("en-US")} missing geocode. These assignments describe retained source coordinates and do not verify business premises. Postal: {row.postal_counts?.["same-code-zcta-candidate"]?.toLocaleString("en-US")} same-code ZCTA candidates, {row.postal_counts?.["outside-zcta"]?.toLocaleString("en-US")} outside, {row.postal_counts?.["explicit-placeholder"]?.toLocaleString("en-US")} placeholder. USPS validity is unverified for {row.usps_unverified_profile_count?.toLocaleString("en-US")} profiles; ZCTA correspondence is not membership; no entity polygons.</small>}{row.requirement === "lifecycle-eligibility" && <small>{row.active_business_eligible_count?.toLocaleString("en-US")} eligible / {row.profile_count?.toLocaleString("en-US")} profiles (registry denominator {row.registry_profile_count?.toLocaleString("en-US")}) · {row.stale_count?.toLocaleString("en-US")} stale · {row.unmeasured_count?.toLocaleString("en-US")} review unmeasured · {row.unknown_or_contradictory_count?.toLocaleString("en-US")} unknown/contradictory · {row.verified_current_operation_count?.toLocaleString("en-US")} independently verified operating</small>}{row.requirement === "reporting-only-site-qualification" && <small>{row.site_count?.toLocaleString("en-US")} reporting-only sites, separate from the current matching-profile denominator {row.matching_profile_denominator?.toLocaleString("en-US")}; combined retained site-evidence rows: {row.combined_retained_site_evidence_count?.toLocaleString("en-US")} (not a complete-business denominator). {row.zip_present_count?.toLocaleString("en-US")} have source ZIP5 and {row.zip_absent_count?.toLocaleString("en-US")} have no ZIP5 (27 missing, 145 placeholders). {row.point_assigned_count?.toLocaleString("en-US")} retained county point assignments; {row.point_assignment_ineligible_count?.toLocaleString("en-US")} Ohio rows are source-policy-ineligible. All {row.usps_unverified_count?.toLocaleString("en-US")} USPS validity unverified; 0 active-eligible/current-operation verified.</small>}{row.requirement === "business-entity-source-policy-provenance" && <small>All {row.source_count?.toLocaleString("en-US")} source policy files hash-verified across {row.profile_count?.toLocaleString("en-US")} retained profiles (including {row.profile_policy_rows_verified?.toLocaleString("en-US")} lifecycle policy matches). Integrity only; this does not grant acquisition, use, or export authority.</small>}</div>)}
       </div>
-      <div className="objective-readiness-blockers"><strong>Unmet optional completeness criteria</strong><div>{value.acceptance.blockers.map((code: string) => <span key={code}>{blockerLabels[code] ?? code.replaceAll("-", " ")}</span>)}</div></div>
+      <div className="objective-readiness-blockers"><strong>Remaining governed blockers</strong><div>{value.acceptance.blockers.map((code: string) => <span key={code}>{blockerLabels[code] ?? code.replaceAll("-", " ")}</span>)}</div></div>
       <details className="objective-readiness-lineage"><summary>Verified evidence lineage</summary><ul>{Object.entries(value.lineage).map(([key, item]) => <li key={key}>{key.replaceAll("_", " ")}: <code>{item.release_id}</code>{Object.entries(item).filter(([field]) => field.endsWith("_sha256")).map(([field, hash]) => <small key={field}>{field.replaceAll("_", " ")}: <code>{hash}</code></small>)}</li>)}</ul></details>
     </section>
   );

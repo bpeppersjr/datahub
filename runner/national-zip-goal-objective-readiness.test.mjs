@@ -7,8 +7,8 @@ import path from 'node:path';
 import { readNationalZipGoalAcceptance, projectNationalZipObjectiveReadiness, NATIONAL_ZIP_GOAL_ACCEPTANCE_READINESS_TEST_HOOKS } from './national-zip-goal-acceptance.mjs';
 import { nationalZipGoalObjectiveReadinessHttp } from './national-zip-goal-objective-readiness-http.mjs';
 
-const codes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory'];
-const ledger = [['geography','achieved'],['entity-geography-relationship','partial'],['postal-denominator','blocked'],['source-authorization-policy-and-provenance','partial'],['broad-state-coverage','blocked'],['industry-coverage','unmeasured'],['temporal-and-current-operation','blocked'],['lifecycle-eligibility','blocked'],['reconciliation-and-benchmark','blocked'],['all-business-completeness-denominator','unmeasured'],['reporting-only-site-qualification','partial'],['business-entity-source-policy-provenance','achieved']];
+const codes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory'];
+const ledger = [['geography','achieved'],['entity-geography-relationship','nonblocking-partial'],['postal-denominator','not-required'],['source-authorization-policy-and-provenance','partial'],['broad-state-coverage','blocked'],['industry-coverage','reported-unknown-completeness'],['temporal-and-current-operation','blocked'],['lifecycle-eligibility','blocked'],['reconciliation-and-benchmark','blocked'],['all-business-completeness-denominator','not-required'],['reporting-only-site-qualification','partial'],['business-entity-source-policy-provenance','achieved']];
 
 function harness(method = 'GET', options = {}) {
   const request = new EventEmitter(); Object.assign(request, { method, headers: {}, aborted: false, resume() {}, ...options.request });
@@ -32,7 +32,7 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(reporting.matching_profile_denominator, 8011213);
   assert.equal(reporting.combined_retained_site_evidence_count, 8024395);
   const geoRow = value.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
-  assert.equal(geoRow.status, 'partial'); assert.equal(geoRow.profile_count, 8011213); assert.equal(geoRow.registry_profile_count, 8011213);
+  assert.equal(geoRow.status, 'nonblocking-partial'); assert.equal(geoRow.profile_count, 8011213); assert.equal(geoRow.registry_profile_count, 8011213);
   assert.equal(geoRow.postal_counts['same-code-zcta-candidate'], 7962776); assert.equal(geoRow.postal_counts['outside-zcta'], 48436);
   assert.equal(geoRow.postal_counts['explicit-placeholder'], 1); assert.equal(geoRow.postal_counts.missing, 0);
   assert.equal(geoRow.point_assignment_counts['assigned-single-county'], 994752); assert.equal(geoRow.point_assignment_counts['missing-geocode'], 6976316);
@@ -49,7 +49,7 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   assert.equal(value.lineage.organization_assertion_status_posture.good_standing_count,1019372); assert.equal(value.lineage.organization_assertion_status_posture.delinquent_count,1145439); assert.equal(value.lineage.organization_assertion_status_posture.scope,'separate-organization-assertion-cohort');
   assert.equal(value.lineage.publisher_membership_reconciliation.profile_count,633232);
   assert.equal(value.lineage.publisher_membership_reconciliation.publisher_cohort_assertion,'active-list-membership-without-row-status');
-  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.8.0');
+  assert.equal(value.schema_version,'national-zip-objective-readiness-api@1.9.0');
   assert.deepEqual([value.lineage.non_zcta_source_geography_context.rows,value.lineage.non_zcta_source_geography_context.relationship_keys,value.lineage.non_zcta_source_geography_context.no_relationship_keys],[14402,8871,5531]);
   assert.equal(value.lineage.non_zcta_source_geography_context.map_blocked,false);
   assert.equal(value.lineage.temporal_lifecycle_reconciliation.registration_sha256,'0f51842c8197550ebd0e4df62bc797e41309c535c122bafc31ee5f46398c919b');

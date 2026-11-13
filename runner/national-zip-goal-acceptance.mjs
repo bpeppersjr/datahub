@@ -21,7 +21,7 @@ import { readReportingOnlySiteQualification, verifyReportingOnlySiteQualificatio
 import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
 import { readNonZctaSourceGeographyContextSummary } from './non-zcta-source-geography-context.mjs';
 
-export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.7.0';
+export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.8.0';
 const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
   registration_sha256: '60bc11e9e3ce5a1a1f1355c82285f8bd8b5ce6fbb664d9e99a6db5f212178d49',
   release_id: 'reporting-only-site-qualification-9d47b489eeeb1d42db7d670281bf5d5e4efa09f9870abff6e36759d6444b21db',
@@ -364,10 +364,10 @@ function validateGoalReadinessBindings(value) {
   validateGeographyRelationshipBinding(geographyRelationship);
   validateReportingOnlySiteBinding(value.bindings?.reporting_only_site_qualification);
   const ledger = value.requirements_ledger, expectedLedger = {
-    geography: 'achieved', 'entity-geography-relationship': entityGeographyRequirementComplete(geographyRelationship) ? 'achieved' : 'partial', 'postal-denominator': 'blocked', 'source-authorization-policy-and-provenance': 'partial',
-    'broad-state-coverage': 'blocked', 'industry-coverage': 'unmeasured', 'temporal-and-current-operation': 'blocked',
+    geography: 'achieved', 'entity-geography-relationship': 'nonblocking-partial', 'postal-denominator': 'not-required', 'source-authorization-policy-and-provenance': 'partial',
+    'broad-state-coverage': 'blocked', 'industry-coverage': 'reported-unknown-completeness', 'temporal-and-current-operation': 'blocked',
     'lifecycle-eligibility': 'blocked',
-    'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'unmeasured', 'reporting-only-site-qualification': 'partial',
+    'reconciliation-and-benchmark': 'blocked', 'all-business-completeness-denominator': 'not-required', 'reporting-only-site-qualification': 'partial',
     'business-entity-source-policy-provenance': 'achieved',
   };
   check(Array.isArray(ledger) && ledger.length === Object.keys(expectedLedger).length
@@ -394,9 +394,8 @@ function validateGoalReadinessBindings(value) {
     && value.claims?.network_requests === 0 && value.claims?.writes === 0 && value.claims?.pointers_changed === false,
     'objective readiness authority/coverage boundary');
   const blockerCodes = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
     'reporting-only-sites-not-eligible-or-verified',
-    ...(!entityGeographyRequirementComplete(geographyRelationship) ? ['entity-geography-relationship-not-complete'] : []),
     'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory'];
   check(Array.isArray(value.blockers) && value.blockers.length === blockerCodes.length
     && blockerCodes.every(code => value.blockers.some(item => item.code === code))
@@ -425,12 +424,10 @@ export function projectNationalZipObjectiveReadiness(report) {
   validateGoalReadinessBindings(readiness);
   const binding = readiness.bindings;
   const expectedBlockers = ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
     'reporting-only-sites-not-eligible-or-verified',
-    ...(!entityGeographyRequirementComplete(binding.business_entity_geography_relationship) ? ['entity-geography-relationship-not-complete'] : []),
     'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory'];
-  const acceptanceBlockers = ['authoritative-current-usps-denominator-unavailable', 'complete-current-delivery-zip-registry-not-established',
-    'all-business-universe-unmeasured', 'current-business-operations-not-independently-verified', ...expectedBlockers];
+  const acceptanceBlockers = [...expectedBlockers];
   check(same(report.acceptance.blockers, acceptanceBlockers)
     && same(readiness.blockers.map(item => item.code), expectedBlockers)
     && readiness.blockers.every(item => same(Object.keys(item).sort(), item.code === 'broad-jurisdiction-source-gaps' || item.code === 'lifecycle-unmeasured-records-present'
@@ -492,9 +489,9 @@ export function projectNationalZipObjectiveReadiness(report) {
     evidence: row.evidence,
   }));
   const expectedRequirements = [
-    ['geography', 'achieved'], ['entity-geography-relationship', entityGeographyRequirementComplete(binding.business_entity_geography_relationship) ? 'achieved' : 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
-    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
-    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
+    ['geography', 'achieved'], ['entity-geography-relationship', 'nonblocking-partial'], ['postal-denominator', 'not-required'], ['source-authorization-policy-and-provenance', 'partial'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'reported-unknown-completeness'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'not-required'], ['reporting-only-site-qualification', 'partial'],
     ['business-entity-source-policy-provenance', 'achieved'],
   ];
   check(same(requirements_ledger.map(row => [row.requirement, row.status]), expectedRequirements)
@@ -552,7 +549,7 @@ export function projectNationalZipObjectiveReadiness(report) {
     && requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.export_authorized === false,
   'source-policy provenance integrity-only requirement');
   return {
-    schema_version: 'national-zip-objective-readiness-api@1.8.0',
+    schema_version: 'national-zip-objective-readiness-api@1.9.0',
     available: true,
     status: 'not-accepted',
     assessment_as_of: readiness.assessment_as_of,
@@ -996,21 +993,21 @@ async function readObjectiveReadiness({ signal }) {
     reporting_only_site_qualification: reportingBinding,
     non_zcta_source_geography_context: nonZctaBinding,
   };
-  const readiness = { schema_version: 'national-zip-objective-readiness@1.8.0', assessment_as_of: '2026-10-02',
+  const readiness = { schema_version: 'national-zip-objective-readiness@1.9.0', assessment_as_of: '2026-10-02',
     acceptance_uplift: false, bindings, requirements_ledger: [
       { requirement: 'geography', status: 'achieved', evidence: 'Selected Census ZCTA index membership is verified; this is not an operational USPS ZIP denominator.' },
-      { requirement: 'entity-geography-relationship', status: 'partial', profile_count: geographyRelationshipBinding.profile_count,
+      { requirement: 'entity-geography-relationship', status: 'nonblocking-partial', profile_count: geographyRelationshipBinding.profile_count,
         registry_profile_count: geographyRelationshipBinding.registry_profile_count, postal_counts: geographyRelationshipBinding.postal_counts,
         point_assignment_counts: geographyRelationshipBinding.point_assignment_counts,
         reported_state_conflict_count: geographyRelationshipBinding.reported_state_conflict_count,
         usps_unverified_profile_count: geographyRelationshipBinding.profile_count,
         usps_operational_assignment_verified: false, usps_deliverability_verified: false,
         same_code_zcta_is_membership: false, entity_polygons_present: false,
-        evidence: 'Most profiles lack a county assignment from a retained source point. Assigned coordinates do not verify business premises. USPS validity and deliverability are unverified.' },
-      { requirement: 'postal-denominator', status: 'blocked', evidence: 'No complete current USPS delivery-ZIP registry is established.' },
+        evidence: 'Geography quality is reported but nonblocking: missing geocodes are allowed, assigned coordinates do not verify business premises, and unresolved/private/non-ZCTA space does not block maps or status. USPS validity and deliverability remain unverified.' },
+      { requirement: 'postal-denominator', status: 'not-required', evidence: 'A universal current USPS delivery-ZIP denominator is not required for this objective; no completeness or validity is inferred.' },
       { requirement: 'source-authorization-policy-and-provenance', status: 'partial', evidence: 'Selected retained releases and policy bindings are verified; operational/source use authority and complete source authorization remain unestablished.' },
       { requirement: 'broad-state-coverage', status: 'blocked', current_gap_count: broadStateGapCount, jurisdiction_count: 51, evidence: 'The newest verified goal matrix has unresolved broad-layer jurisdictions.' },
-      { requirement: 'industry-coverage', status: 'unmeasured', zip5_rows: industryPin.zip5_rows, industry_cells: industryPin.industry_cells, evidence: 'ZIP industry dimensions exist, but the nationwide industry universe/denominator is not measured.' },
+      { requirement: 'industry-coverage', status: 'reported-unknown-completeness', zip5_rows: industryPin.zip5_rows, industry_cells: industryPin.industry_cells, evidence: 'Available ZIP industry dimensions are reported; nationwide industry-universe completeness is unknown and is not required or inferred.' },
       { requirement: 'temporal-and-current-operation', status: 'blocked', effective_source_defined_current_membership_sources: 21, effective_non_active_reporting_sources: 7, effective_annual_aggregate_sources: 1, effective_unknown_status_sources: 1, source_cohort_current_membership_sources: 22, mismatch_profiles: 633232, verified_current_complete_jurisdictions: 0, evidence: 'Lifecycle reconciliation is authoritative for effective status; the retained source cohort labels and reference clocks do not independently verify current operation.' },
       { requirement: 'lifecycle-eligibility', status: lifecycleActiveEligibilityEstablished(lifecycleBinding) ? 'achieved' : 'blocked', profile_count: lifecycleBinding.profile_count,
         registry_profile_count: lifecycleBinding.registry_profile_count,
@@ -1021,7 +1018,7 @@ async function readObjectiveReadiness({ signal }) {
         verified_current_operation_count: lifecycleBinding.current_operation_verified_count,
         evidence: 'Unmeasured, unknown and contradictory evidence remains ineligible. Zero profiles independently verify current operation.' },
       { requirement: 'reconciliation-and-benchmark', status: 'blocked', benchmark_gate_passed: false, entity_resolution_applied: false, evidence: 'ZIP linkage evidence is aggregate and unapplied; benchmark gate is not passed.' },
-      { requirement: 'all-business-completeness-denominator', status: 'unmeasured', all_business_completion_percent: null, active_business_count: null, evidence: 'No verified national all-business denominator exists.' },
+      { requirement: 'all-business-completeness-denominator', status: 'not-required', all_business_completion_percent: null, active_business_count: null, evidence: 'A universal all-business denominator is not required; completion and active-business totals remain null.' },
       { requirement: 'reporting-only-site-qualification', status: 'partial', site_count: 13182, matching_profile_count: 0,
         matching_profile_denominator: 8011213, combined_retained_site_evidence_count: 8024395,
         active_business_eligible_count: 0, current_operation_verified_count: 0, zip_present_count: 13010, zip_absent_count: 172,
@@ -1036,11 +1033,9 @@ async function readObjectiveReadiness({ signal }) {
     blockers: [
       { code: 'entity-resolution-benchmark-gate-not-passed' },
       { code: 'entity-resolution-not-applied' },
-      { code: 'nationwide-industry-universe-unmeasured' },
       { code: 'broad-jurisdiction-source-gaps', count: broadStateGapCount },
       { code: 'current-operation-not-independently-verified' },
       { code: 'reporting-only-sites-not-eligible-or-verified', count: 13182 },
-      ...(!entityGeographyRequirementComplete(geographyRelationshipBinding) ? [{ code: 'entity-geography-relationship-not-complete' }] : []),
       ...(!lifecycleActiveEligibilityEstablished(lifecycleBinding) ? [{ code: 'lifecycle-active-eligibility-not-established', profile_count: lifecycleBinding.profile_count,
         eligible_count: lifecycleBinding.active_business_eligible_count, verified_current_operation_count: lifecycleBinding.current_operation_verified_count }] : []),
       ...(lifecycleBinding.review_status_counts.unmeasured > 0 ? [{ code: 'lifecycle-unmeasured-records-present', count: lifecycleBinding.review_status_counts.unmeasured }] : []),
@@ -1201,20 +1196,14 @@ function evaluate({ registry, coverage, geography, candidate, zctaMembers, zipMe
   const universal = ['every-valid-usps-zip', 'every-active-business-by-valid-zip'].includes(requestedClaim);
   const assignmentClaim = requestedClaim === 'complete-current-usps-area-district-assignment-set';
   const activeBusiness = requestedClaim === 'every-active-business-by-valid-zip';
-  const activeBlockers = activeBusiness ? [
-    'complete-current-delivery-zip-registry-not-established',
-    'all-business-universe-unmeasured',
-    'current-business-operations-not-independently-verified',
-    ...(objectiveReadiness?.blockers ?? []).map(item => item.code),
-  ] : [];
+  const activeBlockers = activeBusiness ? (objectiveReadiness?.blockers ?? []).map(item => item.code) : [];
   return {
     schema_version: NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION, evidence_mode: mode, bindings,
     ...(objectiveReadiness ? { objective_readiness: objectiveReadiness } : {}),
     requested_claim: requestedClaim, acceptance: { accepted: assignmentClaim ? assignmentSetVerified : !universal, blockers: assignmentClaim
-      ? (assignmentSetVerified ? [] : blockers) : universal ? [...blockers, 'complete-current-delivery-zip-registry-not-established',
-        ...(activeBusiness ? activeBlockers.slice(1) : [])] : [],
-      blocker_details: activeBusiness ? [...(denominator === null ? [{ code: 'authoritative-current-usps-denominator-unavailable' }] : []),
-        ...(objectiveReadiness?.blockers ?? [])] : [] },
+      ? (assignmentSetVerified ? [] : blockers) : activeBusiness ? activeBlockers
+        : universal ? [...blockers, 'complete-current-delivery-zip-registry-not-established'] : [],
+      blocker_details: activeBusiness ? [...(objectiveReadiness?.blockers ?? [])] : [] },
     census_zcta_spatial_denominator: { count: zctaMembers.size, source_available_count: g.source_available_counts.zctas,
       complete_selected_index_membership: true, manifest_declares_complete_polygon_release: true,
       member_set_sha256: memberHash(zctaMembers), source_vintage: spatial.source_vintage,

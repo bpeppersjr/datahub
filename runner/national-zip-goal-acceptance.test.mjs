@@ -33,11 +33,14 @@ test('Census/source coverage reporting remains accepted while USPS universal com
     assert.equal(report.all_business_completion_percent, null);
     assert.equal(report.zip4_geometric, false);
   }
-  for (const claim of ['every-valid-usps-zip', 'every-active-business-by-valid-zip']) {
+  for (const claim of ['every-valid-usps-zip']) {
     const report = evaluate(fixture(), claim);
     assert.equal(report.acceptance.accepted, false);
     assert.ok(report.acceptance.blockers.includes('authoritative-current-usps-denominator-unavailable'));
   }
+  const scoped = evaluate(fixture(), 'every-active-business-by-valid-zip');
+  assert.equal(scoped.acceptance.accepted, false);
+  assert.deepEqual(scoped.acceptance.blockers, []);
   const assignment = evaluate(fixture(), 'complete-current-usps-area-district-assignment-set');
   assert.equal(assignment.acceptance.accepted, false);
   assert.ok(assignment.acceptance.blockers.includes('authoritative-current-usps-denominator-unavailable'));
@@ -59,8 +62,7 @@ test('an independently verified Area/District set accepts only the narrow assign
   assert.ok(valid.acceptance.blockers.includes('complete-current-delivery-zip-registry-not-established'));
   const businesses = evaluate(input, 'every-active-business-by-valid-zip');
   assert.equal(businesses.acceptance.accepted, false);
-  assert.ok(businesses.acceptance.blockers.includes('all-business-universe-unmeasured'));
-  assert.ok(businesses.acceptance.blockers.includes('current-business-operations-not-independently-verified'));
+  assert.doesNotMatch(businesses.acceptance.blockers.join('|'), /all-business|delivery-zip|usps-denominator/);
 });
 
 test('assignment artifact traversal and self-consistent semantic widening fail closed', () => {
@@ -131,15 +133,15 @@ test('active-business acceptance binds exact governance releases and stays block
   const report = await readNationalZipGoalAcceptance({ claim: 'every-active-business-by-valid-zip' });
   assert.equal(report.acceptance.accepted, false);
   const readiness = report.objective_readiness;
-  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.8.0');
+  assert.equal(readiness.schema_version, 'national-zip-objective-readiness@1.9.0');
   assert.deepEqual(readiness.bindings.non_zcta_source_geography_context, {
     registration_path:'config/datasets/non-zcta-source-geography-context.json',registration_sha256:'b8d9f6cc7ccea0c031f2ba7bf6a5f4176fcb747cef5594fc83607553c84595bd',
     release_id:'non-zcta-source-geography-context-74bc53b82b5e1b271ba5275c50734eb9aeb7f888fa18156647e62967ccad69fd',manifest_sha256:'c71cb60e9c1f5fe97937f0f55ac3249caa20c871102d6ee57889f44d84dc2c16',summary_sha256:'e2d2d113bb6c6844970eb7ac18d6dc888aafb99df5bbef3ab453b9c3e31bf95b',rows:14402,source_contributed_outside_zcta:14361,denominator_only_outside_zcta:41,relationship_keys:8871,no_relationship_keys:5531,state_assignment:false,cardinal_or_central_grouping:null,map_blocked:false,state_denominator_integration:false,business_completeness:null,
   });
   assert.deepEqual(readiness.requirements_ledger.map(row => [row.requirement, row.status]), [
-    ['geography', 'achieved'], ['entity-geography-relationship', 'partial'], ['postal-denominator', 'blocked'], ['source-authorization-policy-and-provenance', 'partial'],
-    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'unmeasured'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
-    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'unmeasured'], ['reporting-only-site-qualification', 'partial'],
+    ['geography', 'achieved'], ['entity-geography-relationship', 'nonblocking-partial'], ['postal-denominator', 'not-required'], ['source-authorization-policy-and-provenance', 'partial'],
+    ['broad-state-coverage', 'blocked'], ['industry-coverage', 'reported-unknown-completeness'], ['temporal-and-current-operation', 'blocked'], ['lifecycle-eligibility', 'blocked'],
+    ['reconciliation-and-benchmark', 'blocked'], ['all-business-completeness-denominator', 'not-required'], ['reporting-only-site-qualification', 'partial'],
     ['business-entity-source-policy-provenance', 'achieved'],
   ]);
   assert.equal(readiness.requirements_ledger.find(row => row.requirement === 'broad-state-coverage').current_gap_count, 40);
@@ -152,8 +154,8 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(geoRow.usps_operational_assignment_verified, false); assert.equal(geoRow.usps_deliverability_verified, false);
   assert.equal(geoRow.same_code_zcta_is_membership, false); assert.equal(geoRow.entity_polygons_present, false);
   assert.deepEqual(readiness.blockers.map(row => row.code), ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
-    'nationwide-industry-universe-unmeasured', 'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
-    'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified',
+    'reporting-only-sites-not-eligible-or-verified',
     'lifecycle-active-eligibility-not-established', 'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory']);
   assert.equal(readiness.blockers.find(row => row.code === 'broad-jurisdiction-source-gaps').count, 40);
   const lifecycleRow = readiness.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility');
@@ -169,8 +171,8 @@ test('active-business acceptance binds exact governance releases and stays block
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-active-eligibility-not-established').eligible_count, 0);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unmeasured-records-present').count, 23608);
   assert.equal(report.acceptance.blocker_details.find(row => row.code === 'lifecycle-unknown-or-contradictory').count, 635899);
-  for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied', 'nationwide-industry-universe-unmeasured',
-    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'entity-geography-relationship-not-complete', 'lifecycle-active-eligibility-not-established',
+  for (const blocker of ['entity-resolution-benchmark-gate-not-passed', 'entity-resolution-not-applied',
+    'broad-jurisdiction-source-gaps', 'current-operation-not-independently-verified', 'reporting-only-sites-not-eligible-or-verified', 'lifecycle-active-eligibility-not-established',
     'lifecycle-unmeasured-records-present', 'lifecycle-unknown-or-contradictory']) assert.ok(report.acceptance.blockers.includes(blocker));
   for (const [name, binding] of Object.entries(readiness.bindings)) {
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
