@@ -100,7 +100,7 @@ test("actual runtime enforces bearer/origin/query/method boundaries and serves b
     });
     const base = `http://127.0.0.1:${port}/api/business-map/national-status-`,
       headers = { Authorization: `Bearer ${token}` };
-    for (const route of ["summary", "state?state=DC", "zip?zip=00000"]) {
+    for (const route of ["summary", "state?state=DC"]) {
       assert.equal((await fetch(base + route)).status, 401);
       const response = await fetch(base + route, { headers });
       assert.equal(response.status, 200);

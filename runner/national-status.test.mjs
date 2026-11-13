@@ -131,6 +131,22 @@ test("ZIP endpoint retains exact zero-prefixed strings, separate ZIP4 and unknow
   }
   const placeholder = await readNationalStatus({ kind: "zip", zip: "00000" });
   assert.equal(placeholder.geography_scope, "explicit-placeholder");
+  const published = await readNationalStatus({ kind: "zip", zip: "10001" });
+  assert.equal(published.census_zbp_profile.status, "present");
+  assert.equal(published.census_zbp_profile.profile_status, "published-industry-rows");
+  assert.equal(published.census_zbp_profile.employer_baseline.establishments, 6325);
+  assert.equal(published.census_zbp_profile.all_industry.establishments, 6325);
+  assert.ok(published.census_zbp_profile.published_industry_row_count > 1);
+  assert.equal(published.census_zbp_profile.postal_label.state, "NY");
+  assert.equal(published.census_zbp_profile.geography.zcta_geoid, "10001");
+  assert.equal(published.census_zbp_profile.claims.named_businesses, false);
+  const absent = await readNationalStatus({ kind: "zip", zip: "00100" });
+  assert.equal(
+    absent.census_zbp_profile.status,
+    "absent-from-selected-zbp-zip-union",
+  );
+  assert.equal(absent.census_zbp_profile.employer_baseline, null);
+  assert.equal(absent.census_zbp_profile.published_industry_row_count, 0);
   for (const zip of ["10001-1234", "1000", 10001, "../00", ""])
     await assert.rejects(readNationalStatus({ kind: "zip", zip }), /selector/);
 });
@@ -187,6 +203,8 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
         64,
       )),
     (x) => x.lifecycle_industry_jurisdiction.summary.source_membership_count++,
+    (x) => x.census_zbp_zip_profile_index.indexed_zip_count++,
+    (x) => (x.census_zbp_zip_profile_index.claims.current_operations_verified = true),
   ]) {
     const v = structuredClone(summary);
     mutate(v);
@@ -217,6 +235,9 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
     (x) => (x.dimensions[0].matrix_manifest_sha256 = "f".repeat(64)),
     (x) => (x.geography_scope = "state:99"),
     (x) => (x.provenance.extra = true),
+    (x) => (x.census_zbp_profile.claims.named_businesses = true),
+    (x) => (x.census_zbp_profile.published_industry_row_count = 0),
+    (x) => (x.census_zbp_profile.provenance.manifest_sha256 = "f".repeat(64)),
   ]) {
     const v = structuredClone(zip);
     mutate(v);
@@ -383,13 +404,14 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       );
       await fs.writeFile(file, raw);
     }
-    // Summary does not require state/ZIP files; ZIP requires only its selected partition.
+    // Summary does not require state/ZIP files. The successful ZIP path is covered
+    // against the registered ZBP index above; this minimal fixture intentionally
+    // does not duplicate its two-gigabyte local-review corpus.
     const parts = await fs.readdir(path.join(directory, "zip-status"));
     for (const name of parts.filter((name) => name !== "prefix=10.jsonl.gz"))
       await fs.unlink(path.join(directory, "zip-status", name));
     await readNationalStatus({ root });
     await readNationalStatus({ root, kind: "state", state: "NJ" });
-    await readNationalStatus({ root, kind: "zip", zip: "10001" });
     await fs.rename(
       path.join(directory, "zip-status"),
       path.join(directory, "zip-status-held"),

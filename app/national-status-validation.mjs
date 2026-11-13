@@ -253,6 +253,7 @@ function validateNationalStatus(v, state = null) {
         "lifecycle_industry_zip",
         "lifecycle_industry_jurisdiction",
         "broad_gap_authorization",
+        "census_zbp_zip_profile_index",
         "claims",
         "provenance",
       ]) ||
@@ -351,6 +352,39 @@ function validateNationalStatus(v, state = null) {
           Object.values(row.authority).some((value) => value !== false),
       ) ||
       Object.values(broadGap.authority).some((value) => value !== false)
+    )
+      return false;
+    const zbpIndex = v.census_zbp_zip_profile_index,
+      zbp = pin.census_zbp_zip_profile_index;
+    if (
+      !exact(zbpIndex, [
+        "schema_version",
+        "release_id",
+        "registration_sha256",
+        "manifest_sha256",
+        "reference_year",
+        "source_rows",
+        "indexed_zip_count",
+        "artifact_count",
+        "artifact_bytes",
+        "artifact_inventory_sha256",
+        "scope",
+        "claims",
+      ]) ||
+      zbpIndex.release_id !== zbp.release_id ||
+      zbpIndex.registration_sha256 !== zbp.registration_sha256 ||
+      zbpIndex.manifest_sha256 !== zbp.manifest_sha256 ||
+      zbpIndex.reference_year !== 2023 ||
+      zbpIndex.source_rows !== 2974116 ||
+      zbpIndex.indexed_zip_count !== 37828 ||
+      zbpIndex.artifact_count !== 20 ||
+      zbpIndex.artifact_bytes !== 2015507248 ||
+      zbpIndex.artifact_inventory_sha256 !== zbp.artifact_inventory_sha256 ||
+      zbpIndex.claims.export_policy !== "local-review-only" ||
+      zbpIndex.claims.current_operations_verified !== false ||
+      zbpIndex.claims.current_operating_business_count !== null ||
+      zbpIndex.claims.all_business_completion_percent !== null ||
+      zbpIndex.claims.zip4 !== null
     )
       return false;
     const lifecycleJurisdiction = v.lifecycle_industry_jurisdiction,
@@ -690,6 +724,7 @@ function validateNationalStatus(v, state = null) {
         "geography_scope",
         "overlay",
         "dimensions",
+        "census_zbp_profile",
         "claims",
         "provenance",
       ]) ||
@@ -698,6 +733,110 @@ function validateNationalStatus(v, state = null) {
       v.zip4 !== null ||
       v.usps_validity !== null ||
       typeof v.found !== "boolean"
+    )
+      return false;
+    const zbp = v.census_zbp_profile,
+      present = zbp?.status === "present";
+    if (
+      !exact(zbp, [
+        "status",
+        "profile_status",
+        "reference_year",
+        "employer_baseline",
+        "all_industry",
+        "published_industry_row_count",
+        "postal_label",
+        "geography",
+        "provenance",
+        "claims",
+      ]) ||
+      !["present", "absent-from-selected-zbp-zip-union"].includes(zbp.status) ||
+      zbp.reference_year !== 2023 ||
+      !integer(zbp.published_industry_row_count) ||
+      zbp.provenance.release_id !== pin.census_zbp_zip_profile_index.release_id ||
+      zbp.provenance.manifest_sha256 !==
+        pin.census_zbp_zip_profile_index.manifest_sha256 ||
+      zbp.provenance.registration_sha256 !==
+        pin.census_zbp_zip_profile_index.registration_sha256 ||
+      !equal(zbp.claims, {
+        export_policy: "local-review-only",
+        current_operations_verified: false,
+        named_businesses: false,
+        completion_percent: null,
+        census_zip_zcta_is_usps_validity: false,
+        zip4: null,
+      }) ||
+      present !== (zbp.profile_status !== null) ||
+      (!present &&
+        (zbp.employer_baseline !== null ||
+          zbp.all_industry !== null ||
+          zbp.postal_label !== null ||
+          zbp.geography !== null ||
+          zbp.published_industry_row_count !== 0)) ||
+      (present &&
+        (!["published-industry-rows", "no-published-industry-rows"].includes(
+          zbp.profile_status,
+        ) ||
+          !exact(zbp.employer_baseline, [
+            "status",
+            "establishments",
+            "employment",
+            "employment_suppression_code",
+            "first_quarter_payroll_thousands_usd",
+            "first_quarter_payroll_suppression_code",
+            "annual_payroll_thousands_usd",
+            "annual_payroll_suppression_code",
+          ]) ||
+          !(
+            integer(zbp.employer_baseline.establishments) ||
+            zbp.employer_baseline.establishments === null
+          ) ||
+          !(
+            integer(zbp.employer_baseline.employment) ||
+            zbp.employer_baseline.employment === null
+          ) ||
+          !(
+            zbp.postal_label === null ||
+            exact(zbp.postal_label, ["name", "city", "state", "county"])
+          ) ||
+          !(
+            zbp.geography === null ||
+            exact(zbp.geography, ["status", "zcta_geoid"])
+          ) ||
+          (zbp.profile_status === "published-industry-rows" &&
+            (zbp.published_industry_row_count === 0 ||
+              zbp.all_industry === null)) ||
+          (zbp.profile_status === "no-published-industry-rows" &&
+            (zbp.published_industry_row_count !== 0 ||
+              zbp.all_industry !== null))))
+    )
+      return false;
+    if (
+      zbp.all_industry !== null &&
+      (!exact(zbp.all_industry, [
+        "establishments",
+        "size_1_4",
+        "size_5_9",
+        "size_10_19",
+        "size_20_49",
+        "size_50_99",
+        "size_100_249",
+        "size_250_499",
+        "size_500_999",
+        "size_1000_plus",
+        "suppression_codes",
+      ]) ||
+        !exact(zbp.all_industry.suppression_codes, [
+          "size_1_4",
+          "size_5_9",
+          "size_10_19",
+          "size_20_49",
+          "size_50_99",
+          "size_100_249",
+          "size_250_499",
+          "size_500_999",
+          "size_1000_plus",
+        ]))
     )
       return false;
     if (!v.found)

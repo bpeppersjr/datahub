@@ -150,6 +150,48 @@ type View = {
     strongest_bounded_next_action: string;
     authority: Record<string, false>;
   };
+  census_zbp_zip_profile_index: {
+    reference_year: number;
+    source_rows: number;
+    indexed_zip_count: number;
+    artifact_count: number;
+    artifact_bytes: number;
+    scope: string;
+  };
+  census_zbp_profile: {
+    status: string;
+    profile_status: string | null;
+    reference_year: number;
+    employer_baseline: null | {
+      establishments: number | null;
+      employment: number | null;
+      employment_suppression_code: string | null;
+      first_quarter_payroll_thousands_usd: number | null;
+      first_quarter_payroll_suppression_code: string | null;
+      annual_payroll_thousands_usd: number | null;
+      annual_payroll_suppression_code: string | null;
+    };
+    all_industry: null | {
+      establishments: number;
+      size_1_4: number | null;
+      size_5_9: number | null;
+      size_10_19: number | null;
+      size_20_49: number | null;
+      size_50_99: number | null;
+      size_100_249: number | null;
+      size_250_499: number | null;
+      size_500_999: number | null;
+      size_1000_plus: number | null;
+    };
+    published_industry_row_count: number;
+    postal_label: null | {
+      name: string;
+      city: string;
+      state: string;
+      county: string;
+    };
+    geography: null | { status: string; zcta_geoid: string | null };
+  };
   industries: Industry[];
   zip5: string;
   zip4: null;
@@ -259,6 +301,23 @@ export function NationalStatusPanel({ state }: { state: string }) {
             cells · {n(view.gaps.restricted_sample_industry_access_cells)}{" "}
             restricted query sample (not statewide coverage).
           </p>
+          <details>
+            <summary>Census 2023 ZIP Business Patterns index</summary>
+            <p>
+              <strong>
+                {n(view.census_zbp_zip_profile_index.indexed_zip_count)} indexed ZIPs
+              </strong>{" "}
+              · {n(view.census_zbp_zip_profile_index.source_rows)} source rows ·{" "}
+              {view.census_zbp_zip_profile_index.artifact_count} immutable artifacts ·{" "}
+              {n(view.census_zbp_zip_profile_index.artifact_bytes)} bytes.
+            </p>
+            <p>
+              Reference year {view.census_zbp_zip_profile_index.reference_year}.{" "}
+              Local-review-only employer-establishment aggregates; not named or
+              currently operating businesses, completion, or USPS validity. ZIP+4
+              remains separate.
+            </p>
+          </details>
           <details>
             <summary>Registry geography relationship quality</summary>
             <p>
@@ -694,6 +753,88 @@ export function NationalStatusPanel({ state }: { state: string }) {
               </details>
             </>
           ))}
+        {detail?.view && (
+          <section>
+            <h4>Census 2023 employer baseline</h4>
+            {detail.view.census_zbp_profile.status ===
+            "absent-from-selected-zbp-zip-union" ? (
+              <p>
+                No published Census ZBP profile was retained for ZIP {zip}. This is
+                absence from the selected publication, not a zero-business or USPS
+                validity finding.
+              </p>
+            ) : detail.view.census_zbp_profile.profile_status ===
+                "published-industry-rows" &&
+              detail.view.census_zbp_profile.employer_baseline ? (
+              <>
+                <p>
+                  {detail.view.census_zbp_profile.postal_label?.name} ·{" "}
+                  {detail.view.census_zbp_profile.postal_label?.county} county ·{" "}
+                  {label(
+                    detail.view.census_zbp_profile.geography?.status ??
+                      "geography-unavailable",
+                  )}{" "}
+                  · ZCTA{" "}
+                  {detail.view.census_zbp_profile.geography?.zcta_geoid ??
+                    "unavailable"}
+                </p>
+                <p>
+                  {n(
+                    detail.view.census_zbp_profile.employer_baseline
+                      .establishments,
+                  )}{" "}
+                  employer establishments · employment{" "}
+                  {detail.view.census_zbp_profile.employer_baseline.employment ===
+                  null
+                    ? "suppressed"
+                    : n(
+                        detail.view.census_zbp_profile.employer_baseline
+                          .employment,
+                      )}{" "}
+                  · Q1 payroll (thousands USD){" "}
+                  {detail.view.census_zbp_profile.employer_baseline
+                    .first_quarter_payroll_thousands_usd === null
+                    ? "suppressed"
+                    : n(
+                        detail.view.census_zbp_profile.employer_baseline
+                          .first_quarter_payroll_thousands_usd,
+                      )}{" "}
+                  · annual payroll (thousands USD){" "}
+                  {detail.view.census_zbp_profile.employer_baseline
+                    .annual_payroll_thousands_usd === null
+                    ? "suppressed"
+                    : n(
+                        detail.view.census_zbp_profile.employer_baseline
+                          .annual_payroll_thousands_usd,
+                      )}
+                  .
+                </p>
+                <p>
+                  All-industry establishment row:{" "}
+                  {detail.view.census_zbp_profile.all_industry
+                    ? `${n(detail.view.census_zbp_profile.all_industry.establishments)} establishments; size buckets retained.`
+                    : "not published"}{" "}
+                  Published industry rows:{" "}
+                  {n(
+                    detail.view.census_zbp_profile
+                      .published_industry_row_count,
+                  )}
+                  .
+                </p>
+                <p>
+                  Aggregate publication only; named businesses and current operation
+                  are not reported. Census ZIP/ZCTA evidence is not USPS validity,
+                  and ZIP+4 remains separate.
+                </p>
+              </>
+            ) : (
+              <p>
+                Census ZBP published no industry rows for this ZIP; suppressed or
+                missing values are not zero.
+              </p>
+            )}
+          </section>
+        )}
       </details>
     </section>
   );

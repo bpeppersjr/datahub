@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 import { APP_ROOT } from "./paths.mjs";
 import {
   echoReplay as r,
@@ -60,6 +61,8 @@ const INPUT_NAMES = [
   "lifecycle_industry_jurisdiction_registration",
   "lifecycle_industry_jurisdiction_manifest",
   "broad_gap_authorization_manifest",
+  "census_zbp_zip_profile_registration",
+  "census_zbp_zip_profile_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -1347,6 +1350,62 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
     scope:
       "Governed readiness taxonomy for the exact 40 current broad-organization gaps; review evidence only and no source-action authority.",
   };
+  const zbpRegistration = inputs.census_zbp_zip_profile_registration.value,
+    zbpManifest = inputs.census_zbp_zip_profile_manifest.value,
+    zbpInventorySha256 = createHash("sha256")
+      .update(JSON.stringify(zbpManifest.artifacts))
+      .digest("hex");
+  check(
+    zbpRegistration.dataset_id === "census-zbp-zip-profile-index" &&
+      zbpRegistration.status === "registered-local-lookup-index" &&
+      zbpRegistration.runtime_pointer === null &&
+      zbpRegistration.production_enrollment === false &&
+      zbpRegistration.national_reporting_denominator_enrollment === false &&
+      zbpRegistration.export_policy === "local-review-only" &&
+      zbpRegistration.retained_release.release_id === zbpManifest.release_id &&
+      zbpRegistration.retained_release.manifest_sha256 ===
+        inputs.census_zbp_zip_profile_manifest.proof.sha256 &&
+      zbpRegistration.retained_release.source_rows === 2974116 &&
+      zbpRegistration.retained_release.indexed_zip_count === 37828 &&
+      zbpRegistration.retained_release.artifact_count === 20 &&
+      zbpRegistration.retained_release.artifact_bytes === 2015507248 &&
+      zbpRegistration.retained_release.artifact_inventory_sha256 ===
+        "5b5561ad3064c4da28b8dcb4dbe72aa746ea47178752cd95cd05963d0d262c2c" &&
+      zbpInventorySha256 ===
+        zbpRegistration.retained_release.artifact_inventory_sha256 &&
+      zbpManifest.source_rows === 2974116 &&
+      zbpManifest.indexed_zip_count === 37828 &&
+      zbpManifest.artifacts.length === 20 &&
+      zbpManifest.artifacts.reduce((total, item) => total + item.bytes, 0) ===
+        2015507248 &&
+      zbpManifest.bindings.reference_year === 2023 &&
+      zbpManifest.claims.export_policy === "local-review-only" &&
+      zbpManifest.claims.reference_year === 2023 &&
+      zbpManifest.claims.zip4 === null &&
+      zbpManifest.claims.current_operations_verified === false &&
+      zbpManifest.claims.current_operating_business_count === null &&
+      zbpManifest.claims.all_business_completion_percent === null &&
+      zbpManifest.claims.network_requests === 0 &&
+      zbpManifest.claims.current_pointer_written === false &&
+      zbpManifest.claims.production_enrollment === false,
+    "Census ZBP ZIP profile index metadata conservation",
+  );
+  const censusZbpZipProfileSidecar = {
+    schema_version: `${DATASET}-census-zbp-zip-profile-index@1.0.0`,
+    release_id: zbpManifest.release_id,
+    registration_sha256:
+      inputs.census_zbp_zip_profile_registration.proof.sha256,
+    manifest_sha256: inputs.census_zbp_zip_profile_manifest.proof.sha256,
+    reference_year: 2023,
+    source_rows: 2974116,
+    indexed_zip_count: 37828,
+    artifact_count: 20,
+    artifact_bytes: 2015507248,
+    artifact_inventory_sha256: zbpInventorySha256,
+    scope:
+      "Local-review-only Census 2023 employer-establishment ZIP aggregates; compact index inventory only, with no profile replay in federation build.",
+    claims: zbpManifest.claims,
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1425,6 +1484,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       lifecycle_industry_zip: lifecycleIndustryZipSidecar,
       lifecycle_industry_jurisdiction: lifecycleIndustryJurisdictionSidecar,
       broad_gap_authorization: broadGapAuthorizationSidecar,
+      census_zbp_zip_profile_index: censusZbpZipProfileSidecar,
     },
     claims: CLAIMS,
   };

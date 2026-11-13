@@ -125,6 +125,16 @@
       "release_id": "broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177",
       "schema_version": "broad-organization-authorization-program-manifest@2.0.0"
     },
+    "census_zbp_zip_profile_registration": {
+      "path": "config/datasets/census-zbp-zip-profile-index.json",
+      "sha256": "4e4520b3f29f48568cb44ad46d071b61cd39494c4a0ea9eda89a4de880163db2"
+    },
+    "census_zbp_zip_profile_manifest": {
+      "path": "data/census-zbp-zip-profile-index/releases/census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58/manifest.json",
+      "sha256": "485f19b9715eb3807ef4d6dfa5a98c353645690f47c3b55a52b16487933e316d",
+      "release_id": "census-zbp-zip-profile-index-330d1c58516ff3a85003c06e717d00071cda259f13dbcc624b863fd601952c58",
+      "schema_version": "census-zbp-zip-profile-index@1.0.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"

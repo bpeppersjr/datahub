@@ -4,6 +4,7 @@ import { gunzipSync } from "node:zlib";
 import pin from "../config/national-status-contract.json" with { type: "json" };
 import { APP_ROOT } from "./paths.mjs";
 import { echoReplay as r } from "./national-epa-echo-naics-zip-industry-evidence.mjs";
+import { readRegisteredCensusZbpZipProfile } from "./census-zbp-zip-profile-reader.mjs";
 import {
   exact,
   equal,
@@ -619,6 +620,7 @@ async function summary(ctx) {
         "lifecycle_industry_zip",
         "lifecycle_industry_jurisdiction",
         "broad_gap_authorization",
+        "census_zbp_zip_profile_index",
       ]),
     "summary schema/claims",
   );
@@ -964,6 +966,39 @@ async function summary(ctx) {
       ),
     "broad-gap authorization sidecar",
   );
+  const zbpIndex = s.sidecars.census_zbp_zip_profile_index,
+    zbp = pin.census_zbp_zip_profile_index;
+  check(
+    exact(zbpIndex, [
+      "schema_version",
+      "release_id",
+      "registration_sha256",
+      "manifest_sha256",
+      "reference_year",
+      "source_rows",
+      "indexed_zip_count",
+      "artifact_count",
+      "artifact_bytes",
+      "artifact_inventory_sha256",
+      "scope",
+      "claims",
+    ]) &&
+      zbpIndex.release_id === zbp.release_id &&
+      zbpIndex.registration_sha256 === zbp.registration_sha256 &&
+      zbpIndex.manifest_sha256 === zbp.manifest_sha256 &&
+      zbpIndex.reference_year === zbp.reference_year &&
+      zbpIndex.source_rows === zbp.source_rows &&
+      zbpIndex.indexed_zip_count === zbp.indexed_zip_count &&
+      zbpIndex.artifact_count === zbp.artifact_count &&
+      zbpIndex.artifact_bytes === zbp.artifact_bytes &&
+      zbpIndex.artifact_inventory_sha256 === zbp.artifact_inventory_sha256 &&
+      zbpIndex.claims.export_policy === "local-review-only" &&
+      zbpIndex.claims.zip4 === null &&
+      zbpIndex.claims.current_operations_verified === false &&
+      zbpIndex.claims.current_operating_business_count === null &&
+      zbpIndex.claims.all_business_completion_percent === null,
+    "Census ZBP ZIP profile index sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -1017,6 +1052,7 @@ async function summary(ctx) {
     lifecycle_industry_zip: lifecycleIndustry,
     lifecycle_industry_jurisdiction: lifecycleJurisdiction,
     broad_gap_authorization: broadGapAuthorization,
+    census_zbp_zip_profile_index: zbpIndex,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });
@@ -1138,6 +1174,105 @@ export async function readNationalStatus({
     ),
   );
   const matrix = ctx.manifest.inputs.matrix;
+  const zbpLookup = await readRegisteredCensusZbpZipProfile({
+      root: ctx.root,
+      zip,
+      signal,
+    }),
+    zbpValue = zbpLookup.value,
+    zbpProfile = zbpValue.profile,
+    allIndustry = zbpProfile?.industry_rows.find(
+      (industry) => industry.naics_code === "------",
+    );
+  check(
+    zbpValue.available === true &&
+      zbpValue.reference_year === 2023 &&
+      zbpValue.index.release_id === pin.census_zbp_zip_profile_index.release_id &&
+      zbpValue.index.manifest_sha256 ===
+        pin.census_zbp_zip_profile_index.manifest_sha256 &&
+      zbpValue.index.registration_sha256 ===
+        pin.census_zbp_zip_profile_index.registration_sha256 &&
+      (zbpValue.status !== "present" || zbpProfile),
+    "selected Census ZBP ZIP profile",
+  );
+  const zbpProjection = {
+    status: zbpValue.status,
+    profile_status: zbpProfile?.status ?? null,
+    reference_year: 2023,
+    employer_baseline: zbpProfile
+      ? {
+          status: zbpProfile.zip_coverage.employer_baseline.status,
+          establishments:
+            zbpProfile.zip_coverage.employer_baseline.establishments,
+          employment: zbpProfile.zip_coverage.employer_baseline.employment,
+          employment_suppression_code:
+            zbpProfile.zip_coverage.employer_baseline
+              .employment_suppression_code,
+          first_quarter_payroll_thousands_usd:
+            zbpProfile.zip_coverage.employer_baseline
+              .first_quarter_payroll_thousands_usd,
+          first_quarter_payroll_suppression_code:
+            zbpProfile.zip_coverage.employer_baseline
+              .first_quarter_payroll_suppression_code,
+          annual_payroll_thousands_usd:
+            zbpProfile.zip_coverage.employer_baseline
+              .annual_payroll_thousands_usd,
+          annual_payroll_suppression_code:
+            zbpProfile.zip_coverage.employer_baseline
+              .annual_payroll_suppression_code,
+        }
+      : null,
+    all_industry: allIndustry
+      ? {
+          establishments: allIndustry.establishments,
+          size_1_4: allIndustry.size_1_4,
+          size_5_9: allIndustry.size_5_9,
+          size_10_19: allIndustry.size_10_19,
+          size_20_49: allIndustry.size_20_49,
+          size_50_99: allIndustry.size_50_99,
+          size_100_249: allIndustry.size_100_249,
+          size_250_499: allIndustry.size_250_499,
+          size_500_999: allIndustry.size_500_999,
+          size_1000_plus: allIndustry.size_1000_plus,
+          suppression_codes: {
+            size_1_4: allIndustry.size_1_4_suppression_code,
+            size_5_9: allIndustry.size_5_9_suppression_code,
+            size_10_19: allIndustry.size_10_19_suppression_code,
+            size_20_49: allIndustry.size_20_49_suppression_code,
+            size_50_99: allIndustry.size_50_99_suppression_code,
+            size_100_249: allIndustry.size_100_249_suppression_code,
+            size_250_499: allIndustry.size_250_499_suppression_code,
+            size_500_999: allIndustry.size_500_999_suppression_code,
+            size_1000_plus: allIndustry.size_1000_plus_suppression_code,
+          },
+        }
+      : null,
+    published_industry_row_count: zbpProfile?.industry_rows.length ?? 0,
+    postal_label: zbpProfile?.zip_coverage.postal_label
+      ? {
+          name: zbpProfile.zip_coverage.postal_label.name,
+          city: zbpProfile.zip_coverage.postal_label.preferred_city,
+          state: zbpProfile.zip_coverage.postal_label.preferred_state,
+          county: zbpProfile.zip_coverage.postal_label.county_name,
+        }
+      : null,
+    geography: zbpProfile?.zip_coverage.geography
+      ? {
+          status: zbpProfile.zip_coverage.geography.status,
+          zcta_geoid: zbpProfile.zip_coverage.geography.geoid,
+        }
+      : null,
+    provenance: zbpValue.index,
+    claims: {
+      export_policy: "local-review-only",
+      current_operations_verified: false,
+      named_businesses: false,
+      completion_percent: null,
+      census_zip_zcta_is_usps_validity: false,
+      zip4: null,
+    },
+  };
+  await zbpLookup.recheck();
   return finish(
     ctx,
     {
@@ -1160,6 +1295,7 @@ export async function readNationalStatus({
             temporal_qualification: temporal.get(id) ?? null,
           }))
         : [],
+      census_zbp_profile: zbpProjection,
       claims: pin.claims,
       provenance: provenance(ctx, a),
     },
