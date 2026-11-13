@@ -7,9 +7,9 @@
   "source_assessments": [
     {
       "state": "IL",
-      "assessment_id": "il-business-source-reassessment-2026-10-03",
-      "path": "config/state-business-source-assessments/il-2026-10-03.json",
-      "file_sha256": "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323"
+      "assessment_id": "il-business-source-zero-row-preflight-2026-11-12",
+      "path": "config/state-business-source-assessments/il-2026-11-12.json",
+      "file_sha256": "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9"
     },
     {
       "state": "IN",
@@ -38,7 +38,7 @@
     "required_gap_status": "missing-retained-broad-organization-layer"
   },
   "outcomes": {
-    "IL": "offline-connector-retained-package-and-rights-unresolved",
+    "IL": "zero-row-offline-connector-preflight-package-and-rights-unresolved",
     "IN": "account-gated-paid-bulk-contract-unresolved",
     "MI": "written-scope-and-contract-required",
     "OH": "paid-ftp-contract-and-schema-unresolved"

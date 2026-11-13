@@ -1,0 +1,64 @@
+{
+  "schema_version": "state-business-source-zero-row-preflight@1.0.0",
+  "assessment_id": "il-business-source-zero-row-preflight-2026-11-12",
+  "observed_at": "2026-11-12",
+  "state": { "abbreviation": "IL", "name": "Illinois" },
+  "supersedes_assessment_id": "il-business-source-reassessment-2026-10-03",
+  "decision": "hold",
+  "evidence_kind": "governed-local-metadata-only",
+  "connector_binding": {
+    "path": "config/connectors/il-business-registry.json",
+    "sha256": "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c",
+    "connector_id": "il-business-registry",
+    "version": "1.0.0",
+    "implementation_status": "implemented-offline-awaiting-operator-supplied-official-files",
+    "allowed_hosts": [],
+    "max_parallel_requests": 0,
+    "required_source_files": 5
+  },
+  "policy_binding": {
+    "path": "config/source-policies/il-business-registry.json",
+    "sha256": "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8",
+    "policy_id": "il-business-registry",
+    "version": "1.0.0",
+    "redistribution": "not-authorized"
+  },
+  "predecessor_binding": {
+    "path": "config/state-business-source-assessments/il-2026-10-03.json",
+    "sha256": "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323"
+  },
+  "verified_contract": {
+    "source_rows_read": 0,
+    "network_requests": 0,
+    "downloads": 0,
+    "contacts_made": 0,
+    "accounts_created": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "operations_started": 0,
+    "releases_created": 0,
+    "production_changes": 0,
+    "row_bearing_preflight_authorized": false,
+    "acquisition_authorized": false,
+    "publication_authorized": false,
+    "national_admission_authorized": false
+  },
+  "established_metadata": [
+    "The retained connector is offline-only and has no allowed network hosts or request concurrency.",
+    "The connector requires exactly five operator-supplied official files from one common run date.",
+    "All record-level and aggregate outputs remain local-review-only; redistribution is not authorized.",
+    "Goodstanding and Reinstated are registration assertions, not independent evidence of current operation.",
+    "LLC records-office addresses are administrative organization evidence, not verified operating sites."
+  ],
+  "unresolved_gates": [
+    "automated-retrieval-authorization",
+    "retention-and-downstream-use-rights",
+    "operator-supplied-complete-same-run-package",
+    "independent-package-verification",
+    "actual-package-freshness",
+    "archive-and-replay-guarantees",
+    "separate-national-admission"
+  ],
+  "strongest_bounded_next_action": "Preserve the existing offline connector and require separate authority plus one complete official same-run five-file package before any row-bearing verification. This zero-row preflight authorizes no acquisition, contact, account, payment, terms acceptance, automation, processing operation, publication, admission, or production change.",
+  "broad_layer_gap_resolved": false
+}

@@ -3,6 +3,7 @@ import { lstat, readFile, realpath } from "node:fs/promises";
 import path from "node:path";
 
 import { APP_ROOT } from "./paths.mjs";
+import { readIllinoisBusinessSourceZeroRowPreflight } from "./illinois-business-source-zero-row-preflight.mjs";
 
 export const MIDWEST_SOURCE_ASSESSMENT_WAVE_SCHEMA = "state-business-source-assessment-wave@1.0.0";
 export const MIDWEST_SOURCE_ASSESSMENT_WAVE_ID = "state-business-source-assessment-wave-midwest-il-in-mi-oh-2026-11-12";
@@ -10,7 +11,7 @@ export const MIDWEST_SOURCE_ASSESSMENT_STATES = Object.freeze(["IL", "IN", "MI",
 const DEFAULT_WAVE = path.join(APP_ROOT, "config", "state-business-source-assessment-waves", "midwest-il-in-mi-oh-2026-11-12.json");
 const SHA256 = /^[0-9a-f]{64}$/;
 const expectedAssessmentHashes = Object.freeze({
-  IL: "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323",
+  IL: "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9",
   IN: "985bee2a6e3c1e46b01451c038f5336d1404d333c381f0b85d5148b73e9a99f7",
   MI: "23283f4c51633ec22abf1a08f64c066166dc4bfcbba9520874eeca6ce7273d02",
   OH: "cc5ed09ade4e0a2fd43ad2eda2b0ce08d39de6c5a2ee26ee2426dfd79dc65c24",
@@ -31,7 +32,7 @@ const expectedControl = Object.freeze({
   broad_layer_admitted: false,
 });
 const expectedOutcomes = Object.freeze({
-  IL: "offline-connector-retained-package-and-rights-unresolved",
+  IL: "zero-row-offline-connector-preflight-package-and-rights-unresolved",
   IN: "account-gated-paid-bulk-contract-unresolved",
   MI: "written-scope-and-contract-required",
   OH: "paid-ftp-contract-and-schema-unresolved",
@@ -58,7 +59,9 @@ export function validateMidwestBusinessSourceAssessmentWave(value) {
   if (!Array.isArray(value.source_assessments) || value.source_assessments.length !== 4) fail("assessment roster is incomplete");
   for (const [index, row] of value.source_assessments.entries()) {
     const state = MIDWEST_SOURCE_ASSESSMENT_STATES[index], slug = state.toLowerCase();
-    if (row?.state !== state || row.assessment_id !== `${slug}-business-source-reassessment-2026-10-03` || row.path !== `config/state-business-source-assessments/${slug}-2026-10-03.json` || row.file_sha256 !== expectedAssessmentHashes[state] || !SHA256.test(row.file_sha256)) fail(`assessment binding drifted for ${state}`);
+    const assessmentId = state === "IL" ? "il-business-source-zero-row-preflight-2026-11-12" : `${slug}-business-source-reassessment-2026-10-03`;
+    const assessmentPath = state === "IL" ? "config/state-business-source-assessments/il-2026-11-12.json" : `config/state-business-source-assessments/${slug}-2026-10-03.json`;
+    if (row?.state !== state || row.assessment_id !== assessmentId || row.path !== assessmentPath || row.file_sha256 !== expectedAssessmentHashes[state] || !SHA256.test(row.file_sha256)) fail(`assessment binding drifted for ${state}`);
   }
   const gap = value.national_gap_binding;
   if (gap?.federation_release_id !== "national-goal-evidence-federation-7759bbfd3679a96e78886f91b94f1a64bdda297dd8c329c05df5b1970c030d7b" || gap.federation_manifest_sha256 !== "f386b18be2bb9a9325f141a27a6b0183dba638d84aa5df6feb5be22d19f370ae" || !SHA256.test(gap.gap_ledger_sha256) || gap.required_gap_status !== "missing-retained-broad-organization-layer") fail("national gap binding drifted");
@@ -74,7 +77,10 @@ export async function loadMidwestBusinessSourceAssessmentWave(file = DEFAULT_WAV
     const source = await safeFile(path.join(APP_ROOT, row.path), `${row.state} assessment`);
     if (sha256(source.bytes) !== row.file_sha256) fail(`${row.state} assessment file checksum drifted`);
     const assessment = JSON.parse(source.bytes);
-    if (assessment.assessment_id !== row.assessment_id || assessment.state?.abbreviation !== row.state || assessment.decision !== "hold" || assessment.connector_candidate !== false || !Object.values(assessment.authority ?? {}).every((flag) => flag === false)) fail(`${row.state} assessment widened authority or changed identity`);
+    if (row.state === "IL") {
+      const preflight = await readIllinoisBusinessSourceZeroRowPreflight();
+      if (preflight.status !== "hold" || preflight.source_rows_read !== 0 || preflight.network_requests !== 0 || preflight.broad_layer_gap_resolved !== false || Object.values(preflight.authority).some(Boolean)) fail("IL zero-row preflight widened authority or changed identity");
+    } else if (assessment.assessment_id !== row.assessment_id || assessment.state?.abbreviation !== row.state || assessment.decision !== "hold" || assessment.connector_candidate !== false || !Object.values(assessment.authority ?? {}).every((flag) => flag === false)) fail(`${row.state} assessment widened authority or changed identity`);
   }
   const gapRead = await safeFile(path.join(APP_ROOT, wave.national_gap_binding.gap_ledger_path), "gap ledger");
   if (sha256(gapRead.bytes) !== wave.national_gap_binding.gap_ledger_sha256) fail("gap ledger checksum drifted");

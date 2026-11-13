@@ -10,10 +10,12 @@ test("Midwest wave binds four retained HOLD assessments to current broad-layer g
   const wave = await loadMidwestBusinessSourceAssessmentWave();
   assert.deepEqual(wave.states, MIDWEST_SOURCE_ASSESSMENT_STATES);
   assert.equal(wave.source_assessments.length, 4);
+  assert.equal(wave.source_assessments[0].assessment_id, "il-business-source-zero-row-preflight-2026-11-12");
   assert.equal(wave.controls.source_assessments_reused, 4);
   assert.equal(wave.controls.network_requests, 0);
   assert.equal(wave.controls.acquisition_authorized, false);
   assert.equal(wave.controls.broad_layer_admitted, false);
+  assert.equal(wave.outcomes.IL, "zero-row-offline-connector-preflight-package-and-rights-unresolved");
   assert.equal(wave.outcomes.MI, "written-scope-and-contract-required");
 });
 
