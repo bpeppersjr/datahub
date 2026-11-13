@@ -109,6 +109,16 @@
       "release_id": "national-business-lifecycle-industry-zip-evidence-b35d710da5b241737dde2b0fb0f6663510af489df49acb45c12364958b987c3b",
       "schema_version": "national-business-lifecycle-industry-zip-evidence@1.1.0"
     },
+    "lifecycle_industry_jurisdiction_registration": {
+      "path": "config/datasets/national-business-lifecycle-industry-jurisdiction-evidence.json",
+      "sha256": "fee5ead43901852b940c4df492de8f0b5fda51f91c9e5fb7305c1ec0199d3f38"
+    },
+    "lifecycle_industry_jurisdiction_manifest": {
+      "path": "data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/manifest.json",
+      "sha256": "7c8bddbefefb780a5aab846d901770fda7e8b4d4686b0ebdbfe3a1c041ac8fc6",
+      "release_id": "national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2",
+      "schema_version": "national-business-lifecycle-industry-jurisdiction-evidence@1.1.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"

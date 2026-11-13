@@ -296,6 +296,36 @@ async function load(root, signal) {
       lim.release_id === li.release_id,
     "lifecycle-industry ZIP compact pins",
   );
+  const lj = pin.lifecycle_industry_jurisdiction,
+    lifecycleJurisdictionRegistrationFile = r.contained(
+      root,
+      lj.registration_path,
+    ),
+    lifecycleJurisdictionRegistration = await r.secureBuffer(
+      root,
+      lifecycleJurisdictionRegistrationFile,
+      100_000,
+      signal,
+    ),
+    ljr = JSON.parse(decoder.decode(lifecycleJurisdictionRegistration.raw)),
+    lifecycleJurisdictionManifestFile = r.contained(root, lj.manifest_path),
+    lifecycleJurisdictionManifest = await r.secureBuffer(
+      root,
+      lifecycleJurisdictionManifestFile,
+      100_000,
+      signal,
+    ),
+    ljm = JSON.parse(decoder.decode(lifecycleJurisdictionManifest.raw));
+  check(
+    lifecycleJurisdictionRegistration.sha256 === lj.registration_sha256 &&
+      ljr.retained_release.release_id === lj.release_id &&
+      ljr.retained_release.manifest_sha256 === lj.manifest_sha256 &&
+      ljr.runtime_pointer === null &&
+      ljr.production_enrollment === false &&
+      lifecycleJurisdictionManifest.sha256 === lj.manifest_sha256 &&
+      ljm.release_id === lj.release_id,
+    "lifecycle-industry jurisdiction compact pins",
+  );
   return {
     root,
     signal,
@@ -328,6 +358,12 @@ async function load(root, signal) {
     lifecycleIndustryRegistrationHash: lifecycleIndustryRegistration.sha256,
     lifecycleIndustryManifestFile,
     lifecycleIndustryManifestHash: lifecycleIndustryManifest.sha256,
+    lifecycleJurisdictionRegistrationFile,
+    lifecycleJurisdictionRegistrationHash:
+      lifecycleJurisdictionRegistration.sha256,
+    lifecycleJurisdictionManifestFile,
+    lifecycleJurisdictionManifestHash: lifecycleJurisdictionManifest.sha256,
+    lifecycleJurisdictionManifest: ljm,
   };
 }
 async function artifact(ctx, name, max) {
@@ -520,7 +556,23 @@ async function finish(ctx, value, selector = null) {
           100_000,
           ctx.signal,
         )
-      ).sha256 === ctx.lifecycleIndustryManifestHash,
+      ).sha256 === ctx.lifecycleIndustryManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.lifecycleJurisdictionRegistrationFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.lifecycleJurisdictionRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.lifecycleJurisdictionManifestFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.lifecycleJurisdictionManifestHash,
     "stable release selection",
   );
   return value;
@@ -565,6 +617,7 @@ async function summary(ctx) {
         "state_registration_license_supplemental",
         "irs_eo_supplemental",
         "lifecycle_industry_zip",
+        "lifecycle_industry_jurisdiction",
       ]),
     "summary schema/claims",
   );
@@ -841,6 +894,30 @@ async function summary(ctx) {
       lifecycleIndustry.claims.all_business_completeness === null,
     "lifecycle-industry ZIP sidecar",
   );
+  const lifecycleJurisdiction = s.sidecars.lifecycle_industry_jurisdiction,
+    lj = pin.lifecycle_industry_jurisdiction;
+  check(
+    lifecycleJurisdiction.release_id === lj.release_id &&
+      lifecycleJurisdiction.registration_sha256 === lj.registration_sha256 &&
+      lifecycleJurisdiction.manifest_sha256 === lj.manifest_sha256 &&
+      lifecycleJurisdiction.jurisdictions_artifact_sha256 ===
+        lj.jurisdictions_artifact_sha256 &&
+      lifecycleJurisdiction.summary.scope_rows === 60 &&
+      lifecycleJurisdiction.summary.state_scope_rows === 51 &&
+      lifecycleJurisdiction.summary.territory_scope_rows === 5 &&
+      lifecycleJurisdiction.summary.special_scope_rows === 4 &&
+      lifecycleJurisdiction.summary.zip5_rows === 48194 &&
+      lifecycleJurisdiction.summary.source_membership_count === 8011213 &&
+      lifecycleJurisdiction.summary.mapped_source_record_union_count ===
+        6780627 &&
+      lifecycleJurisdiction.summary.unresolved_source_record_count === 1230586 &&
+      lifecycleJurisdiction.summary.industry_assignment_count === 6782745 &&
+      lifecycleJurisdiction.claims.industry_assignments_additive === false &&
+      lifecycleJurisdiction.claims.usps_zip_state_assignment === false &&
+      lifecycleJurisdiction.claims.unique_business_count === null &&
+      lifecycleJurisdiction.claims.all_business_completeness === null,
+    "lifecycle-industry jurisdiction sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -892,6 +969,7 @@ async function summary(ctx) {
     state_registration_license_supplemental: supplemental,
     irs_eo_supplemental: irs,
     lifecycle_industry_zip: lifecycleIndustry,
+    lifecycle_industry_jurisdiction: lifecycleJurisdiction,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });
@@ -941,7 +1019,31 @@ export async function readNationalStatus({
   const ctx = await load(root, signal);
   if (kind === "summary") return summary(ctx);
   const { a: stateArtifact, rows } = await stateRows(ctx);
-  if (kind === "state")
+  if (kind === "state") {
+    const declaration = ctx.lifecycleJurisdictionManifest.artifacts.find(
+        (item) => item.path === "jurisdictions.json",
+      ),
+      proof = await r.secureBuffer(
+        ctx.root,
+        r.contained(
+          path.dirname(ctx.lifecycleJurisdictionManifestFile),
+          "jurisdictions.json",
+        ),
+        1_000_000,
+        signal,
+      ),
+      jurisdictionRows = JSON.parse(decoder.decode(proof.raw)),
+      lifecycleIndustryJurisdiction = jurisdictionRows.find(
+        (row) => row.scope_kind === "state" && row.postal_abbreviation === state,
+      );
+    check(
+      declaration?.sha256 ===
+        pin.lifecycle_industry_jurisdiction.jurisdictions_artifact_sha256 &&
+        proof.sha256 === declaration.sha256 &&
+        jurisdictionRows.length === 60 &&
+        lifecycleIndustryJurisdiction?.industries.length === 9,
+      "selected lifecycle-industry jurisdiction",
+    );
     return finish(
       ctx,
       {
@@ -951,11 +1053,13 @@ export async function readNationalStatus({
         industries: pin.industries.map((id) =>
           rows.find((row) => row.state === state && row.id === id),
         ),
+        lifecycle_industry_jurisdiction: lifecycleIndustryJurisdiction,
         claims: pin.claims,
         provenance: provenance(ctx, stateArtifact),
       },
       state,
     );
+  }
   const { a, raw } = await artifact(
       ctx,
       `zip-status/prefix=${zip.slice(0, 2)}.jsonl.gz`,

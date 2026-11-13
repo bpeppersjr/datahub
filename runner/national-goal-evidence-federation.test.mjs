@@ -8,7 +8,7 @@ import { DATASET, CLAIMS, federationGeographyScope, buildNationalGoalEvidenceFed
 
 const configPath=path.join(APP_ROOT,`config/${DATASET}.json`);
 const currentConfigPath=path.join(APP_ROOT,'config/national-goal-evidence-federation-v3-4.json');
-const successorRelease='national-goal-evidence-federation-97ac6267cdfe6e4d20e86f5ad468b26ebc0e010a271ae36f1ea1cca002062234';
+const successorRelease='national-goal-evidence-federation-551a3fc958fd54c3f655ea6e43924eab7e46175d7319eb83c4df1e72c7950abd';
 const successorManifest=path.join(APP_ROOT,`data/${DATASET}/releases/${successorRelease}/manifest.json`);
 const json=async p=>JSON.parse(await fs.readFile(p,'utf8'));
 async function fixture(t) {const root=await fs.mkdtemp(path.join(APP_ROOT,'data/tmp/goal-federation-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));return root;}
@@ -47,7 +47,7 @@ test('symlink input ancestry is rejected before evidence processing',async t=>{
 
 test('selected v3.4 federation successor has full independent replay, closed units and correct evidence gaps',async()=>{
   const manifest=successorManifest;
-  const verified=await verifyNationalGoalEvidenceFederation(manifest,{configPath:currentConfigPath});assert.equal(verified.manifest_sha256,'e7a5af8144efa54373833fb5c81448153f496b5e2a8cb13df2e0bb3c7d7f3c2c');
+  const verified=await verifyNationalGoalEvidenceFederation(manifest,{configPath:currentConfigPath});assert.equal(verified.manifest_sha256,'c172e063571f9d63936007d3e36c417d17697d8e4381bdaa5f67b0d8b92f5f4d');
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
   assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:181,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
@@ -71,11 +71,11 @@ test('selected v3.4 federation successor has full independent replay, closed uni
   const la=summary.sidecars.publisher_membership_reconciliation;assert.equal(la.registration_sha256,'8bb9d80ddd7192e76f1a48a75e83b03afd8e91170eafb646193adde2b8961d75');assert.equal(la.source_rows,la.normalized_profiles+la.quarantined_rows);assert.deepEqual(la.effective_source_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});assert.equal(la.row_status,null);assert.equal(la.lifecycle_evidence,'unknown');assert.equal(la.active_business_eligible_count,0);assert.equal(la.active_business_count,null);assert.equal(la.completeness_percentage,null);assert.equal(la.claims.inference_performed,false);
 });
 
-test('lifecycle-industry sidecar successor preserves all predecessor artifacts except national summary',async()=>{
-  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-05bc88f30f2270f3aae6c31446eacb6dda36db495346d232260428b85c35a2fb/manifest.json');
+test('lifecycle-jurisdiction sidecar successor preserves all predecessor artifacts except national summary',async()=>{
+  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-97ac6267cdfe6e4d20e86f5ad468b26ebc0e010a271ae36f1ea1cca002062234/manifest.json');
   const current=successorManifest;
   const oldBytes=await fs.readFile(prior),oldManifest=JSON.parse(oldBytes),newManifest=await json(current);
-  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'a3d3db89947c27226baf567f20630a4278041abf34073fb39c9757d10c9346b9');
+  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'e7a5af8144efa54373833fb5c81448153f496b5e2a8cb13df2e0bb3c7d7f3c2c');
   assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
   const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256]));
   assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['national-summary.json']));

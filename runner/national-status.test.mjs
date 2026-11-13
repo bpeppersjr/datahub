@@ -170,6 +170,7 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
       (x.lifecycle_industry_zip.outside_cohort_artifact_sha256 = "f".repeat(
         64,
       )),
+    (x) => x.lifecycle_industry_jurisdiction.summary.source_membership_count++,
   ]) {
     const v = structuredClone(summary);
     mutate(v);
@@ -247,7 +248,10 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       irm = path.join(root, ir.manifest_path),
       li = pin.lifecycle_industry_zip,
       lir = path.join(root, li.registration_path),
-      lim = path.join(root, li.manifest_path);
+      lim = path.join(root, li.manifest_path),
+      lj = pin.lifecycle_industry_jurisdiction,
+      ljr = path.join(root, lj.registration_path),
+      ljm = path.join(root, lj.manifest_path);
     for (const [from, to] of [
       [sp.registration_path, spr],
       [sp.manifest_path, spm],
@@ -259,6 +263,12 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       [ir.manifest_path, irm],
       [li.registration_path, lir],
       [li.manifest_path, lim],
+      [lj.registration_path, ljr],
+      [lj.manifest_path, ljm],
+      [
+        path.join(path.dirname(lj.manifest_path), "jurisdictions.json"),
+        path.join(path.dirname(ljm), "jurisdictions.json"),
+      ],
     ]) {
       await fs.mkdir(path.dirname(to), { recursive: true });
       await fs.copyFile(path.join(APP_ROOT, from), to);
@@ -327,6 +337,15 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       await fs.writeFile(file, raw);
     }
     for (const file of [lir, lim]) {
+      const raw = await fs.readFile(file);
+      await fs.appendFile(file, " ");
+      await assert.rejects(
+        readNationalStatus({ root }),
+        /compact pins|unsafe input identity/,
+      );
+      await fs.writeFile(file, raw);
+    }
+    for (const file of [ljr, ljm]) {
       const raw = await fs.readFile(file);
       await fs.appendFile(file, " ");
       await assert.rejects(

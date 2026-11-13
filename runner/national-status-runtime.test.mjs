@@ -49,7 +49,8 @@ test("actual runtime enforces bearer/origin/query/method boundaries and serves b
       pr = pin.publisher_membership_reconciliation,
       sr = pin.state_registration_license_supplemental,
       ir = pin.irs_eo_supplemental,
-      li = pin.lifecycle_industry_zip;
+      li = pin.lifecycle_industry_zip,
+      lj = pin.lifecycle_industry_jurisdiction;
     for (const relative of [
       sp.registration_path,
       sp.manifest_path,
@@ -61,6 +62,9 @@ test("actual runtime enforces bearer/origin/query/method boundaries and serves b
       ir.manifest_path,
       li.registration_path,
       li.manifest_path,
+      lj.registration_path,
+      lj.manifest_path,
+      path.join(path.dirname(lj.manifest_path), "jurisdictions.json"),
     ]) {
       const target = path.join(root, relative);
       await fs.mkdir(path.dirname(target), { recursive: true });

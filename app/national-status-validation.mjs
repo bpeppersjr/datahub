@@ -196,6 +196,7 @@ function validateNationalStatus(v, state = null) {
         "kind",
         "state",
         "industries",
+        "lifecycle_industry_jurisdiction",
         "claims",
         "provenance",
       ]) &&
@@ -206,6 +207,14 @@ function validateNationalStatus(v, state = null) {
       v.industries.every(
         (row, i) =>
           row.id === pin.industries[i] && validIndustryRow(row, v.state),
+      ) &&
+      v.lifecycle_industry_jurisdiction?.scope_kind === "state" &&
+      v.lifecycle_industry_jurisdiction.postal_abbreviation === v.state &&
+      v.lifecycle_industry_jurisdiction.industries?.length === 9 &&
+      v.lifecycle_industry_jurisdiction.industries.every(
+        (row, i) =>
+          row.industry_id === pin.industries[i] &&
+          integer(row.source_assignment_count),
       )
     );
   if (v.kind === "summary") {
@@ -228,6 +237,7 @@ function validateNationalStatus(v, state = null) {
         "state_registration_license_supplemental",
         "irs_eo_supplemental",
         "lifecycle_industry_zip",
+        "lifecycle_industry_jurisdiction",
         "claims",
         "provenance",
       ]) ||
@@ -290,6 +300,26 @@ function validateNationalStatus(v, state = null) {
       lifecycleIndustry.claims.unique_business_count !== null ||
       lifecycleIndustry.claims.current_operation_verified !== false ||
       lifecycleIndustry.claims.all_business_completeness !== null
+    )
+      return false;
+    const lifecycleJurisdiction = v.lifecycle_industry_jurisdiction,
+      lj = pin.lifecycle_industry_jurisdiction;
+    if (
+      lifecycleJurisdiction.release_id !== lj.release_id ||
+      lifecycleJurisdiction.registration_sha256 !== lj.registration_sha256 ||
+      lifecycleJurisdiction.manifest_sha256 !== lj.manifest_sha256 ||
+      lifecycleJurisdiction.jurisdictions_artifact_sha256 !==
+        lj.jurisdictions_artifact_sha256 ||
+      lifecycleJurisdiction.summary.scope_rows !== 60 ||
+      lifecycleJurisdiction.summary.state_scope_rows !== 51 ||
+      lifecycleJurisdiction.summary.territory_scope_rows !== 5 ||
+      lifecycleJurisdiction.summary.special_scope_rows !== 4 ||
+      lifecycleJurisdiction.summary.zip5_rows !== 48194 ||
+      lifecycleJurisdiction.summary.source_membership_count !== 8011213 ||
+      lifecycleJurisdiction.summary.industry_assignment_count !== 6782745 ||
+      lifecycleJurisdiction.claims.industry_assignments_additive !== false ||
+      lifecycleJurisdiction.claims.usps_zip_state_assignment !== false ||
+      lifecycleJurisdiction.claims.unique_business_count !== null
     )
       return false;
     const irs = v.irs_eo_supplemental,

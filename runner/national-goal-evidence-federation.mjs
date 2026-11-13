@@ -57,6 +57,8 @@ const INPUT_NAMES = [
   "irs_eo_supplemental_manifest",
   "lifecycle_industry_zip_registration",
   "lifecycle_industry_zip_manifest",
+  "lifecycle_industry_jurisdiction_registration",
+  "lifecycle_industry_jurisdiction_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -1177,6 +1179,91 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       "Source-relative lifecycle memberships with mapped source-record union distinct from nonadditive operational-industry assignments; separate from federation evidence-cell numerators and percentages.",
     claims: lifecycleIndustryClaims,
   };
+  const jurisdictionRegistration =
+      inputs.lifecycle_industry_jurisdiction_registration.value,
+    jurisdictionManifest = inputs.lifecycle_industry_jurisdiction_manifest.value;
+  check(
+    jurisdictionRegistration.runtime_pointer === null &&
+      jurisdictionRegistration.production_enrollment === false &&
+      jurisdictionRegistration.retained_release.release_id ===
+        jurisdictionManifest.release_id &&
+      jurisdictionRegistration.retained_release.manifest_sha256 ===
+        inputs.lifecycle_industry_jurisdiction_manifest.proof.sha256,
+    "lifecycle-industry jurisdiction selected release pin",
+  );
+  const jurisdictionRows = await artifact(
+      input,
+      "lifecycle_industry_jurisdiction_manifest",
+      "jurisdictions.json",
+      1_000_000,
+      signal,
+    ),
+    jurisdictionSummary = jurisdictionManifest.summary;
+  check(
+    jurisdictionRows.length === 60 &&
+      jurisdictionRows.filter((row) => row.scope_kind === "state").length === 51 &&
+      jurisdictionRows.filter((row) => row.scope_kind === "territory").length === 5 &&
+      jurisdictionRows.filter(
+        (row) => !["state", "territory"].includes(row.scope_kind),
+      ).length === 4 &&
+      jurisdictionRows.reduce((total, row) => total + row.zip5_rows, 0) === 48194 &&
+      jurisdictionRows.reduce(
+        (total, row) => total + row.source_membership_count,
+        0,
+      ) === 8011213 &&
+      jurisdictionRows.every((row) => row.industries.length === 9) &&
+      jurisdictionSummary.scope_rows === 60 &&
+      jurisdictionSummary.state_scope_rows === 51 &&
+      jurisdictionSummary.territory_scope_rows === 5 &&
+      jurisdictionSummary.special_scope_rows === 4 &&
+      jurisdictionSummary.zip5_rows === 48194 &&
+      jurisdictionSummary.source_membership_count === 8011213 &&
+      Object.values(jurisdictionSummary.lifecycle_evidence_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(jurisdictionSummary.review_status_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      jurisdictionSummary.mapped_source_record_union_count === 6780627 &&
+      jurisdictionSummary.unresolved_source_record_count === 1230586 &&
+      jurisdictionSummary.industry_assignment_count === 6782745 &&
+      Object.values(jurisdictionSummary.industry_assignment_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 6782745 &&
+      jurisdictionSummary.epa_refinement.source_record_count === 1517826 &&
+      jurisdictionSummary.epa_refinement.industry_assignment_count === 296595,
+    "lifecycle-industry jurisdiction compact conservation",
+  );
+  const jurisdictionClaims = jurisdictionManifest.claims;
+  check(
+    jurisdictionClaims.special_scopes_separate === true &&
+      jurisdictionClaims.multi_state_evidence_allocated === false &&
+      jurisdictionClaims.usps_zip_state_assignment === false &&
+      jurisdictionClaims.industry_assignments_additive === false &&
+      jurisdictionClaims.unique_business_count === null &&
+      jurisdictionClaims.all_business_completeness === null &&
+      jurisdictionClaims.current_operation_verified === false,
+    "lifecycle-industry jurisdiction claim boundary",
+  );
+  const lifecycleIndustryJurisdictionSidecar = {
+    schema_version: `${DATASET}-lifecycle-industry-jurisdiction@1.0.0`,
+    release_id: jurisdictionManifest.release_id,
+    registration_sha256:
+      inputs.lifecycle_industry_jurisdiction_registration.proof.sha256,
+    manifest_sha256:
+      inputs.lifecycle_industry_jurisdiction_manifest.proof.sha256,
+    jurisdictions_artifact_sha256: r.declaration(
+      inputs.lifecycle_industry_jurisdiction_manifest,
+      "jurisdictions.json",
+    ).sha256,
+    summary: jurisdictionSummary,
+    scope:
+      "Governed lifecycle-industry jurisdiction disposition; state/DC rows are selectable, while territories and special scopes remain separate and unassigned.",
+    claims: jurisdictionClaims,
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1253,6 +1340,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       state_registration_license_supplemental: stateRegistrationLicenseSidecar,
       irs_eo_supplemental: irsEoSupplementalSidecar,
       lifecycle_industry_zip: lifecycleIndustryZipSidecar,
+      lifecycle_industry_jurisdiction: lifecycleIndustryJurisdictionSidecar,
     },
     claims: CLAIMS,
   };

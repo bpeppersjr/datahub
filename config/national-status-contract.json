@@ -2,7 +2,7 @@
   "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
     "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
-    "national-summary.json": "5662997f3e72dd28b1f576e66c6718ab2d2ae096821f3034b5ee68a932944c1d",
+    "national-summary.json": "3ce293d7c70c7f9945d6155a1930dbee8ec32fc8515329f434b3570f2b500b52",
     "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -178,10 +178,18 @@
     "summary_artifact_sha256": "3e7f2aa71166c48dbce6fb0ef47d942afcb0f3dbe27febfa070bdfbfd13ac486",
     "outside_cohort_artifact_sha256": "46b50c321b39e89a491b6727a01628c34245605a30beb3e7414c5e01cff90e6e"
   },
+  "lifecycle_industry_jurisdiction": {
+    "registration_path": "config/datasets/national-business-lifecycle-industry-jurisdiction-evidence.json",
+    "registration_sha256": "fee5ead43901852b940c4df492de8f0b5fda51f91c9e5fb7305c1ec0199d3f38",
+    "release_id": "national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2",
+    "manifest_path": "data/national-business-lifecycle-industry-jurisdiction-evidence/releases/national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2/manifest.json",
+    "manifest_sha256": "7c8bddbefefb780a5aab846d901770fda7e8b4d4686b0ebdbfe3a1c041ac8fc6",
+    "jurisdictions_artifact_sha256": "54150df0060c19bdc9924f8bcb497cb213dcecc363b49bd8a2e086951adba5ff"
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-97ac6267cdfe6e4d20e86f5ad468b26ebc0e010a271ae36f1ea1cca002062234",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-97ac6267cdfe6e4d20e86f5ad468b26ebc0e010a271ae36f1ea1cca002062234/manifest.json",
-  "manifest_sha256": "e7a5af8144efa54373833fb5c81448153f496b5e2a8cb13df2e0bb3c7d7f3c2c",
+  "release_id": "national-goal-evidence-federation-551a3fc958fd54c3f655ea6e43924eab7e46175d7319eb83c4df1e72c7950abd",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-551a3fc958fd54c3f655ea6e43924eab7e46175d7319eb83c4df1e72c7950abd/manifest.json",
+  "manifest_sha256": "c172e063571f9d63936007d3e36c417d17697d8e4381bdaa5f67b0d8b92f5f4d",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

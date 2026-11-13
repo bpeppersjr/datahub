@@ -129,6 +129,15 @@ type View = {
     };
     scope: string;
   };
+  lifecycle_industry_jurisdiction: {
+    scope_kind?: string;
+    postal_abbreviation?: string;
+    source_membership_count?: number;
+    mapped_source_record_union_count?: number;
+    unresolved_source_record_count?: number;
+    industry_assignment_count?: number;
+    industries?: { industry_id: string; source_assignment_count: number }[];
+  };
   industries: Industry[];
   zip5: string;
   zip4: null;
@@ -541,6 +550,37 @@ export function NationalStatusPanel({ state }: { state: string }) {
                   </details>
                 </div>
               ))}
+              <section>
+                <h4>Separate lifecycle evidence by industry</h4>
+                <p>
+                  {n(
+                    selected.view.lifecycle_industry_jurisdiction
+                      .source_membership_count ?? 0,
+                  )}{" "}
+                  source-relative memberships · mapped union{" "}
+                  {n(
+                    selected.view.lifecycle_industry_jurisdiction
+                      .mapped_source_record_union_count ?? 0,
+                  )}{" "}
+                  · unresolved{" "}
+                  {n(
+                    selected.view.lifecycle_industry_jurisdiction
+                      .unresolved_source_record_count ?? 0,
+                  )}
+                </p>
+                {selected.view.lifecycle_industry_jurisdiction.industries?.map(
+                  (row) => (
+                    <p key={row.industry_id}>
+                      {label(row.industry_id)} · {n(row.source_assignment_count)}{" "}
+                      nonadditive assignments
+                    </p>
+                  ),
+                )}
+                <p>
+                  Separate lifecycle evidence only; not merged with evidence reach,
+                  maintenance, unique-business counts, or completeness.
+                </p>
+              </section>
             </div>
           )}
         </details>
