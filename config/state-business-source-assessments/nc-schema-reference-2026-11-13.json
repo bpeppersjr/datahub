@@ -1,0 +1,110 @@
+{
+  "schema_version": "nc-business-registration-schema-reference@1.0.0",
+  "reference_id": "nc-business-registration-schema-reference-2026-11-13",
+  "observed_at": "2026-11-13",
+  "state": "NC",
+  "publisher": "North Carolina Secretary of State",
+  "scope": "standalone-documentation-only-prerequisite",
+  "related_assessment_id": "nc-business-source-reassessment-2026-10-03",
+  "supersession_scope": "Supplemental documentation observations only; does not replace historical assessments, admit a connector, or change any readiness wave.",
+  "decision": "hold",
+  "current_schema_compatibility_verified": false,
+  "connector_ready": false,
+  "acquisition_authorized": false,
+  "required_source_files": 0,
+  "source_records_acquired": 0,
+  "broad_layer_gaps_resolved": 0,
+  "authority": {
+    "connector_implementation": false,
+    "network_execution": false,
+    "provider_contact": false,
+    "account_creation": false,
+    "terms_acceptance": false,
+    "paid_subscription": false,
+    "source_acquisition": false,
+    "production_publication": false,
+    "redistribution": false
+  },
+  "controls": {
+    "provider_row_requests": 0,
+    "datasets_acquired": 0,
+    "pdf_files_retained": 0,
+    "accounts_created": 0,
+    "fees_paid": 0,
+    "terms_accepted": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "policy": {
+    "ownership": "North Carolina Secretary of State publishes the cited documentation and controls the subscription route.",
+    "source_layer": "provider-restricted-subscription-pending-agreement-review",
+    "allowed_use": "This artifact records public documentation facts only; it grants no source-data use rights.",
+    "terms": "Interactive automated or scripted searches are prohibited. Bulk access is directed to Data Subscription Services; unattended subscription access terms remain unverified.",
+    "retention": "Retain this versioned evidence and citations; no PDF or source records are retained by this prerequisite.",
+    "attribution": "Attribute each observation to the official URL and observation date below.",
+    "redistribution": "No source-data redistribution or commercial derived-use rights established."
+  },
+  "current_documentation": {
+    "about_data": {
+      "url": "https://www.sosnc.gov/online_services/data_subscriptions/about_the_data",
+      "evidence_kind": "official-page-text",
+      "published_cadence": "weekly",
+      "published_format": "CSV",
+      "dictionary_location": "FTP server",
+      "scope": "Registered business entities and name reservations; not evidence of operating establishments or statewide business completeness."
+    },
+    "search_policy": {
+      "url": "https://www.sosnc.gov/divisions/business_registration",
+      "evidence_kind": "official-page-text",
+      "scripted_search_permitted": false,
+      "bulk_route": "Data Subscription Services"
+    },
+    "fees": {
+      "url": "https://www.sosnc.gov/fees/by_title/_data_subscriptions?area=Divisions",
+      "evidence_kind": "official-page-text",
+      "currency": "USD",
+      "one_time_setup": 750,
+      "business_registration_master_files_per_state_fiscal_year": 2000,
+      "purchase_authorized": false
+    },
+    "subscription_manual": {
+      "url": "https://www.sosnc.gov/manual/assets/sos/pdf/data_subscriptions.pdf",
+      "document_label": "Data Subscriptions Manual, IT—March 19, 2024",
+      "retrieval_observation": "retrievable",
+      "retrieval_evidence_origin": "coordinating-agent observation supplied to this documentation workstream",
+      "observed_bytes": 1733984,
+      "observed_sha256": "346c0b9fad925348ebd33e1c2bfbe4c9c20f2f24461158af088b5db7f9ff7857",
+      "retained_locally": false,
+      "current_schema_proof": false,
+      "scope": "Subscription guidance corroborates weekly CSV and FTP dictionary availability; manual bytes are not a schema compatibility receipt."
+    }
+  },
+  "historical_layout": {
+    "url": "https://www.sosnc.gov/documents/forms/Data_Subcriptions/Business_Registration_layout.pdf",
+    "evidence_kind": "indexed-official-historical-document-text",
+    "latest_documented_change": "2015-06-12",
+    "direct_retrieval_status": 404,
+    "direct_retrieval_evidence_origin": "coordinating-agent observation supplied to this documentation workstream; web reader also could not retrieve the URL",
+    "currently_linked_verified": false,
+    "retained_locally": false,
+    "current_schema_compatibility_verified": false,
+    "facts": [
+      "The historical Core export is a complete point-in-time set of data and tables with a relational design.",
+      "Historical Names and Address tables join through EntityID; there is no exported Entity table and an entity can have multiple names and addresses.",
+      "Historical NTypeID = 1 identifies the Legal NC name.",
+      "Historical PitemID identifies the unique corporate profile; CorpNum is not unique because the combined systems can duplicate it."
+    ],
+    "implementation_boundary": "These facts are historical review constraints, not a current executable schema, key mapping, header fixture, or parser contract. Preserve one-to-many relationships and source-native identifiers if a future current contract confirms them."
+  },
+  "unresolved_gates": [
+    "Retrieve and verify the current publisher dictionary and person-free headers through an authorized route.",
+    "Confirm current table inventory, field spelling and types, identifier uniqueness and lifecycle, and relationship cardinality.",
+    "Confirm status codebook, effective dates, and treatment of reservations and pending filings.",
+    "Confirm organization office versus mailing, registered-agent and person-linked address roles; preserve ZIP5 and ZIP4 separately.",
+    "Confirm full-versus-delta delivery, deletion and correction semantics, release completeness, counts and checksums.",
+    "Review current subscription agreement, unattended access, fees, retention, privacy, commercial derived use and redistribution rights.",
+    "Obtain separate explicit acquisition authorization and governed connector approval before any source-file request."
+  ],
+  "next_action": "Review current unsigned subscription and schema documentation when separately authorized; maintain HOLD and do not automate interactive search."
+}
