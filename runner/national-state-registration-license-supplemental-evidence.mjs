@@ -806,7 +806,48 @@ async function acquirePublicationLock(lockPath, token) {
       );
       if (age <= 300_000 || (await processAlive(owner.pid)))
         fail("publication is already owned");
-      await fs.unlink(lockPath);
+      const recoveryPath = `${lockPath}.recovery`,
+        recoveryToken = randomUUID();
+      let recovery;
+      try {
+        recovery = await fs.open(recoveryPath, "wx");
+        await recovery.writeFile(
+          line({
+            token: recoveryToken,
+            pid: process.pid,
+            created_at: new Date().toISOString(),
+            stale_owner_token: owner.token,
+          }),
+        );
+        await recovery.sync();
+        const current = (await json(lockPath, 10_000)).value,
+          currentAge = Date.now() - Date.parse(current.created_at);
+        check(
+          current.token === owner.token &&
+            current.pid === owner.pid &&
+            current.created_at === owner.created_at &&
+            Number.isFinite(currentAge) &&
+            currentAge > 300_000 &&
+            !(await processAlive(current.pid)),
+          "publication lock changed during recovery",
+        );
+        await fs.unlink(lockPath);
+      } catch (recoveryError) {
+        if (recoveryError.code === "EEXIST")
+          fail("publication lock recovery is already owned");
+        throw recoveryError;
+      } finally {
+        await recovery?.close();
+        try {
+          const recoveryOwner = JSON.parse(
+            await fs.readFile(recoveryPath, "utf8"),
+          );
+          if (recoveryOwner.token === recoveryToken)
+            await fs.unlink(recoveryPath);
+        } catch (recoveryError) {
+          if (recoveryError.code !== "ENOENT") throw recoveryError;
+        }
+      }
     }
   }
   fail("stale publication lock recovery");
@@ -1149,3 +1190,5 @@ export const nationalStateRegistrationLicenseSupplementalReadForTest = (
   file,
   max,
 ) => bytes(file, max);
+export const nationalStateRegistrationLicenseSupplementalAcquirePublicationLockForTest =
+  (file, token) => acquirePublicationLock(file, token);

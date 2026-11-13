@@ -3,7 +3,7 @@ import test from "node:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { buildNationalStateRegistrationLicenseSupplementalEvidence, composeNationalStateRegistrationLicenseSupplementalEvidence, nationalStateRegistrationLicenseSupplementalClaimsForTest, nationalStateRegistrationLicenseSupplementalReadForTest } from "./national-state-registration-license-supplemental-evidence.mjs";
+import { buildNationalStateRegistrationLicenseSupplementalEvidence, composeNationalStateRegistrationLicenseSupplementalEvidence, nationalStateRegistrationLicenseSupplementalAcquirePublicationLockForTest, nationalStateRegistrationLicenseSupplementalClaimsForTest, nationalStateRegistrationLicenseSupplementalReadForTest } from "./national-state-registration-license-supplemental-evidence.mjs";
 
 test("state registration/license supplemental evidence conserves ten dimensions without overclaiming", async () => {
   const value = await composeNationalStateRegistrationLicenseSupplementalEvidence();
@@ -25,5 +25,18 @@ test("hardened input reader rejects multi-link files", async () => {
 test("publisher recovers a stale dead-owner lock and then reuses the identical release", async () => {
   const parent = path.resolve("work", "state-license-publish-tests"); await fs.mkdir(parent, { recursive: true }); const outputRoot = await fs.mkdtemp(path.join(parent, "recovery-"));
   try { const releases = path.join(outputRoot, "releases"); await fs.mkdir(releases); const release = "national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd", lock = path.join(releases, `${release}.lock`); await fs.writeFile(lock, `${JSON.stringify({ token: "dead-owner", pid: 2_000_000_000, created_at: "2000-01-01T00:00:00.000Z" })}\n`); const first = await buildNationalStateRegistrationLicenseSupplementalEvidence({ outputRoot }), second = await buildNationalStateRegistrationLicenseSupplementalEvidence({ outputRoot }); assert.equal(first.release_id, release); assert.equal(second.manifest_sha256, first.manifest_sha256); assert.equal(await fs.stat(lock).then(() => true).catch(error => error.code === "ENOENT" ? false : Promise.reject(error)), false); }
+  finally { await fs.rm(outputRoot, { recursive: true, force: true }); }
+});
+
+test("concurrent stale-lock recovery cannot remove the replacement owner's lock", async () => {
+  const parent = path.resolve("work", "state-license-publish-tests"); await fs.mkdir(parent, { recursive: true }); const outputRoot = await fs.mkdtemp(path.join(parent, "concurrent-recovery-"));
+  try {
+    const lock = path.join(outputRoot, "release.lock"), recovery = `${lock}.recovery`;
+    await fs.writeFile(lock, `${JSON.stringify({ token: "dead-owner", pid: 2_000_000_000, created_at: "2000-01-01T00:00:00.000Z" })}\n`);
+    const attempts = await Promise.allSettled([nationalStateRegistrationLicenseSupplementalAcquirePublicationLockForTest(lock, "replacement-a"), nationalStateRegistrationLicenseSupplementalAcquirePublicationLockForTest(lock, "replacement-b")]);
+    assert.equal(attempts.filter(result => result.status === "fulfilled").length, 1); assert.equal(attempts.filter(result => result.status === "rejected").length, 1);
+    const winner = attempts.find(result => result.status === "fulfilled"); await winner.value.close(); const owner = JSON.parse(await fs.readFile(lock, "utf8")); assert.ok(["replacement-a", "replacement-b"].includes(owner.token));
+    assert.equal(await fs.stat(recovery).then(() => true).catch(error => error.code === "ENOENT" ? false : Promise.reject(error)), false); await fs.unlink(lock);
+  }
   finally { await fs.rm(outputRoot, { recursive: true, force: true }); }
 });
