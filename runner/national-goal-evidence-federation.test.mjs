@@ -7,7 +7,8 @@ import { APP_ROOT } from './paths.mjs';
 import { DATASET, CLAIMS, federationGeographyScope, buildNationalGoalEvidenceFederation, verifyNationalGoalEvidenceFederation } from './national-goal-evidence-federation.mjs';
 
 const configPath=path.join(APP_ROOT,`config/${DATASET}.json`);
-const successorRelease='national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d';
+const currentConfigPath=path.join(APP_ROOT,'config/national-goal-evidence-federation-v3-4.json');
+const successorRelease='national-goal-evidence-federation-38479a5aa2966dc83642f0d0ea68a13fd6830647e413a4d105aae4678d2c1000';
 const successorManifest=path.join(APP_ROOT,`data/${DATASET}/releases/${successorRelease}/manifest.json`);
 const json=async p=>JSON.parse(await fs.readFile(p,'utf8'));
 async function fixture(t) {const root=await fs.mkdtemp(path.join(APP_ROOT,'data/tmp/goal-federation-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));return root;}
@@ -44,15 +45,15 @@ test('symlink input ancestry is rejected before evidence processing',async t=>{
   await assert.rejects(buildNationalGoalEvidenceFederation({root,configPath:file}),/symlink ancestry/);
 });
 
-test('v3.3 federation successor has full independent replay, closed units and correct evidence gaps',async()=>{
+test('selected v3.4 federation successor has full independent replay, closed units and correct evidence gaps',async()=>{
   const manifest=successorManifest;
-  const verified=await verifyNationalGoalEvidenceFederation(manifest);assert.equal(verified.manifest_sha256,'2d8f783d8a188143c8fa6e368e2497eeef1872fa540821d069f36d16acce0b78');
+  const verified=await verifyNationalGoalEvidenceFederation(manifest,{configPath:currentConfigPath});assert.equal(verified.manifest_sha256,'e654c33c1a5f227728394657ad49d8895fcff987e547bd2c2fe3d4ec3fac3f11');
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
   assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:181,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));
   assert.deepEqual(verified.temporal_assessment,summary.temporal_assessment);
   const temporal=summary.temporal_assessment, matrix=(await json(manifest)).inputs.matrix;
-  assert.equal(temporal.schema_version,'exact-zip-industry-temporal-summary-projection@3.3.0');
+  assert.equal(temporal.schema_version,'exact-zip-industry-temporal-summary-projection@3.4.0');
   assert.equal(temporal.matrix_release_id,matrix.release_id);
   assert.equal(temporal.matrix_manifest_sha256,matrix.sha256);
   assert.equal(temporal.source_dimensions,summary.dimension_order.length);
@@ -70,14 +71,14 @@ test('v3.3 federation successor has full independent replay, closed units and co
   const la=summary.sidecars.publisher_membership_reconciliation;assert.equal(la.registration_sha256,'8bb9d80ddd7192e76f1a48a75e83b03afd8e91170eafb646193adde2b8961d75');assert.equal(la.source_rows,la.normalized_profiles+la.quarantined_rows);assert.deepEqual(la.effective_source_classification_counts,{'source-defined-current-membership':21,'non-active-reporting-membership':7,'annual-aggregate':1,'unknown-source-status':1});assert.equal(la.row_status,null);assert.equal(la.lifecycle_evidence,'unknown');assert.equal(la.active_business_eligible_count,0);assert.equal(la.active_business_count,null);assert.equal(la.completeness_percentage,null);assert.equal(la.claims.inference_performed,false);
 });
 
-test('successor corrects temporal aggregate provenance while preserving its immutable predecessor',async()=>{
-  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-4ac8897c1a742465ab11a193e81f002746be53d4b182852baac0595a7511ecbf/manifest.json');
+test('supplemental sidecar successor preserves all predecessor artifacts except national summary',async()=>{
+  const prior=path.join(APP_ROOT,'data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f1e80ce66c819fb5f4e6435d2ecdcc3dd45a162ab06cccc8fe16dbfdaf86a594/manifest.json');
   const current=successorManifest;
   const oldBytes=await fs.readFile(prior),oldManifest=JSON.parse(oldBytes),newManifest=await json(current);
-  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'a63df7b85f297a4914b86bccb292b4e0fbc49d66470584e21a62ae71fe376c56');
+  assert.equal(createHash('sha256').update(oldBytes).digest('hex'),'125d0b48d05cd932d7a85dc53ef229ed2b61a981de26c0745afea4a27447db11');
   assert.equal(oldManifest.artifacts.length,104);assert.equal(newManifest.artifacts.length,104);
   const oldHashes=new Map(oldManifest.artifacts.map(a=>[a.path,a.sha256]));
-  assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['gap-ledger.json','national-summary.json','state-industry-status.jsonl']));
+  assert.deepEqual(new Set(newManifest.artifacts.filter(a=>oldHashes.get(a.path)!==a.sha256).map(a=>a.path)),new Set(['national-summary.json']));
 });
 
 test('current verifier rejects legacy temporal lineage, dimension count and checksum',async t=>{
@@ -88,14 +89,14 @@ test('current verifier rejects legacy temporal lineage, dimension count and chec
   for(const change of [value=>({...value,...legacy}),value=>({...value,source_dimensions:42}),value=>({...value,projection_sha256:legacy.manifest_sha256})]){
     const changed=structuredClone(manifest);changed.summary.temporal_assessment=change(changed.summary.temporal_assessment);
     await fs.writeFile(file,JSON.stringify(changed));
-    await assert.rejects(verifyNationalGoalEvidenceFederation(file),/v3\.3 temporal projection manifest pin/);
+    await assert.rejects(verifyNationalGoalEvidenceFederation(file,{configPath:currentConfigPath}),/3\.4 temporal projection manifest pin/);
   }
 });
 
 test('exclusive publisher lock and cancellation leave no invocation staging',async t=>{
   const lock=path.join(APP_ROOT,`data/${DATASET}/.build.lock`);await fs.mkdir(lock);t.after(()=>fs.rm(lock,{recursive:true,force:true}));
-  await assert.rejects(buildNationalGoalEvidenceFederation(),{code:'EEXIST'});await fs.rmdir(lock);
-  const controller=new AbortController();await assert.rejects(buildNationalGoalEvidenceFederation({signal:controller.signal,hooks:async event=>{if(event==='output-row')controller.abort();}}),{name:'AbortError'});
+  await assert.rejects(buildNationalGoalEvidenceFederation({configPath:currentConfigPath}),{code:'EEXIST'});await fs.rmdir(lock);
+  const controller=new AbortController();await assert.rejects(buildNationalGoalEvidenceFederation({configPath:currentConfigPath,signal:controller.signal,hooks:async event=>{if(event==='output-row')controller.abort();}}),{name:'AbortError'});
   assert.equal(await fs.stat(lock).then(()=>true,()=>false),false);assert.ok(!(await fs.readdir(path.dirname(lock))).some(name=>name.startsWith('.stage-')));
 });
 
@@ -108,12 +109,12 @@ test('artifact and repinned semantic/count tampering fail independent reconstruc
   const source=path.dirname(successorManifest),root=await fixture(t),dir=path.join(root,successorRelease);await fs.cp(source,dir,{recursive:true});
   const file=path.join(dir,'national-summary.json'),original=await fs.readFile(file),m=await json(path.join(dir,'manifest.json'));
   const summary=JSON.parse(original);summary.zip5_cohort_rows--;const changed=Buffer.from(JSON.stringify(summary)+'\n');await fs.writeFile(file,changed);
-  await assert.rejects(verifyNationalGoalEvidenceFederation(path.join(dir,'manifest.json')),/artifact replay/);
+  await assert.rejects(verifyNationalGoalEvidenceFederation(path.join(dir,'manifest.json'),{configPath:currentConfigPath}),/artifact replay/);
   const a=m.artifacts.find(a=>a.path==='national-summary.json');a.sha256=createHash('sha256').update(changed).digest('hex');a.bytes=changed.length;a.decoded_bytes=changed.length;
-  await fs.writeFile(path.join(dir,'manifest.json'),JSON.stringify(m));await assert.rejects(verifyNationalGoalEvidenceFederation(path.join(dir,'manifest.json')),/independent semantic reconstruction/);
+  await fs.writeFile(path.join(dir,'manifest.json'),JSON.stringify(m));await assert.rejects(verifyNationalGoalEvidenceFederation(path.join(dir,'manifest.json'),{configPath:currentConfigPath}),/independent semantic reconstruction/);
 });
 
 test('post-verification output mutation cannot publish and owned staging is removed',async()=>{
-  await assert.rejects(buildNationalGoalEvidenceFederation({hooks:async(event,{stage}={})=>{if(event==='after-verification-before-publication')await fs.appendFile(path.join(stage,'gap-ledger.json'),' ');}}),/publication output mutation/);
+  await assert.rejects(buildNationalGoalEvidenceFederation({configPath:currentConfigPath,hooks:async(event,{stage}={})=>{if(event==='after-verification-before-publication')await fs.appendFile(path.join(stage,'gap-ledger.json'),' ');}}),/publication output mutation/);
   const base=path.join(APP_ROOT,`data/${DATASET}`);assert.equal(await fs.stat(path.join(base,'.build.lock')).then(()=>true,()=>false),false);assert.ok(!(await fs.readdir(base)).some(name=>name.startsWith('.stage-')));
 });

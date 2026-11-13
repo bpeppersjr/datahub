@@ -1,87 +1,809 @@
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { gunzipSync } from 'node:zlib';
-import pin from '../config/national-status-contract.json' with { type: 'json' };
-import { APP_ROOT } from './paths.mjs';
-import { echoReplay as r } from './national-epa-echo-naics-zip-industry-evidence.mjs';
-import { exact, equal, integer, validIndustryRow, validNationalStatus, validTemporalAssessment, evidenceStatuses } from '../app/national-status-validation.mjs';
+import fs from "node:fs/promises";
+import path from "node:path";
+import { gunzipSync } from "node:zlib";
+import pin from "../config/national-status-contract.json" with { type: "json" };
+import { APP_ROOT } from "./paths.mjs";
+import { echoReplay as r } from "./national-epa-echo-naics-zip-industry-evidence.mjs";
+import {
+  exact,
+  equal,
+  integer,
+  validIndustryRow,
+  validNationalStatus,
+  validTemporalAssessment,
+  evidenceStatuses,
+} from "../app/national-status-validation.mjs";
 
-const DATASET='national-goal-evidence-federation';
-const check=(v,label)=>{if(!v)throw Error(`National status rejected: ${label}.`)};
-const decoder=new TextDecoder('utf-8',{fatal:true});
-export const NATIONAL_STATUS_LIMITS=Object.freeze({manifest:100000,summary:100000,state:2000000,compressed:64000,decoded:3000000,line:32000,response:128000});
-const REGISTRATION={schema_version:'1.0.0',dataset_id:DATASET,status:'registered-pointer-free-local-review-only',runtime_pointer:null,production_enrollment:false,application_integration:'bounded-authenticated-read-only-national-status@1.0.0',retained_release:{release_id:pin.release_id,manifest:pin.manifest,manifest_sha256:pin.manifest_sha256,zip5_rows:48194,source_dimensions:51,state_industry_rows:459,artifact_count:104},documentation:'docs/NATIONAL-GOAL-EVIDENCE-FEDERATION.md'};
-const names=['national-summary.json','state-industry-status.jsonl','gap-ledger.json','territories.json',...Array.from({length:100},(_,i)=>`zip-status/prefix=${String(i).padStart(2,'0')}.jsonl.gz`)];
+const DATASET = "national-goal-evidence-federation";
+const check = (v, label) => {
+  if (!v) throw Error(`National status rejected: ${label}.`);
+};
+const decoder = new TextDecoder("utf-8", { fatal: true });
+export const NATIONAL_STATUS_LIMITS = Object.freeze({
+  manifest: 100000,
+  summary: 100000,
+  state: 2000000,
+  compressed: 64000,
+  decoded: 3000000,
+  line: 32000,
+  response: 128000,
+});
+const REGISTRATION = {
+  schema_version: "1.0.0",
+  dataset_id: DATASET,
+  status: "registered-pointer-free-local-review-only",
+  runtime_pointer: null,
+  production_enrollment: false,
+  application_integration:
+    "bounded-authenticated-read-only-national-status@1.0.0",
+  retained_release: {
+    release_id: pin.release_id,
+    manifest: pin.manifest,
+    manifest_sha256: pin.manifest_sha256,
+    zip5_rows: 48194,
+    source_dimensions: 51,
+    state_industry_rows: 459,
+    artifact_count: 104,
+  },
+  documentation: "docs/NATIONAL-GOAL-EVIDENCE-FEDERATION.md",
+};
+const names = [
+  "national-summary.json",
+  "state-industry-status.jsonl",
+  "gap-ledger.json",
+  "territories.json",
+  ...Array.from(
+    { length: 100 },
+    (_, i) => `zip-status/prefix=${String(i).padStart(2, "0")}.jsonl.gz`,
+  ),
+];
 
-async function load(root,signal) {
-  root=await fs.realpath(path.resolve(root));
-  const registrationFile=r.contained(root,`config/datasets/${DATASET}.json`),registration=await r.secureBuffer(root,registrationFile,10000,signal);
-  check(equal(JSON.parse(decoder.decode(registration.raw)),REGISTRATION),'closed registration and pin');
-  const manifestFile=r.contained(root,pin.manifest),proof=await r.secureBuffer(root,manifestFile,NATIONAL_STATUS_LIMITS.manifest,signal),manifest=JSON.parse(decoder.decode(proof.raw));
-  check(proof.sha256===pin.manifest_sha256 && exact(manifest,['release_id','schema_version','dataset_id','status','publication_mode','created_at','inputs','config_sha256','contract_sha256','summary','claims','verification_scope','artifacts']) && manifest.release_id===pin.release_id && manifest.schema_version===`${DATASET}@1.0.0` && manifest.dataset_id===DATASET && manifest.status==='immutable-local-review-only' && manifest.publication_mode==='pointer-free' && equal(manifest.claims,pin.claims),'closed immutable manifest');
-  check(equal(manifest.summary,{zip5_cohort_rows:48194,source_dimensions:51,matrix_evidence_cells:2457894,state_industry_rows:459,gaps:pin.gaps,temporal_assessment:pin.temporal_assessment}) &&
-    validTemporalAssessment(manifest.summary.temporal_assessment) && manifest.inputs.matrix.release_id===pin.matrix_provenance.release_id &&
-    manifest.inputs.matrix.sha256===pin.matrix_provenance.manifest_sha256,'manifest totals and v3.3 temporal projection');
-  check(Array.isArray(manifest.artifacts) && manifest.artifacts.length===104 && new Set(manifest.artifacts.map(a=>a.path)).size===104 && names.every(name=>manifest.artifacts.some(a=>a.path===name)),'artifact roster');
-  for(const a of manifest.artifacts)check(exact(a,['path','artifact_type','bytes','decoded_bytes','record_count','sha256']) && integer(a.bytes) && integer(a.decoded_bytes) && integer(a.record_count) && /^[a-f0-9]{64}$/.test(a.sha256),'artifact declarations');
-  const q=pin.geography_relationship_quality,relationshipRegistrationFile=r.contained(root,q.registration_path),relationshipRegistration=await r.secureBuffer(root,relationshipRegistrationFile,10000,signal),rr=JSON.parse(decoder.decode(relationshipRegistration.raw));
-  check(relationshipRegistration.sha256===q.registration_sha256 && rr.selected_release_id===q.release_id && rr.retained_releases.filter(row=>row.selected).length===1 && rr.retained_releases.find(row=>row.selected)?.manifest_sha256===q.manifest_sha256,'geography relationship registration pin');
-  const relationshipManifestFile=r.contained(root,q.manifest_path),relationshipManifestProof=await r.secureBuffer(root,relationshipManifestFile,1_000_000,signal),rm=JSON.parse(decoder.decode(relationshipManifestProof.raw));
-  check(relationshipManifestProof.sha256===q.manifest_sha256 && rm.release_id===q.release_id && rm.summary.profiles===q.profile_count && equal(rm.summary.postal,q.postal_relationship_counts) && equal(rm.summary.point,q.point_relationship_counts) && rm.summary.reported_state_conflict===q.reported_state_conflict_count && Object.values(rm.summary.source_counts).reduce((n,v)=>n+v,0)===q.profile_count,'geography relationship manifest conservation');
-  const sp=pin.source_policy_provenance,sourcePolicyRegistrationFile=r.contained(root,sp.registration_path),sourcePolicyRegistration=await r.secureBuffer(root,sourcePolicyRegistrationFile,2_000_000,signal),spr=JSON.parse(decoder.decode(sourcePolicyRegistration.raw)),sourcePolicyManifestFile=r.contained(root,sp.manifest_path),sourcePolicyManifest=await r.secureBuffer(root,sourcePolicyManifestFile,2_000_000,signal),spm=JSON.parse(decoder.decode(sourcePolicyManifest.raw));
-  check(sourcePolicyRegistration.sha256===sp.registration_sha256 && spr.selected_release_id===sp.release_id && sourcePolicyManifest.sha256===sp.manifest_sha256 && spm.release_id===sp.release_id && spm.artifact.sha256===sp.artifact_sha256,'source policy compact pins');
-  const pr=pin.publisher_membership_reconciliation,reconciliationRegistrationFile=r.contained(root,pr.registration_path),reconciliationRegistration=await r.secureBuffer(root,reconciliationRegistrationFile,100_000,signal),prr=JSON.parse(decoder.decode(reconciliationRegistration.raw)),laManifestFile=r.contained(root,pr.la_manifest_path),laManifest=await r.secureBuffer(root,laManifestFile,200_000,signal);
-  check(reconciliationRegistration.sha256===pr.registration_sha256 && prr.bindings.la_manifest.path===pr.la_manifest_path && prr.bindings.la_manifest.sha256===pr.la_manifest_sha256 && laManifest.sha256===pr.la_manifest_sha256,'publisher reconciliation compact pins');
-  return {root,signal,manifest,manifestFile,directory:path.dirname(manifestFile),registrationFile,registrationHash:registration.sha256,relationshipRegistrationFile,relationshipRegistrationHash:relationshipRegistration.sha256,relationshipManifestFile,relationshipManifestHash:relationshipManifestProof.sha256,sourcePolicyRegistrationFile,sourcePolicyRegistrationHash:sourcePolicyRegistration.sha256,sourcePolicyManifestFile,sourcePolicyManifestHash:sourcePolicyManifest.sha256,reconciliationRegistrationFile,reconciliationRegistrationHash:reconciliationRegistration.sha256,laManifestFile,laManifestHash:laManifest.sha256};
+async function load(root, signal) {
+  root = await fs.realpath(path.resolve(root));
+  const registrationFile = r.contained(root, `config/datasets/${DATASET}.json`),
+    registration = await r.secureBuffer(root, registrationFile, 10000, signal);
+  check(
+    equal(JSON.parse(decoder.decode(registration.raw)), REGISTRATION),
+    "closed registration and pin",
+  );
+  const manifestFile = r.contained(root, pin.manifest),
+    proof = await r.secureBuffer(
+      root,
+      manifestFile,
+      NATIONAL_STATUS_LIMITS.manifest,
+      signal,
+    ),
+    manifest = JSON.parse(decoder.decode(proof.raw));
+  check(
+    proof.sha256 === pin.manifest_sha256 &&
+      exact(manifest, [
+        "release_id",
+        "schema_version",
+        "dataset_id",
+        "status",
+        "publication_mode",
+        "created_at",
+        "inputs",
+        "config_sha256",
+        "contract_sha256",
+        "summary",
+        "claims",
+        "verification_scope",
+        "artifacts",
+      ]) &&
+      manifest.release_id === pin.release_id &&
+      manifest.schema_version === `${DATASET}@1.0.0` &&
+      manifest.dataset_id === DATASET &&
+      manifest.status === "immutable-local-review-only" &&
+      manifest.publication_mode === "pointer-free" &&
+      equal(manifest.claims, pin.claims),
+    "closed immutable manifest",
+  );
+  check(
+    equal(manifest.summary, {
+      zip5_cohort_rows: 48194,
+      source_dimensions: 51,
+      matrix_evidence_cells: 2457894,
+      state_industry_rows: 459,
+      gaps: pin.gaps,
+      temporal_assessment: pin.temporal_assessment,
+    }) &&
+      validTemporalAssessment(manifest.summary.temporal_assessment) &&
+      manifest.inputs.matrix.release_id === pin.matrix_provenance.release_id &&
+      manifest.inputs.matrix.sha256 === pin.matrix_provenance.manifest_sha256,
+    "manifest totals and v3.3 temporal projection",
+  );
+  check(
+    Array.isArray(manifest.artifacts) &&
+      manifest.artifacts.length === 104 &&
+      new Set(manifest.artifacts.map((a) => a.path)).size === 104 &&
+      names.every((name) => manifest.artifacts.some((a) => a.path === name)),
+    "artifact roster",
+  );
+  for (const a of manifest.artifacts)
+    check(
+      exact(a, [
+        "path",
+        "artifact_type",
+        "bytes",
+        "decoded_bytes",
+        "record_count",
+        "sha256",
+      ]) &&
+        integer(a.bytes) &&
+        integer(a.decoded_bytes) &&
+        integer(a.record_count) &&
+        /^[a-f0-9]{64}$/.test(a.sha256),
+      "artifact declarations",
+    );
+  const q = pin.geography_relationship_quality,
+    relationshipRegistrationFile = r.contained(root, q.registration_path),
+    relationshipRegistration = await r.secureBuffer(
+      root,
+      relationshipRegistrationFile,
+      10000,
+      signal,
+    ),
+    rr = JSON.parse(decoder.decode(relationshipRegistration.raw));
+  check(
+    relationshipRegistration.sha256 === q.registration_sha256 &&
+      rr.selected_release_id === q.release_id &&
+      rr.retained_releases.filter((row) => row.selected).length === 1 &&
+      rr.retained_releases.find((row) => row.selected)?.manifest_sha256 ===
+        q.manifest_sha256,
+    "geography relationship registration pin",
+  );
+  const relationshipManifestFile = r.contained(root, q.manifest_path),
+    relationshipManifestProof = await r.secureBuffer(
+      root,
+      relationshipManifestFile,
+      1_000_000,
+      signal,
+    ),
+    rm = JSON.parse(decoder.decode(relationshipManifestProof.raw));
+  check(
+    relationshipManifestProof.sha256 === q.manifest_sha256 &&
+      rm.release_id === q.release_id &&
+      rm.summary.profiles === q.profile_count &&
+      equal(rm.summary.postal, q.postal_relationship_counts) &&
+      equal(rm.summary.point, q.point_relationship_counts) &&
+      rm.summary.reported_state_conflict === q.reported_state_conflict_count &&
+      Object.values(rm.summary.source_counts).reduce((n, v) => n + v, 0) ===
+        q.profile_count,
+    "geography relationship manifest conservation",
+  );
+  const sp = pin.source_policy_provenance,
+    sourcePolicyRegistrationFile = r.contained(root, sp.registration_path),
+    sourcePolicyRegistration = await r.secureBuffer(
+      root,
+      sourcePolicyRegistrationFile,
+      2_000_000,
+      signal,
+    ),
+    spr = JSON.parse(decoder.decode(sourcePolicyRegistration.raw)),
+    sourcePolicyManifestFile = r.contained(root, sp.manifest_path),
+    sourcePolicyManifest = await r.secureBuffer(
+      root,
+      sourcePolicyManifestFile,
+      2_000_000,
+      signal,
+    ),
+    spm = JSON.parse(decoder.decode(sourcePolicyManifest.raw));
+  check(
+    sourcePolicyRegistration.sha256 === sp.registration_sha256 &&
+      spr.selected_release_id === sp.release_id &&
+      sourcePolicyManifest.sha256 === sp.manifest_sha256 &&
+      spm.release_id === sp.release_id &&
+      spm.artifact.sha256 === sp.artifact_sha256,
+    "source policy compact pins",
+  );
+  const pr = pin.publisher_membership_reconciliation,
+    reconciliationRegistrationFile = r.contained(root, pr.registration_path),
+    reconciliationRegistration = await r.secureBuffer(
+      root,
+      reconciliationRegistrationFile,
+      100_000,
+      signal,
+    ),
+    prr = JSON.parse(decoder.decode(reconciliationRegistration.raw)),
+    laManifestFile = r.contained(root, pr.la_manifest_path),
+    laManifest = await r.secureBuffer(root, laManifestFile, 200_000, signal);
+  check(
+    reconciliationRegistration.sha256 === pr.registration_sha256 &&
+      prr.bindings.la_manifest.path === pr.la_manifest_path &&
+      prr.bindings.la_manifest.sha256 === pr.la_manifest_sha256 &&
+      laManifest.sha256 === pr.la_manifest_sha256,
+    "publisher reconciliation compact pins",
+  );
+  const sr = pin.state_registration_license_supplemental,
+    supplementalRegistrationFile = r.contained(root, sr.registration_path),
+    supplementalRegistration = await r.secureBuffer(
+      root,
+      supplementalRegistrationFile,
+      100_000,
+      signal,
+    ),
+    srr = JSON.parse(decoder.decode(supplementalRegistration.raw)),
+    supplementalManifestFile = r.contained(root, sr.manifest_path),
+    supplementalManifest = await r.secureBuffer(
+      root,
+      supplementalManifestFile,
+      100_000,
+      signal,
+    ),
+    srm = JSON.parse(decoder.decode(supplementalManifest.raw));
+  check(
+    supplementalRegistration.sha256 === sr.registration_sha256 &&
+      srr.retained_release.release_id === sr.release_id &&
+      srr.retained_release.manifest_sha256 === sr.manifest_sha256 &&
+      srr.runtime_pointer === null &&
+      srr.production_enrollment === false &&
+      supplementalManifest.sha256 === sr.manifest_sha256 &&
+      srm.release_id === sr.release_id,
+    "state registration/license compact pins",
+  );
+  return {
+    root,
+    signal,
+    manifest,
+    manifestFile,
+    directory: path.dirname(manifestFile),
+    registrationFile,
+    registrationHash: registration.sha256,
+    relationshipRegistrationFile,
+    relationshipRegistrationHash: relationshipRegistration.sha256,
+    relationshipManifestFile,
+    relationshipManifestHash: relationshipManifestProof.sha256,
+    sourcePolicyRegistrationFile,
+    sourcePolicyRegistrationHash: sourcePolicyRegistration.sha256,
+    sourcePolicyManifestFile,
+    sourcePolicyManifestHash: sourcePolicyManifest.sha256,
+    reconciliationRegistrationFile,
+    reconciliationRegistrationHash: reconciliationRegistration.sha256,
+    laManifestFile,
+    laManifestHash: laManifest.sha256,
+    supplementalRegistrationFile,
+    supplementalRegistrationHash: supplementalRegistration.sha256,
+    supplementalManifestFile,
+    supplementalManifestHash: supplementalManifest.sha256,
+  };
 }
-async function artifact(ctx,name,max) {
-  const a=ctx.manifest.artifacts.find(row=>row.path===name);check(a && a.bytes<=max,'artifact size');
-  const proof=await r.secureBuffer(ctx.root,r.contained(ctx.directory,name),max,ctx.signal);check(proof.bytes===a.bytes && proof.sha256===a.sha256,'artifact checksum');
-  return {a,raw:proof.raw};
+async function artifact(ctx, name, max) {
+  const a = ctx.manifest.artifacts.find((row) => row.path === name);
+  check(a && a.bytes <= max, "artifact size");
+  const proof = await r.secureBuffer(
+    ctx.root,
+    r.contained(ctx.directory, name),
+    max,
+    ctx.signal,
+  );
+  check(
+    proof.bytes === a.bytes && proof.sha256 === a.sha256,
+    "artifact checksum",
+  );
+  return { a, raw: proof.raw };
 }
-const parseJson=raw=>JSON.parse(decoder.decode(raw));
-export function decodeNationalStatusPartition(raw,declaration,prefix) {
-  check(/^\d{2}$/.test(prefix) && declaration.bytes<=NATIONAL_STATUS_LIMITS.compressed && declaration.decoded_bytes<=NATIONAL_STATUS_LIMITS.decoded && declaration.record_count<=1200,'partition declaration bounds');
-  const decoded=gunzipSync(raw,{maxOutputLength:NATIONAL_STATUS_LIMITS.decoded});check(decoded.length===declaration.decoded_bytes,'decoded byte declaration');
-  const rows=decoder.decode(decoded).trimEnd().split('\n');check(rows.length===declaration.record_count && rows.length<=1200,'partition line count');
-  let previous='';
-  return rows.map(line=>{
-    check(Buffer.byteLength(line)<=NATIONAL_STATUS_LIMITS.line,'partition line bounds');const row=JSON.parse(line);
-    check(exact(row,['schema_version','zip5','zip4','cohort_classification','zcta_geoid','usps_validity','geography_scope','overlay','dimension_evidence_statuses','non_zcta_context','epa_supplemental']) && row.schema_version===`${DATASET}-zip@1.0.0` && /^\d{5}$/.test(row.zip5) && row.zip5.startsWith(prefix) && row.zip5>previous && row.zip4===null && row.usps_validity===null && r.CLASSIFICATIONS.includes(row.cohort_classification) && Object.hasOwn(pin.geography_scope_counts,row.geography_scope) && Array.isArray(row.dimension_evidence_statuses) && row.dimension_evidence_statuses.length===51 && row.dimension_evidence_statuses.every(s=>evidenceStatuses.includes(s)),'closed ZIP status row');previous=row.zip5;return row;
+const parseJson = (raw) => JSON.parse(decoder.decode(raw));
+export function decodeNationalStatusPartition(raw, declaration, prefix) {
+  check(
+    /^\d{2}$/.test(prefix) &&
+      declaration.bytes <= NATIONAL_STATUS_LIMITS.compressed &&
+      declaration.decoded_bytes <= NATIONAL_STATUS_LIMITS.decoded &&
+      declaration.record_count <= 1200,
+    "partition declaration bounds",
+  );
+  const decoded = gunzipSync(raw, {
+    maxOutputLength: NATIONAL_STATUS_LIMITS.decoded,
+  });
+  check(
+    decoded.length === declaration.decoded_bytes,
+    "decoded byte declaration",
+  );
+  const rows = decoder.decode(decoded).trimEnd().split("\n");
+  check(
+    rows.length === declaration.record_count && rows.length <= 1200,
+    "partition line count",
+  );
+  let previous = "";
+  return rows.map((line) => {
+    check(
+      Buffer.byteLength(line) <= NATIONAL_STATUS_LIMITS.line,
+      "partition line bounds",
+    );
+    const row = JSON.parse(line);
+    check(
+      exact(row, [
+        "schema_version",
+        "zip5",
+        "zip4",
+        "cohort_classification",
+        "zcta_geoid",
+        "usps_validity",
+        "geography_scope",
+        "overlay",
+        "dimension_evidence_statuses",
+        "non_zcta_context",
+        "epa_supplemental",
+      ]) &&
+        row.schema_version === `${DATASET}-zip@1.0.0` &&
+        /^\d{5}$/.test(row.zip5) &&
+        row.zip5.startsWith(prefix) &&
+        row.zip5 > previous &&
+        row.zip4 === null &&
+        row.usps_validity === null &&
+        r.CLASSIFICATIONS.includes(row.cohort_classification) &&
+        Object.hasOwn(pin.geography_scope_counts, row.geography_scope) &&
+        Array.isArray(row.dimension_evidence_statuses) &&
+        row.dimension_evidence_statuses.length === 51 &&
+        row.dimension_evidence_statuses.every((s) =>
+          evidenceStatuses.includes(s),
+        ),
+      "closed ZIP status row",
+    );
+    previous = row.zip5;
+    return row;
   });
 }
-const provenance=(ctx,a)=>({release_id:pin.release_id,manifest_sha256:pin.manifest_sha256,created_at:ctx.manifest.created_at,artifact_sha256:a.sha256,verification_scope:'Pinned retained aggregate bytes and closed count reconciliation; full replay was verified at publication.'});
-async function finish(ctx,value,selector=null) {
-  check(validNationalStatus(value,selector),'closed projected view');check(Buffer.byteLength(JSON.stringify(value))<=NATIONAL_STATUS_LIMITS.response,'response byte bound');
-  check((await r.secureBuffer(ctx.root,ctx.manifestFile,NATIONAL_STATUS_LIMITS.manifest,ctx.signal)).sha256===pin.manifest_sha256 && (await r.secureBuffer(ctx.root,ctx.registrationFile,10000,ctx.signal)).sha256===ctx.registrationHash && (await r.secureBuffer(ctx.root,ctx.relationshipRegistrationFile,10000,ctx.signal)).sha256===ctx.relationshipRegistrationHash && (await r.secureBuffer(ctx.root,ctx.relationshipManifestFile,1_000_000,ctx.signal)).sha256===ctx.relationshipManifestHash && (await r.secureBuffer(ctx.root,ctx.sourcePolicyRegistrationFile,2_000_000,ctx.signal)).sha256===ctx.sourcePolicyRegistrationHash && (await r.secureBuffer(ctx.root,ctx.sourcePolicyManifestFile,2_000_000,ctx.signal)).sha256===ctx.sourcePolicyManifestHash && (await r.secureBuffer(ctx.root,ctx.reconciliationRegistrationFile,100_000,ctx.signal)).sha256===ctx.reconciliationRegistrationHash && (await r.secureBuffer(ctx.root,ctx.laManifestFile,200_000,ctx.signal)).sha256===ctx.laManifestHash,'stable release selection');return value;
+const provenance = (ctx, a) => ({
+  release_id: pin.release_id,
+  manifest_sha256: pin.manifest_sha256,
+  created_at: ctx.manifest.created_at,
+  artifact_sha256: a.sha256,
+  verification_scope:
+    "Pinned retained aggregate bytes and closed count reconciliation; full replay was verified at publication.",
+});
+async function finish(ctx, value, selector = null) {
+  check(validNationalStatus(value, selector), "closed projected view");
+  check(
+    Buffer.byteLength(JSON.stringify(value)) <= NATIONAL_STATUS_LIMITS.response,
+    "response byte bound",
+  );
+  check(
+    (
+      await r.secureBuffer(
+        ctx.root,
+        ctx.manifestFile,
+        NATIONAL_STATUS_LIMITS.manifest,
+        ctx.signal,
+      )
+    ).sha256 === pin.manifest_sha256 &&
+      (await r.secureBuffer(ctx.root, ctx.registrationFile, 10000, ctx.signal))
+        .sha256 === ctx.registrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.relationshipRegistrationFile,
+          10000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.relationshipRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.relationshipManifestFile,
+          1_000_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.relationshipManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.sourcePolicyRegistrationFile,
+          2_000_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.sourcePolicyRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.sourcePolicyManifestFile,
+          2_000_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.sourcePolicyManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.reconciliationRegistrationFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.reconciliationRegistrationHash &&
+      (await r.secureBuffer(ctx.root, ctx.laManifestFile, 200_000, ctx.signal))
+        .sha256 === ctx.laManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.supplementalRegistrationFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.supplementalRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.supplementalManifestFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.supplementalManifestHash,
+    "stable release selection",
+  );
+  return value;
 }
 async function summary(ctx) {
-  const {a,raw}=await artifact(ctx,'national-summary.json',NATIONAL_STATUS_LIMITS.summary),s=parseJson(raw);
-  check(exact(s,['schema_version','scope','zip5_cohort_rows','source_dimensions','matrix_evidence_cells','state_industry_rows','operational_industries','dimension_order','temporal_assessment','geography_scope_counts','industry_evidence_metrics','gaps','sidecars','claims']) && s.schema_version===`${DATASET}@1.0.0` && equal(s.operational_industries,pin.industries) && equal(s.dimension_order,pin.dimension_order) && equal(s.claims,pin.claims) && exact(s.sidecars,['goal_matrix','state_access','epa','geography','lifecycle','entity_geography_relationship','source_policy_provenance','publisher_membership_reconciliation']),'summary schema/claims');
-  const {raw:gapRaw}=await artifact(ctx,'gap-ledger.json',250000),g=parseJson(gapRaw);
-  const industryGapCount=pin.gaps.unsupported_industry_access_cells+pin.gaps.unmeasured_industry_access_cells+pin.gaps.restricted_sample_industry_access_cells;
-  check(exact(g,['schema_version','broad_business','industry_access','temporal','special_geography','claim_gaps','claims']) && g.schema_version===`${DATASET}-gaps@1.0.0` && equal(g.claims,pin.claims) && g.broad_business.length===s.gaps.broad_business_missing_states && new Set(g.broad_business.map(row=>row.state)).size===40 && g.broad_business.every(row=>Object.hasOwn(pin.state_scopes,row.state)) && g.industry_access.length===industryGapCount && g.industry_access.filter(row=>row.access_evidence_status==='unsupported-missing').length===pin.gaps.unsupported_industry_access_cells && g.industry_access.filter(row=>row.access_evidence_status==='unsupported-evidence-not-measured').length===pin.gaps.unmeasured_industry_access_cells && g.industry_access.filter(row=>row.access_evidence_status==='restricted-query-sample-evidence').length===pin.gaps.restricted_sample_industry_access_cells && g.industry_access.every(row=>Object.hasOwn(pin.state_scopes,row.state)&&pin.industries.includes(row.industry)) && new Set(g.industry_access.map(row=>`${row.state}:${row.industry}`)).size===industryGapCount && g.temporal.filter(row=>row.review_qualification==='stale').length===pin.gaps.stale_temporal_dimensions && g.temporal.filter(row=>row.review_qualification==='unmeasured').length===pin.gaps.unmeasured_temporal_dimensions && g.temporal.length===pin.gaps.stale_temporal_dimensions+pin.gaps.unmeasured_temporal_dimensions,'gap conservation');
-  check(g.special_geography.length===4 && g.special_geography.every(row=>exact(row,['scope_id','zip5_rows','action_class','map_blocked']) && row.zip5_rows===s.geography_scope_counts[row.scope_id] && row.map_blocked===false) && new Set(g.special_geography.map(row=>row.scope_id)).size===4 && equal(g.claim_gaps,[{id:'all-business-denominator',value:null,blocking:false},{id:'current-general-business-operation',value:false,blocking:false}]),'nonblocking geography/claim gaps');
-  check(s.sidecars.goal_matrix.missing_broad_states.length===40 && equal([...s.sidecars.goal_matrix.missing_broad_states].sort(),g.broad_business.map(row=>row.state).sort()) && s.sidecars.state_access.summary.accessEvidenceStatusCounts['unsupported-missing']===pin.gaps.unsupported_industry_access_cells && s.sidecars.state_access.summary.accessEvidenceStatusCounts['unsupported-evidence-not-measured']===pin.gaps.unmeasured_industry_access_cells && s.sidecars.state_access.summary.accessEvidenceStatusCounts['restricted-query-sample-evidence']===pin.gaps.restricted_sample_industry_access_cells && Object.values(s.sidecars.state_access.summary.accessEvidenceStatusCounts).reduce((n,v)=>n+v,0)===459 && s.sidecars.epa.summary.source_record_count===1517826 && s.sidecars.epa.summary.segment_assignments===296595 && Object.values(s.sidecars.epa.summary.status_counts).reduce((n,v)=>n+v,0)===1517826 && s.sidecars.lifecycle.summary.profile_count===8011213 && Object.values(s.sidecars.lifecycle.summary.lifecycle_evidence_counts).reduce((n,v)=>n+v,0)===8011213,'typed sidecar headline conservation');
-  const q=s.sidecars.entity_geography_relationship,p=pin.geography_relationship_quality;
-  check(exact(q,['schema_version','relationship_release_id','relationship_manifest_sha256','profile_count','postal_relationship_counts','point_relationship_counts','reported_state_conflict_count','source_profile_counts','scope','claims']) && q.relationship_release_id===p.release_id && q.relationship_manifest_sha256===p.manifest_sha256 && q.profile_count===p.profile_count && q.profile_count===s.sidecars.lifecycle.summary.profile_count && equal(q.postal_relationship_counts,p.postal_relationship_counts) && equal(q.point_relationship_counts,p.point_relationship_counts) && q.reported_state_conflict_count===p.reported_state_conflict_count && Object.values(q.source_profile_counts).reduce((n,v)=>n+v,0)===q.profile_count && q.claims.numerator===false && q.claims.denominator===false && q.claims.entity_assignment===false && q.claims.polygon_assignment===false && q.claims.usps_validity_verified===false && q.claims.current_operation_verified===false && q.claims.geocode_verified===false && q.claims.business_completeness===null && q.claims.network_requests===0,'geography relationship quality sidecar');
-  const {raw:territoryRaw}=await artifact(ctx,'territories.json',350000),t=parseJson(territoryRaw);
-  check(exact(t,['schema_version','included_in_51_state_denominator','geography','epa','claims']) && t.schema_version===`${DATASET}-territories@1.0.0` && t.included_in_51_state_denominator===false && equal(t.claims,pin.claims) && t.geography.length===5 && t.epa.length===5,'territory separation');
-  const territories=t.geography.map(row=>({code:row.code,scope_id:row.scope_id,zip5_rows:row.zip5_rows,included_in_state_denominator:false}));
-  return finish(ctx,{schema_version:pin.schema_version,kind:'summary',zip5_cohort_rows:s.zip5_cohort_rows,source_dimensions:s.source_dimensions,matrix_evidence_cells:s.matrix_evidence_cells,state_industry_rows:s.state_industry_rows,temporal_assessment:s.temporal_assessment,geography_scope_counts:s.geography_scope_counts,gaps:s.gaps,industry_evidence_metrics:s.industry_evidence_metrics,territories,geography_relationship_quality:{profile_count:q.profile_count,postal_relationship_counts:q.postal_relationship_counts,point_relationship_counts:q.point_relationship_counts,reported_state_conflict_count:q.reported_state_conflict_count,scope:q.scope,claims:q.claims,release_id:q.relationship_release_id,manifest_sha256:q.relationship_manifest_sha256},source_policy_provenance:s.sidecars.source_policy_provenance,publisher_membership_reconciliation:s.sidecars.publisher_membership_reconciliation,claims:s.claims,provenance:provenance(ctx,a)});
+  const { a, raw } = await artifact(
+      ctx,
+      "national-summary.json",
+      NATIONAL_STATUS_LIMITS.summary,
+    ),
+    s = parseJson(raw);
+  check(
+    exact(s, [
+      "schema_version",
+      "scope",
+      "zip5_cohort_rows",
+      "source_dimensions",
+      "matrix_evidence_cells",
+      "state_industry_rows",
+      "operational_industries",
+      "dimension_order",
+      "temporal_assessment",
+      "geography_scope_counts",
+      "industry_evidence_metrics",
+      "gaps",
+      "sidecars",
+      "claims",
+    ]) &&
+      s.schema_version === `${DATASET}@1.0.0` &&
+      equal(s.operational_industries, pin.industries) &&
+      equal(s.dimension_order, pin.dimension_order) &&
+      equal(s.claims, pin.claims) &&
+      exact(s.sidecars, [
+        "goal_matrix",
+        "state_access",
+        "epa",
+        "geography",
+        "lifecycle",
+        "entity_geography_relationship",
+        "source_policy_provenance",
+        "publisher_membership_reconciliation",
+        "state_registration_license_supplemental",
+      ]),
+    "summary schema/claims",
+  );
+  const { raw: gapRaw } = await artifact(ctx, "gap-ledger.json", 250000),
+    g = parseJson(gapRaw);
+  const industryGapCount =
+    pin.gaps.unsupported_industry_access_cells +
+    pin.gaps.unmeasured_industry_access_cells +
+    pin.gaps.restricted_sample_industry_access_cells;
+  check(
+    exact(g, [
+      "schema_version",
+      "broad_business",
+      "industry_access",
+      "temporal",
+      "special_geography",
+      "claim_gaps",
+      "claims",
+    ]) &&
+      g.schema_version === `${DATASET}-gaps@1.0.0` &&
+      equal(g.claims, pin.claims) &&
+      g.broad_business.length === s.gaps.broad_business_missing_states &&
+      new Set(g.broad_business.map((row) => row.state)).size === 40 &&
+      g.broad_business.every((row) =>
+        Object.hasOwn(pin.state_scopes, row.state),
+      ) &&
+      g.industry_access.length === industryGapCount &&
+      g.industry_access.filter(
+        (row) => row.access_evidence_status === "unsupported-missing",
+      ).length === pin.gaps.unsupported_industry_access_cells &&
+      g.industry_access.filter(
+        (row) =>
+          row.access_evidence_status === "unsupported-evidence-not-measured",
+      ).length === pin.gaps.unmeasured_industry_access_cells &&
+      g.industry_access.filter(
+        (row) =>
+          row.access_evidence_status === "restricted-query-sample-evidence",
+      ).length === pin.gaps.restricted_sample_industry_access_cells &&
+      g.industry_access.every(
+        (row) =>
+          Object.hasOwn(pin.state_scopes, row.state) &&
+          pin.industries.includes(row.industry),
+      ) &&
+      new Set(g.industry_access.map((row) => `${row.state}:${row.industry}`))
+        .size === industryGapCount &&
+      g.temporal.filter((row) => row.review_qualification === "stale")
+        .length === pin.gaps.stale_temporal_dimensions &&
+      g.temporal.filter((row) => row.review_qualification === "unmeasured")
+        .length === pin.gaps.unmeasured_temporal_dimensions &&
+      g.temporal.length ===
+        pin.gaps.stale_temporal_dimensions +
+          pin.gaps.unmeasured_temporal_dimensions,
+    "gap conservation",
+  );
+  check(
+    g.special_geography.length === 4 &&
+      g.special_geography.every(
+        (row) =>
+          exact(row, [
+            "scope_id",
+            "zip5_rows",
+            "action_class",
+            "map_blocked",
+          ]) &&
+          row.zip5_rows === s.geography_scope_counts[row.scope_id] &&
+          row.map_blocked === false,
+      ) &&
+      new Set(g.special_geography.map((row) => row.scope_id)).size === 4 &&
+      equal(g.claim_gaps, [
+        { id: "all-business-denominator", value: null, blocking: false },
+        {
+          id: "current-general-business-operation",
+          value: false,
+          blocking: false,
+        },
+      ]),
+    "nonblocking geography/claim gaps",
+  );
+  check(
+    s.sidecars.goal_matrix.missing_broad_states.length === 40 &&
+      equal(
+        [...s.sidecars.goal_matrix.missing_broad_states].sort(),
+        g.broad_business.map((row) => row.state).sort(),
+      ) &&
+      s.sidecars.state_access.summary.accessEvidenceStatusCounts[
+        "unsupported-missing"
+      ] === pin.gaps.unsupported_industry_access_cells &&
+      s.sidecars.state_access.summary.accessEvidenceStatusCounts[
+        "unsupported-evidence-not-measured"
+      ] === pin.gaps.unmeasured_industry_access_cells &&
+      s.sidecars.state_access.summary.accessEvidenceStatusCounts[
+        "restricted-query-sample-evidence"
+      ] === pin.gaps.restricted_sample_industry_access_cells &&
+      Object.values(
+        s.sidecars.state_access.summary.accessEvidenceStatusCounts,
+      ).reduce((n, v) => n + v, 0) === 459 &&
+      s.sidecars.epa.summary.source_record_count === 1517826 &&
+      s.sidecars.epa.summary.segment_assignments === 296595 &&
+      Object.values(s.sidecars.epa.summary.status_counts).reduce(
+        (n, v) => n + v,
+        0,
+      ) === 1517826 &&
+      s.sidecars.lifecycle.summary.profile_count === 8011213 &&
+      Object.values(
+        s.sidecars.lifecycle.summary.lifecycle_evidence_counts,
+      ).reduce((n, v) => n + v, 0) === 8011213,
+    "typed sidecar headline conservation",
+  );
+  const q = s.sidecars.entity_geography_relationship,
+    p = pin.geography_relationship_quality;
+  check(
+    exact(q, [
+      "schema_version",
+      "relationship_release_id",
+      "relationship_manifest_sha256",
+      "profile_count",
+      "postal_relationship_counts",
+      "point_relationship_counts",
+      "reported_state_conflict_count",
+      "source_profile_counts",
+      "scope",
+      "claims",
+    ]) &&
+      q.relationship_release_id === p.release_id &&
+      q.relationship_manifest_sha256 === p.manifest_sha256 &&
+      q.profile_count === p.profile_count &&
+      q.profile_count === s.sidecars.lifecycle.summary.profile_count &&
+      equal(q.postal_relationship_counts, p.postal_relationship_counts) &&
+      equal(q.point_relationship_counts, p.point_relationship_counts) &&
+      q.reported_state_conflict_count === p.reported_state_conflict_count &&
+      Object.values(q.source_profile_counts).reduce((n, v) => n + v, 0) ===
+        q.profile_count &&
+      q.claims.numerator === false &&
+      q.claims.denominator === false &&
+      q.claims.entity_assignment === false &&
+      q.claims.polygon_assignment === false &&
+      q.claims.usps_validity_verified === false &&
+      q.claims.current_operation_verified === false &&
+      q.claims.geocode_verified === false &&
+      q.claims.business_completeness === null &&
+      q.claims.network_requests === 0,
+    "geography relationship quality sidecar",
+  );
+  const supplemental = s.sidecars.state_registration_license_supplemental,
+    sr = pin.state_registration_license_supplemental;
+  check(
+    exact(supplemental, [
+      "schema_version",
+      "release_id",
+      "registration_sha256",
+      "manifest_sha256",
+      "summary_artifact_sha256",
+      "scope_artifact_sha256",
+      "issuer_marginals_artifact_sha256",
+      "summary",
+      "scope",
+      "claims",
+    ]) &&
+      supplemental.release_id === sr.release_id &&
+      supplemental.registration_sha256 === sr.registration_sha256 &&
+      supplemental.manifest_sha256 === sr.manifest_sha256 &&
+      supplemental.summary_artifact_sha256 === sr.summary_artifact_sha256 &&
+      supplemental.scope_artifact_sha256 === sr.scope_artifact_sha256 &&
+      supplemental.issuer_marginals_artifact_sha256 ===
+        sr.issuer_marginals_artifact_sha256 &&
+      equal(supplemental.summary, {
+        zip5_rows: 48194,
+        positive_zip5_rows: 31050,
+        zero_zip5_rows: 17144,
+        geography_disposition_scope_rows: 60,
+        issuer_state_marginal_rows: 9,
+        dimension_rows: 10,
+        evidence_class_rows: 5,
+        source_address_row_count: 14414724,
+        eligible_address_membership_count: 10014807,
+        missing_or_ineligible_address_membership_count: 4399917,
+      }) &&
+      supplemental.claims.cross_source_additivity_asserted === false &&
+      supplemental.claims.additive_business_count_asserted === false &&
+      supplemental.claims.unique_business_count === null &&
+      supplemental.claims.current_operation_verified === false &&
+      supplemental.claims.all_business_completeness === null,
+    "state registration/license supplemental sidecar",
+  );
+  const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
+    t = parseJson(territoryRaw);
+  check(
+    exact(t, [
+      "schema_version",
+      "included_in_51_state_denominator",
+      "geography",
+      "epa",
+      "claims",
+    ]) &&
+      t.schema_version === `${DATASET}-territories@1.0.0` &&
+      t.included_in_51_state_denominator === false &&
+      equal(t.claims, pin.claims) &&
+      t.geography.length === 5 &&
+      t.epa.length === 5,
+    "territory separation",
+  );
+  const territories = t.geography.map((row) => ({
+    code: row.code,
+    scope_id: row.scope_id,
+    zip5_rows: row.zip5_rows,
+    included_in_state_denominator: false,
+  }));
+  return finish(ctx, {
+    schema_version: pin.schema_version,
+    kind: "summary",
+    zip5_cohort_rows: s.zip5_cohort_rows,
+    source_dimensions: s.source_dimensions,
+    matrix_evidence_cells: s.matrix_evidence_cells,
+    state_industry_rows: s.state_industry_rows,
+    temporal_assessment: s.temporal_assessment,
+    geography_scope_counts: s.geography_scope_counts,
+    gaps: s.gaps,
+    industry_evidence_metrics: s.industry_evidence_metrics,
+    territories,
+    geography_relationship_quality: {
+      profile_count: q.profile_count,
+      postal_relationship_counts: q.postal_relationship_counts,
+      point_relationship_counts: q.point_relationship_counts,
+      reported_state_conflict_count: q.reported_state_conflict_count,
+      scope: q.scope,
+      claims: q.claims,
+      release_id: q.relationship_release_id,
+      manifest_sha256: q.relationship_manifest_sha256,
+    },
+    source_policy_provenance: s.sidecars.source_policy_provenance,
+    publisher_membership_reconciliation:
+      s.sidecars.publisher_membership_reconciliation,
+    state_registration_license_supplemental: supplemental,
+    claims: s.claims,
+    provenance: provenance(ctx, a),
+  });
 }
 async function stateRows(ctx) {
-  const {a,raw}=await artifact(ctx,'state-industry-status.jsonl',NATIONAL_STATUS_LIMITS.state),lines=decoder.decode(raw).trimEnd().split('\n');check(lines.length===459 && a.record_count===459,'state row conservation');
-  const rows=lines.map(line=>{check(Buffer.byteLength(line)<=NATIONAL_STATUS_LIMITS.line,'state line bounds');const row=JSON.parse(line);check(validIndustryRow(row,row.state),'state arithmetic/schema');return row;});
-  check(new Set(rows.map(row=>`${row.state}:${row.id}`)).size===459 && Object.keys(pin.state_scopes).every(state=>rows.filter(row=>row.state===state).length===9),'state/industry roster');return {a,rows};
+  const { a, raw } = await artifact(
+      ctx,
+      "state-industry-status.jsonl",
+      NATIONAL_STATUS_LIMITS.state,
+    ),
+    lines = decoder.decode(raw).trimEnd().split("\n");
+  check(
+    lines.length === 459 && a.record_count === 459,
+    "state row conservation",
+  );
+  const rows = lines.map((line) => {
+    check(
+      Buffer.byteLength(line) <= NATIONAL_STATUS_LIMITS.line,
+      "state line bounds",
+    );
+    const row = JSON.parse(line);
+    check(validIndustryRow(row, row.state), "state arithmetic/schema");
+    return row;
+  });
+  check(
+    new Set(rows.map((row) => `${row.state}:${row.id}`)).size === 459 &&
+      Object.keys(pin.state_scopes).every(
+        (state) => rows.filter((row) => row.state === state).length === 9,
+      ),
+    "state/industry roster",
+  );
+  return { a, rows };
 }
-export async function readNationalStatus({root=APP_ROOT,kind='summary',state=null,zip=null,signal}={}) {
-  check(['summary','state','zip'].includes(kind) && (kind!=='state' || Object.hasOwn(pin.state_scopes,state)) && (kind!=='zip' || typeof zip==='string' && /^\d{5}$/.test(zip)),'selector');const ctx=await load(root,signal);
-  if(kind==='summary')return summary(ctx);
-  const {a:stateArtifact,rows}=await stateRows(ctx);
-  if(kind==='state')return finish(ctx,{schema_version:pin.schema_version,kind,state,industries:pin.industries.map(id=>rows.find(row=>row.state===state&&row.id===id)),claims:pin.claims,provenance:provenance(ctx,stateArtifact)},state);
-  const {a,raw}=await artifact(ctx,`zip-status/prefix=${zip.slice(0,2)}.jsonl.gz`,NATIONAL_STATUS_LIMITS.compressed),partition=decodeNationalStatusPartition(raw,a,zip.slice(0,2)),row=partition.find(row=>row.zip5===zip);
-  const temporal=new Map(rows.flatMap(row=>row.dimensions.map(d=>[d.id,d.temporal_qualification])));
-  const matrix=ctx.manifest.inputs.matrix;
-  return finish(ctx,{schema_version:pin.schema_version,kind,zip5:zip,zip4:null,found:!!row,cohort_classification:row?.cohort_classification??null,zcta_geoid:row?.zcta_geoid??null,usps_validity:null,geography_scope:row?.geography_scope??null,overlay:row?.overlay??null,dimensions:row?pin.dimension_order.map((id,i)=>({id,evidence_status:row.dimension_evidence_statuses[i],matrix_release_id:matrix.release_id,matrix_manifest_sha256:matrix.sha256,temporal_qualification:temporal.get(id)??null})):[],claims:pin.claims,provenance:provenance(ctx,a)},zip);
+export async function readNationalStatus({
+  root = APP_ROOT,
+  kind = "summary",
+  state = null,
+  zip = null,
+  signal,
+} = {}) {
+  check(
+    ["summary", "state", "zip"].includes(kind) &&
+      (kind !== "state" || Object.hasOwn(pin.state_scopes, state)) &&
+      (kind !== "zip" || (typeof zip === "string" && /^\d{5}$/.test(zip))),
+    "selector",
+  );
+  const ctx = await load(root, signal);
+  if (kind === "summary") return summary(ctx);
+  const { a: stateArtifact, rows } = await stateRows(ctx);
+  if (kind === "state")
+    return finish(
+      ctx,
+      {
+        schema_version: pin.schema_version,
+        kind,
+        state,
+        industries: pin.industries.map((id) =>
+          rows.find((row) => row.state === state && row.id === id),
+        ),
+        claims: pin.claims,
+        provenance: provenance(ctx, stateArtifact),
+      },
+      state,
+    );
+  const { a, raw } = await artifact(
+      ctx,
+      `zip-status/prefix=${zip.slice(0, 2)}.jsonl.gz`,
+      NATIONAL_STATUS_LIMITS.compressed,
+    ),
+    partition = decodeNationalStatusPartition(raw, a, zip.slice(0, 2)),
+    row = partition.find((row) => row.zip5 === zip);
+  const temporal = new Map(
+    rows.flatMap((row) =>
+      row.dimensions.map((d) => [d.id, d.temporal_qualification]),
+    ),
+  );
+  const matrix = ctx.manifest.inputs.matrix;
+  return finish(
+    ctx,
+    {
+      schema_version: pin.schema_version,
+      kind,
+      zip5: zip,
+      zip4: null,
+      found: !!row,
+      cohort_classification: row?.cohort_classification ?? null,
+      zcta_geoid: row?.zcta_geoid ?? null,
+      usps_validity: null,
+      geography_scope: row?.geography_scope ?? null,
+      overlay: row?.overlay ?? null,
+      dimensions: row
+        ? pin.dimension_order.map((id, i) => ({
+            id,
+            evidence_status: row.dimension_evidence_statuses[i],
+            matrix_release_id: matrix.release_id,
+            matrix_manifest_sha256: matrix.sha256,
+            temporal_qualification: temporal.get(id) ?? null,
+          }))
+        : [],
+      claims: pin.claims,
+      provenance: provenance(ctx, a),
+    },
+    zip,
+  );
 }

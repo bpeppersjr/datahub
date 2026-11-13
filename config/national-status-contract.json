@@ -2,7 +2,7 @@
   "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
     "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
-    "national-summary.json": "1dd480973a6b321911dfa54016d2af3ad943bdd92b64e9d09a7992741d0f8c15",
+    "national-summary.json": "461080a94cd879eea921480c2c60be80ab5b4792069d48b662d28d149ca7c094",
     "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -149,10 +149,20 @@
     "la_manifest_path": "data/business-sources/la-active-business-location-accounts/releases/la-active-businesses-20260903-004213132Z-082faa76/manifest.json",
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
+  "state_registration_license_supplemental": {
+    "registration_path": "config/datasets/national-state-registration-license-supplemental-evidence.json",
+    "registration_sha256": "6b1b6f21d02a5fb6c5e32ab1f42e5dca4bceaf4c183a4a13b66b1e4439207e6a",
+    "release_id": "national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd",
+    "manifest_path": "data/national-state-registration-license-supplemental-evidence/releases/national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd/manifest.json",
+    "manifest_sha256": "3204731844daecc3c6b9da9454040a3ebd6876690d07770852000de783d1689e",
+    "summary_artifact_sha256": "ee6788ae36508bf943556a7de38ab3c9a3bbd7877f94836856d527f0e4d95aa0",
+    "scope_artifact_sha256": "50614e7ea44050a28d3c827bea2fbf0f7f3b12e897884e6e778313c1344d641f",
+    "issuer_marginals_artifact_sha256": "27ae03b7619a2c1c86ffa85a00f33fe14d878172cb6b0205a48eaf1154ef0764"
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-f1e80ce66c819fb5f4e6435d2ecdcc3dd45a162ab06cccc8fe16dbfdaf86a594",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f1e80ce66c819fb5f4e6435d2ecdcc3dd45a162ab06cccc8fe16dbfdaf86a594/manifest.json",
-  "manifest_sha256": "125d0b48d05cd932d7a85dc53ef229ed2b61a981de26c0745afea4a27447db11",
+  "release_id": "national-goal-evidence-federation-38479a5aa2966dc83642f0d0ea68a13fd6830647e413a4d105aae4678d2c1000",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-38479a5aa2966dc83642f0d0ea68a13fd6830647e413a4d105aae4678d2c1000/manifest.json",
+  "manifest_sha256": "e654c33c1a5f227728394657ad49d8895fcff987e547bd2c2fe3d4ec3fac3f11",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -558,20 +568,13 @@
       "cms_nursing_home_directory",
       "cms_nppes_pharmacy_nonprimary_reported_address_rows"
     ],
-    "financial-services": [
-      "fdic_offices",
-      "credit_union_locations"
-    ],
-    "transportation": [
-      "transportation"
-    ],
+    "financial-services": ["fdic_offices", "credit_union_locations"],
+    "transportation": ["transportation"],
     "construction": [
       "wa_lni_active_contractor_organization_mailing_addresses",
       "mn_residential_construction_credential_reported_address_rows"
     ],
-    "tax-exempt-organizations": [
-      "tax_exempt_organizations"
-    ],
+    "tax-exempt-organizations": ["tax_exempt_organizations"],
     "sales-tax-outlets": [
       "tx_sales_tax_outlet_profiles",
       "tx_active_sales_tax_permitted_outlet_physical_sites"

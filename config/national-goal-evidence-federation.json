@@ -79,6 +79,16 @@
       "path": "config/datasets/national-business-temporal-lifecycle-reconciliation-v1-1.json",
       "sha256": "8bb9d80ddd7192e76f1a48a75e83b03afd8e91170eafb646193adde2b8961d75"
     },
+    "state_registration_license_registration": {
+      "path": "config/datasets/national-state-registration-license-supplemental-evidence.json",
+      "sha256": "6b1b6f21d02a5fb6c5e32ab1f42e5dca4bceaf4c183a4a13b66b1e4439207e6a"
+    },
+    "state_registration_license_manifest": {
+      "path": "data/national-state-registration-license-supplemental-evidence/releases/national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd/manifest.json",
+      "sha256": "3204731844daecc3c6b9da9454040a3ebd6876690d07770852000de783d1689e",
+      "release_id": "national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd",
+      "schema_version": "national-state-registration-license-supplemental-evidence@1.0.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"
