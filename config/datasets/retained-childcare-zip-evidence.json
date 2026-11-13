@@ -25,11 +25,11 @@
     "public_export_authorized": false
   },
   "retained_release": {
-    "manifest": "data/retained-childcare-zip-evidence/releases/retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b/manifest.json",
-    "manifest_bytes": 60801,
-    "manifest_sha256": "9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a",
-    "release_id": "retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b",
-    "created_at": "2026-11-12T19:21:14.719Z",
+    "manifest": "data/retained-childcare-zip-evidence/releases/retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e/manifest.json",
+    "manifest_bytes": 60532,
+    "manifest_sha256": "4fa7e65399c3a123a723fab8aa2fa9919594db61fa34c0883c581e6cf01c14f0",
+    "release_id": "retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e",
+    "created_at": "2026-11-12T23:25:00.000Z",
     "bindings": [
       {
         "path": "config/co-childcare-reporting-enrollment.json",
@@ -41,6 +41,12 @@
         "path": "config/ct-childcare-reporting-enrollment.json",
         "bytes": 333,
         "sha256": "5c1f956279f44bddf66a881eb45ec1797151c3c35ec2006be91e9596bd0bef3a",
+        "metadata": true
+      },
+      {
+        "path": "config/current/pa-childcare-reporting-enrollment.json",
+        "bytes": 306,
+        "sha256": "2ea81dacdaceee7413ba5deff8f704f30dcbd4eabc812f2726344c54051d61e1",
         "metadata": true
       },
       {
@@ -59,12 +65,6 @@
         "path": "config/md-childcare-reporting-enrollment.json",
         "bytes": 333,
         "sha256": "29686de7c7fcaff50baab5557be9fef9e376b2cf9a660b213b14bff6cba23307",
-        "metadata": true
-      },
-      {
-        "path": "config/pa-childcare-reporting-enrollment.json",
-        "bytes": 333,
-        "sha256": "e2f633d309353edd70f3014530f00c3f995fa6b1dbafb1c5d587f21409efe4a9",
         "metadata": true
       },
       {
@@ -101,6 +101,132 @@
         "path": "data/business-sources/ia-childcare/acquired/3b1d21b1-6a7f-4ae1-8ed3-1f16a33d69b1/selected-response.json",
         "bytes": 349647,
         "sha256": "d63dbb36865aef6b8552eb61d1c3eb1d52907de8009966e57e5003a19a136728",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/jobs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/receipt.json",
+        "bytes": 2403,
+        "sha256": "b6686c38d2e9f31c649029653875ba8cffe75a0f9baf076ab4ced941506f7e9c",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/acquisition.json",
+        "bytes": 3564689,
+        "sha256": "0b5e362d8217bd1cf74e322e478828108990da6c4934a721a290216b2e76fd1b",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0000.json",
+        "bytes": 216298,
+        "sha256": "8f5d58b3c10a682e52654facd6e80d4066d6c46220e47e6873791a9fcf965857",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0001.json",
+        "bytes": 307767,
+        "sha256": "7c7a60a2122cf2fd2a2693688d5b0cdc2e43e65c3088fb41cabf1a77fdfc6b75",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0002.json",
+        "bytes": 306727,
+        "sha256": "75910f1697b006dc802299632c513a50dd238e620c32608d2bfafc4695a6d7e0",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0003.json",
+        "bytes": 306264,
+        "sha256": "de8bde6da73be86f92b974ed19a06fdfdeb6d338c4147ccb83dbc13b08d1803b",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0004.json",
+        "bytes": 304957,
+        "sha256": "7e492b995aaac1d301b523d742ea8ae4a6e01bff024d3d2371e4cf90bf3c6af5",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0005.json",
+        "bytes": 307735,
+        "sha256": "de6d59fa8f87db7225c8701f974953ee18404e13198c0d4bc1221955662fee0e",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0006.json",
+        "bytes": 306261,
+        "sha256": "f27960c7a996daa6660c38ccf026b99295b1abbabcb107715f1d0ad49dd2a31f",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0007.json",
+        "bytes": 307479,
+        "sha256": "8e2f812fd67c3703a2a6bbd855acf98ddcbb0d2a5a13c536cc9605ec68bd58f0",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0008.json",
+        "bytes": 306557,
+        "sha256": "8d9ff92019b44fc15957ada9c16cb53637c77b0355fe87f58e0205980ae63bb0",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0009.json",
+        "bytes": 306935,
+        "sha256": "3746ea8b6946527565a868c6e58b121d234d6a6040f12a7117d767b1d95c8e12",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0010.json",
+        "bytes": 306796,
+        "sha256": "04e556b0089ee8acd077cc84fe99ba750b6333676772c899fef3d37ba30b65e4",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0011.json",
+        "bytes": 12349,
+        "sha256": "5e8aa456a8cbae5a3b5781b32453bc053256f7f544e7de49db40071ad336659f",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/journal-0012.json",
+        "bytes": 216296,
+        "sha256": "6847eff7aa90f96eff3904552cadcf7c8465b6e47516930fbfd7da02612cb6a5",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/manifest.json",
+        "bytes": 2626,
+        "sha256": "e03abf6c075d5fb4e54108c41eb1a2c31673236e9cb58fe633b8b7ed1aa29db6",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/acquired/jobs/d14ac5ea-2324-4bed-8dfd-bf4488df6d1f/prerequisite.json",
+        "bytes": 26244,
+        "sha256": "304a921f804ae7124ed06de35876553fb8935f9b357a372a4c0d48bfaa8ae407",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/normalized/jobs/6a40cf09-06eb-498e-89e4-0e61ffff4878/manifest.json",
+        "bytes": 2243,
+        "sha256": "1879f42577c807bddfc601a72fef428de0fd6a07435a4e95b0ebd6d69cdd5540",
+        "metadata": true
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/normalized/jobs/6a40cf09-06eb-498e-89e4-0e61ffff4878/normalized.jsonl",
+        "bytes": 21666120,
+        "sha256": "aa16628f60447afaf4439cd6f6dd537fb942d7c7175b364f379402aa36c57c78",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/normalized/jobs/6a40cf09-06eb-498e-89e4-0e61ffff4878/quarantine.jsonl",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "metadata": false
+      },
+      {
+        "path": "data/business-sources/pa-childcare-open-certified-center-candidates/runs/71c868f7-bc05-4623-86c0-e6ace93d5ab4/normalized/jobs/6a40cf09-06eb-498e-89e4-0e61ffff4878/summary.json",
+        "bytes": 767,
+        "sha256": "3ebbfa70c539ca0be630d0291dd7074f210113fef95954fdfce835fa820bd020",
         "metadata": false
       },
       {
@@ -584,126 +710,6 @@
         "metadata": false
       },
       {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/jobs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/receipt.json",
-        "bytes": 2495,
-        "sha256": "1c1fd0682b258d0f6ee0f196f5a7961b743129c6d7fda285bb0f8cd1d4a952e0",
-        "metadata": true
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/acquisition.json",
-        "bytes": 3546326,
-        "sha256": "d3607d8a84b91832ae48c99e7c852967575ed45c348fd98a1f4f1eb0a907740f",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0000.json",
-        "bytes": 215262,
-        "sha256": "927dd0102370a49b6ca68e0d479733e8fb4cd2b03f98958ed81e92ef3a402b37",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0001.json",
-        "bytes": 307740,
-        "sha256": "d975e46e8554641d2edb1dd489bc90639274221e707e4e9c502d12f00b259908",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0002.json",
-        "bytes": 306751,
-        "sha256": "e5c667f322e22c599063a48bf496e0339f8dbe2bcba92f96bfeb1a4cfb59b429",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0003.json",
-        "bytes": 306157,
-        "sha256": "402f25a4f8723da3e5b44e1aff765fcda18c0c3e037cab0fa02c166d9b8a7d8b",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0004.json",
-        "bytes": 305114,
-        "sha256": "1eaeba4b76916e969ebc95b4a46e6296c6ff768d54ee36ad2f6ca8b92f7c1413",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0005.json",
-        "bytes": 307447,
-        "sha256": "82945772f3dddf84413c6efd2dbaa0ae2c7967a009c1eee35d460d74704083cd",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0006.json",
-        "bytes": 306282,
-        "sha256": "e6dd772440e8c0da9653148aa9c4e59efb3a9ce863aa9560bdddab790f2a32b6",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0007.json",
-        "bytes": 307044,
-        "sha256": "2110ba0571999c83cdb9a9f6431eb314b9c3a9d3eedd608c1fd01110c45f8969",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0008.json",
-        "bytes": 306641,
-        "sha256": "63cba9d2c935e137d5dd3effd3b1e4f9621251876e72c88772003fac05510a3e",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0009.json",
-        "bytes": 306932,
-        "sha256": "b5cd1690f229ad2cb2491b29f5f9f804ebc5067c884ee67302987bc7301eafdd",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0010.json",
-        "bytes": 303357,
-        "sha256": "11f965c29ff072fa4273bda6ba72e9ae850983d031e6a4fd6bfcf38f53113a26",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/journal-0011.json",
-        "bytes": 215260,
-        "sha256": "6d23a0a202599cb4178ceccb4925f1ba99d46f3fa3d95d7887bfd97c76f292e7",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/manifest.json",
-        "bytes": 2507,
-        "sha256": "a69e32dc12306da46439f72d220733c0f564e8180f018100da3b2d43eb90b743",
-        "metadata": true
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/acquired/jobs/2195b750-4238-4bac-b660-8ac12cb2cce9/prerequisite.json",
-        "bytes": 26244,
-        "sha256": "831330d5b53fa1ddd9d767b7eecdc494ea1fa15aa948b2eaf7efc89648be5fea",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/manifest.json",
-        "bytes": 2272,
-        "sha256": "0bed669a79c7074aa3782949be25564f300a22bc7287995ea10ebef2546b0be5",
-        "metadata": true
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/normalized.jsonl",
-        "bytes": 21560867,
-        "sha256": "120fa17e7e1c1f881167a4b35ab5be00936ea566c77086ba8983f40b95063add",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/quarantine.jsonl",
-        "bytes": 0,
-        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "metadata": false
-      },
-      {
-        "path": "data/industry-segments/runs/b56d91bb-b781-4fe6-b7f9-be50bd4234ee/state-pa-childcare-centers-PA/runs/a6997ff5-9dd9-40de-a1aa-600a23da5ff2/normalized/jobs/b671f126-0aa4-451e-b5a2-fb4949dc838d/summary.json",
-        "bytes": 767,
-        "sha256": "10eb0fc3dd94b658a7db53ded8ae5e092f7f78e4a5c85caf67be1336184d65ca",
-        "metadata": false
-      },
-      {
         "path": "data/industry-segments/runs/c82c25f1-4dcc-4a68-aebe-fd91d81cefe0/state-ut-childcare-centers-retained-UT/jobs/e62e5abb-52f9-4cb7-8984-4917de926293/receipt.json",
         "bytes": 6281,
         "sha256": "79e3303235bbcf04dc366cc4b85c7c22de5b05a896f8d5f910bbd8d17424e190",
@@ -794,8 +800,8 @@
         "publisher_scope": "PA",
         "status": "available",
         "evidence_basis": "publisher-cohort-with-reported-address-state-buckets",
-        "source_candidate_rows": 4995,
-        "accepted_candidate_rows": 4995,
+        "source_candidate_rows": 5019,
+        "accepted_candidate_rows": 5019,
         "quarantined_candidate_rows": 0,
         "source_response_rows": null,
         "excluded_source_rows": null,
@@ -803,26 +809,26 @@
         "by_reported_state": [
           {
             "state": "PA",
-            "candidate_rows": 4995,
+            "candidate_rows": 5019,
             "percent_of_accepted_cohort": 100
           }
         ],
         "quality": {
-          "with_zip5": 4995,
+          "with_zip5": 5019,
           "with_zip4": 0,
-          "with_points": 4930,
-          "missing_points": 65,
-          "capacity_unavailable": 730
+          "with_points": 4952,
+          "missing_points": 67,
+          "capacity_unavailable": 763
         },
         "provenance": {
-          "app_receipt_sha256": "1c1fd0682b258d0f6ee0f196f5a7961b743129c6d7fda285bb0f8cd1d4a952e0",
-          "app_run_id": "a6997ff5-9dd9-40de-a1aa-600a23da5ff2",
-          "industry_run_id": "b56d91bb-b781-4fe6-b7f9-be50bd4234ee",
+          "app_receipt_sha256": "b6686c38d2e9f31c649029653875ba8cffe75a0f9baf076ab4ced941506f7e9c",
+          "app_run_id": "71c868f7-bc05-4623-86c0-e6ace93d5ab4",
+          "industry_run_id": null,
           "execution_mode": "fixed-native-fetch",
-          "acquired_manifest_sha256": "a69e32dc12306da46439f72d220733c0f564e8180f018100da3b2d43eb90b743",
-          "normalized_manifest_sha256": "0bed669a79c7074aa3782949be25564f300a22bc7287995ea10ebef2546b0be5",
-          "source_updated_at": "2026-08-13T14:32:18.000Z",
-          "observed_at": "2026-09-08T17:07:50.865Z"
+          "acquired_manifest_sha256": "e03abf6c075d5fb4e54108c41eb1a2c31673236e9cb58fe633b8b7ed1aa29db6",
+          "normalized_manifest_sha256": "1879f42577c807bddfc601a72fef428de0fd6a07435a4e95b0ebd6d69cdd5540",
+          "source_updated_at": "2026-10-29T20:08:16.000Z",
+          "observed_at": "2026-11-12T16:03:07.176Z"
         },
         "source_claims": {
           "denominator": "accepted facility rows in this retained Pennsylvania center cohort; not all United States businesses",
@@ -841,7 +847,7 @@
         "source_metrics": {},
         "denominator": "accepted facility rows in this retained Pennsylvania center cohort; not all United States businesses",
         "source_row_unit": "publisher-listed-facility-row",
-        "enrollment_sha256": "e2f633d309353edd70f3014530f00c3f995fa6b1dbafb1c5d587f21409efe4a9"
+        "enrollment_sha256": "2ea81dacdaceee7413ba5deff8f704f30dcbd4eabc812f2726344c54051d61e1"
       },
       "CT": {
         "source_id": "ct-oec-childcare-centers",
@@ -1338,11 +1344,11 @@
       }
     },
     "summary": {
-      "accepted_candidate_rows": 12210,
-      "zip_present_candidate_rows": 12208,
+      "accepted_candidate_rows": 12234,
+      "zip_present_candidate_rows": 12232,
       "missing_zip_candidate_rows": 1,
       "invalid_zip_candidate_rows": 1,
-      "indexed_zip_count": 2359,
+      "indexed_zip_count": 2356,
       "missing_zip_buckets": [
         {
           "publisher_scope": "VT",
@@ -1360,9 +1366,9 @@
         }
       ]
     },
-    "root_view_sha256": "93ab0bf02ab7c268c9956f692279cd642beb31f8ccb026a8b6788903dd605800",
+    "root_view_sha256": "3ab410d2e6eae4fc5b41134312b65a43ff32f4ab15bba77ba70c8074a795ba43",
     "artifact_count": 16,
-    "artifact_bytes": 604770,
-    "artifact_inventory_sha256": "3bb43c58284abcd9019084e4ead11eb58cf08d7a38dc29db3b108ade7d0cde3b"
+    "artifact_bytes": 604218,
+    "artifact_inventory_sha256": "8f7a545c5f4cf04b37d3ae3648e9af66967cff629951ac67175abed26fd32ac5"
   }
 }

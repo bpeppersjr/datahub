@@ -14,6 +14,7 @@ import registrationV29 from "../config/datasets/state-exact-zip-industry-evidenc
 import registrationV30 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-0.json";
 import registrationV32 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-2.json";
 import registrationV33 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-3.json";
+import registrationV34 from "../config/datasets/state-exact-zip-industry-evidence-disposition-v3-4.json";
 
 const SHA = /^[a-f0-9]{64}$/,
   LIFECYCLES = [
@@ -302,6 +303,14 @@ function validV33Projection(q:Record<string,unknown>,dimension:string):boolean{
   const geo=q.geography_scope_counts as Record<string,number>;if(!geo||!exact(geo,["state","territory",...SPECIAL])||sum(geo)!==48194||geo.state!==33455||geo.territory!==149)return false;
   const provenance=q.provenance as Record<string,unknown>,matrix=provenance?.matrix as Record<string,unknown>,childcare=provenance?.retained_childcare_zip_evidence as Record<string,unknown>,claims=q.claims as Record<string,unknown>;
   return !!provenance&&exact(provenance,["release_id","manifest_sha256","artifact_sha256","matrix","predecessor_state","crosswalk","retained_childcare_zip_evidence"])&&provenance.release_id===registrationV33.retained_release.release_id&&provenance.manifest_sha256===registrationV33.retained_release.manifest_sha256&&provenance.artifact_sha256===registrationV33.retained_release.artifact_sha256&&matrix?.release_id==="national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13"&&matrix.manifest_sha256==="9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad"&&childcare?.release_id==="retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b"&&childcare.manifest_sha256==="9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a"&&claims?.retained_childcare_v1_2===true&&claims.source_relative_candidate_rows===true&&claims.missing_zip_allocated===false&&claims.invalid_zip_allocated===false&&claims.out_of_cohort_zip_allocated===false&&claims.current_operations_verified===false&&claims.unique_business_count===null&&claims.complete_all_businesses===false&&claims.production_enrollment===false&&q.artifact_read_count===1&&Number.isSafeInteger(q.source_bytes_read)&&Number(q.source_bytes_read)>0;
+}
+function validV34Projection(q:Record<string,unknown>,dimension:string):boolean{
+  const root=["schema_version","status","dimension_id","dimensions","metric","states","territories","special_scopes","geography_scope_counts","provenance","source_bytes_read","artifact_read_count","claims"];
+  if(!exact(q,root)||q.schema_version!=="state-exact-zip-industry-evidence-projection@3.4.0"||q.status!=="present"||q.dimension_id!==dimension||!Array.isArray(q.dimensions)||q.dimensions.length!==51||new Set(q.dimensions.map(item=>(item as {id?:unknown})?.id)).size!==51||!q.dimensions.some(item=>(item as {id?:unknown})?.id===dimension))return false;
+  const states=q.states as Array<Record<string,unknown>>,territories=q.territories as Array<Record<string,unknown>>,special=q.special_scopes as Array<Record<string,unknown>>,geo=q.geography_scope_counts as Record<string,number>;
+  if(!Array.isArray(states)||states.length!==51||!Array.isArray(territories)||territories.length!==5||!Array.isArray(special)||special.length!==4||sum(geo)!==48194||geo.state!==33455||geo.territory!==149)return false;
+  const provenance=q.provenance as Record<string,unknown>,matrix=provenance?.matrix as Record<string,unknown>,childcare=provenance?.retained_childcare_zip_evidence as Record<string,unknown>,claims=q.claims as Record<string,unknown>;
+  return provenance?.release_id===registrationV34.retained_release.release_id&&provenance.manifest_sha256===registrationV34.retained_release.manifest_sha256&&provenance.artifact_sha256===registrationV34.retained_release.artifact_sha256&&matrix?.release_id==="national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1"&&matrix.manifest_sha256==="684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3"&&childcare?.release_id==="retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e"&&childcare.manifest_sha256==="4fa7e65399c3a123a723fab8aa2fa9919594db61fa34c0883c581e6cf01c14f0"&&claims?.retained_childcare_v1_3===true&&claims.current_operations_verified===false&&claims.complete_all_businesses===false&&q.artifact_read_count===1;
 }
 function validV29Projection(
   q: Record<string, unknown>,
@@ -1628,6 +1637,7 @@ export function validStateEvidenceProjection(
   input: unknown,
   dimension: string,
 ): input is Projection {
+  if(input&&typeof input==="object"&&!Array.isArray(input)&&(input as Record<string,unknown>).schema_version==="state-exact-zip-industry-evidence-projection@3.4.0")return validV34Projection(input as Record<string,unknown>,dimension);
   if(input&&typeof input==="object"&&!Array.isArray(input)&&(input as Record<string,unknown>).schema_version==="state-exact-zip-industry-evidence-projection@3.3.0")return validV33Projection(input as Record<string,unknown>,dimension);
   if(input&&typeof input==="object"&&!Array.isArray(input)&&(input as Record<string,unknown>).schema_version==="state-exact-zip-industry-evidence-projection@3.2.0")return validV32Projection(input as Record<string,unknown>,dimension);
   if (

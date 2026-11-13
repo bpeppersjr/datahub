@@ -3055,7 +3055,7 @@ export function validChildcareZipEvidence(
   const view = value as ChildcareZipEvidence,
     pin = childcareRegistration.retained_release;
   if (
-    view.schema_version !== "retained-childcare-zip-evidence@1.2.0" ||
+    view.schema_version !== "retained-childcare-zip-evidence@1.3.0" ||
     view.available !== true ||
     view.zip5 !== zip5 ||
     view.source_replay_performed !== false ||
@@ -3070,8 +3070,8 @@ export function validChildcareZipEvidence(
     !sameClosed(view.claims, childcareRegistration.claims) ||
     !sameClosed(view.sources, pin.sources) ||
     !sameClosed(view.summary, pin.summary) ||
-    view.summary.accepted_candidate_rows !== 12210 ||
-    view.summary.zip_present_candidate_rows !== 12208 ||
+    view.summary.accepted_candidate_rows !== 12234 ||
+    view.summary.zip_present_candidate_rows !== 12232 ||
     view.summary.missing_zip_candidate_rows !== 1 ||
     view.summary.invalid_zip_candidate_rows !== 1 ||
     !sameClosed(view.summary.missing_zip_buckets, [
@@ -3107,7 +3107,7 @@ export function validChildcareZipEvidence(
     accepted += source.accepted_candidate_rows;
     present += source.quality.with_zip5;
   }
-  if (accepted !== 12210 || present !== 12208) return false;
+  if (accepted !== 12234 || present !== 12232) return false;
   if (view.row === null)
     return view.status === "absent-from-retained-candidate-evidence";
   if (
@@ -4776,6 +4776,10 @@ const EXACT_ZIP_V33_RELEASE = "national-exact-zip-industry-evidence-matrix-b74f7
 const EXACT_ZIP_V33_MANIFEST = "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad";
 const RETAINED_CHILDCARE_V12_RELEASE = "retained-childcare-zip-evidence-b61acab3e067f828013a17387b1912c90493e69d7cf3f3c12ae6a04b01b3625b";
 const RETAINED_CHILDCARE_V12_MANIFEST = "9997dc9dcad2f3a35cd49a76244527ecd6bf6b13a4a6000db8a28f7651bf123a";
+const EXACT_ZIP_V34_RELEASE = "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1";
+const EXACT_ZIP_V34_MANIFEST = "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3";
+const RETAINED_CHILDCARE_V13_RELEASE = "retained-childcare-zip-evidence-fff67989bf590fe4c4c878c6fd5dffdbaeb612a10deeed8ac049997716da2e0e";
+const RETAINED_CHILDCARE_V13_MANIFEST = "4fa7e65399c3a123a723fab8aa2fa9919594db61fa34c0883c581e6cf01c14f0";
 const NY_RETAIL_FOOD_REFRESHED_SOURCE = {
   source_release_id: "ny-retail-food-stores-2026-10-14-7f9dc6f0449f76e0",
   source_reference_at: "2026-10-14T19:08:34.000Z",
@@ -5986,6 +5990,14 @@ function validExactZipIndustrySummaryV33(input: unknown): boolean {
   }
   return validExactZipIndustrySummaryV32(compatible);
 }
+function validExactZipIndustrySummaryV34(input: unknown): boolean {
+  if (!exactObject(input) || input.schema_version !== "national-exact-zip-industry-summary-view@3.4.0" || input.release_id !== EXACT_ZIP_V34_RELEASE || input.manifest_sha256 !== EXACT_ZIP_V34_MANIFEST || input.source_dimensions !== 51 || input.zip5_rows !== 48194 || input.industry_cells !== 2457894 ||
+    !sameClosed(input.retained_childcare_refresh, { source_release_id: RETAINED_CHILDCARE_V13_RELEASE, source_manifest_sha256: RETAINED_CHILDCARE_V13_MANIFEST, accepted_candidate_rows: 12234, represented_candidate_rows: 12231, out_of_cohort_candidate_rows: 1, missing_zip_candidate_rows: 1, invalid_zip_candidate_rows: 1 }) ||
+    !exactObject(input.temporal_qualification) || input.temporal_qualification.schema_version !== "exact-zip-industry-temporal-summary-projection@3.4.0" || input.temporal_qualification.matrix_release_id !== EXACT_ZIP_V34_RELEASE || input.temporal_qualification.matrix_manifest_sha256 !== EXACT_ZIP_V34_MANIFEST || input.temporal_qualification.projection_sha256 !== "dd7c58f03c05db1b7326f51b53a866b9d8711d462e42b476a94adddf5d2863eb" || !Array.isArray(input.dimensions) || input.dimensions.length !== 51 || new Set(input.dimensions.map(row=>exactObject(row)?row.id:null)).size !== 51) return false;
+  const childcareIds = new Set(["childcare_pa_candidates", "childcare_ct_candidates", "childcare_md_candidates", "childcare_vt_candidates", "childcare_co_candidates", "childcare_ut_candidates", "childcare_ia_candidates"]);
+  const childcare = input.dimensions.filter(row => exactObject(row) && childcareIds.has(String(row.id)));
+  return childcare.length === 7 && childcare.every(row => exactObject(row.temporal_qualification) && row.temporal_qualification.source_release_id === RETAINED_CHILDCARE_V13_RELEASE && row.temporal_qualification.assessment_as_of === "2026-11-12T23:25:00.000Z" && row.temporal_qualification.review_qualification === "unmeasured" && row.temporal_qualification.current_operations_verified === false);
+}
 type DispositionCount={cell_status:string;lifecycle_status:string;label:string;current_operations_verified:false;count:number};
 type SummaryTemporalProvenance = typeof nationalStatusContract.temporal_assessment | {release_id:string;manifest_sha256:string;assessment_as_of:string;dimension_counts:{"within-review-window":number;stale:number;unmeasured:number;unmapped:number};semantic_dimension_counts:{"source-defined-current":number;"non-active-reporting":number;unmapped:number}};
 type ExactZipIndustrySummary={schema_version:`national-exact-zip-industry-summary-view@${string}`;available:true;release_id:string;manifest_sha256:string;created_at:null;zip5_rows:number;source_dimensions:number;industry_cells:number;status_counts:Record<string,number>;evidence_disposition_counts:{total_cells:number;by_cell_status:Record<string,number>;by_lifecycle_status:Record<string,number>;joined:DispositionCount[]};temporal_status_counts:{"source-referenced-current-operation-unverified":number;"source-reference-unresolved":number};temporal_qualification:SummaryTemporalProvenance;omitted_industries_status:"unavailable-not-materialized";coverage_gaps:{out_of_cohort_source_records:number;out_of_cohort_zip_count:number;source_quality_gap_records:number;address_gap_dimensions:number;address_rows_without_eligible_zip5:number;meaning:string};geography_cohort:{same_code_census_zcta:number;source_contributed_without_same_code_zcta:number;denominator_only_without_same_code_zcta:number;explicit_placeholder:number;without_same_code_zcta_total:number;cohort_release_id:string;cohort_manifest_sha256:string;created_at:string};entity_resolution:{evidence_zip_count:number;no_decision_zip_count:number;evidence_zip_percent:number;no_decision_zip_percent:number;site_alias_groups:number;establishment_alias_groups:number;unapplied_review_candidates:number;release_id:string;manifest_sha256:string;created_at:string;benchmark_gate_passed:false;entity_resolution_applied:false};dimensions:Array<{id:string;status_counts:Record<string,number>;positive_zip_percent:number;measured_status_percent:number;evidence_disposition_counts:{total_cells:number;joined:DispositionCount[]};temporal_qualification:{source_key:string|null;source_release_id:string|null;review_qualification:"within-review-window"|"stale"|"unmeasured"|"unmapped";semantic_class:"source-defined-current"|"non-active-reporting"|"unmapped";source_reference_at:string|null;review_due_at:string|null;source_status_term:string|null;assessment_as_of:string}}>;verification_scope:string;claims:{authoritative_current_usps_zip_denominator:null;current_operation_verified:false;all_business_completeness:false;additive_cross_industry_total:false;non_zcta_means_invalid_zip:false;omitted_industries_measured:false;network_requests:0}};
@@ -6012,6 +6024,7 @@ function validExactZipIndustrySummaryV21(input:unknown):boolean{if(!exactObject(
 export function validExactZipIndustrySummary(
   input: unknown,
 ): input is ExactZipIndustrySummary {
+  if (exactObject(input) && input.schema_version === "national-exact-zip-industry-summary-view@3.4.0") return validExactZipIndustrySummaryV34(input);
   if (
     exactObject(input) &&
     input.schema_version === "national-exact-zip-industry-summary-view@3.3.0"
@@ -6392,18 +6405,18 @@ const OPERATIONAL_INDUSTRY_DIMENSIONS: Record<string, string[]> = {
   childcare: ['childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates','childcare_ma_reporting_centers','childcare_nj_reporting_centers','childcare_tn_reporting_centers','childcare_oh_reporting_centers'],
 };
 const OPERATIONAL_CROSSWALK_PROVENANCE = {
-  crosswalk_sha256: '114b34577108a3c0f07ade860d6771800f6111b2e3ed5d0966726dd970b59666',
-  summary_release_id: EXACT_ZIP_V33_RELEASE,
-  summary_manifest_sha256: EXACT_ZIP_V33_MANIFEST,
-  state_disposition_release_id: 'state-exact-zip-industry-evidence-disposition-60d8b416710c0916606a370b82fc8f0c1ef2134acedab29ec928528343f87617',
-  state_disposition_manifest_sha256: '5e4f158779ffba9ca3bdee140da4fcd657c535b061b7300c53620413d0672920',
-  state_disposition_artifact_sha256: 'f21183124dc7070e60f7c27c61d45fa312b856bb24d09bec25aa8e39cf562412',
+  crosswalk_sha256: 'c03787922cb91bcfe0fd531f9ff267eb15b31125b71163c5dd60d3d7d26470ff',
+  summary_release_id: EXACT_ZIP_V34_RELEASE,
+  summary_manifest_sha256: EXACT_ZIP_V34_MANIFEST,
+  state_disposition_release_id: 'state-exact-zip-industry-evidence-disposition-ceeb82e83af301e5a508c4abc1eaa4c226a7f1124b748c068d2285d2a2ae7d41',
+  state_disposition_manifest_sha256: '7545dbd97b0848e4365114b5f3daa8b074742f0f82d5c892131c04f5bf4c8b05',
+  state_disposition_artifact_sha256: '9006425a8fd9d3dd90b1cc32f378144b9409b5922760fc70e83fc33d6cc265e0',
 };
 const OPERATIONAL_V33_CHILDCARE = new Set(['childcare_pa_candidates','childcare_ct_candidates','childcare_md_candidates','childcare_vt_candidates','childcare_co_candidates','childcare_ut_candidates','childcare_ia_candidates']);
 const operationalTemporalContract = (id:string) => {
   const prior = EXACT_ZIP_V32_SUMMARY_CONTRACT.find(([dimension]) => dimension === id)?.[2];
   if (!prior || !OPERATIONAL_V33_CHILDCARE.has(id)) return prior;
-  return {...prior, source_release_id: RETAINED_CHILDCARE_V12_RELEASE, ...(id === 'childcare_vt_candidates' ? {source_reference_at:'2026-10-14T19:56:37.000Z'} : {})};
+  return {...prior, source_release_id: RETAINED_CHILDCARE_V13_RELEASE, ...(id === 'childcare_pa_candidates' ? {source_reference_at:'2026-10-29T20:08:16.000Z'} : {}), ...(id === 'childcare_vt_candidates' ? {source_reference_at:'2026-10-14T19:56:37.000Z'} : {})};
 };
 const OPERATIONAL_STATE_FIPS: Record<string, string> = Object.fromEntries(
   operationalStates.map((state, index) => [state, ['02','01','05','04','06','08','09','11','10','12','13','15','19','16','17','18','20','21','22','25','24','23','26','27','29','28','30','37','38','31','33','34','35','32','36','39','40','41','42','44','45','46','47','48','49','51','50','53','55','54','56'][index]]),

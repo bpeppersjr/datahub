@@ -8,8 +8,8 @@ const RELEASE = "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50b
 const scopes = { childcare_pa_candidates: "PA", childcare_ct_candidates: "CT", childcare_md_candidates: "MD", childcare_vt_candidates: "VT", childcare_co_candidates: "CO", childcare_ut_candidates: "UT", childcare_ia_candidates: "IA" };
 const hash = (value) => createHash("sha256").update(value).digest("hex"), check = (value) => { if (!value) throw Error("Exact-ZIP v3.3 summary rejected."); };
 export async function readExactZipIndustrySummaryV33(options = {}) {
-  const previous = await prior(options), root = options.root ?? APP_ROOT, registration = JSON.parse(await readFile(path.join(root, "config/datasets/retained-childcare-zip-evidence.json"))), manifestBytes = await readFile(path.join(root, registration.retained_release.manifest)), manifest = JSON.parse(manifestBytes);
-  check(registration.retained_release.release_id === CHILDCARE && registration.retained_release.manifest_sha256 === CHILDCARE_MANIFEST && hash(manifestBytes) === CHILDCARE_MANIFEST && manifest.summary.accepted_candidate_rows === 12210);
+  const previous = await prior(options), root = options.root ?? APP_ROOT, manifestBytes = await readFile(path.join(root, "data/retained-childcare-zip-evidence/releases", CHILDCARE, "manifest.json")), manifest = JSON.parse(manifestBytes);
+  check(hash(manifestBytes) === CHILDCARE_MANIFEST && manifest.release_id === CHILDCARE && manifest.summary.accepted_candidate_rows === 12210);
   const dimensions = previous.dimensions.map((dimension) => {
     const scope = scopes[dimension.id]; if (!scope) return dimension; const cohort = manifest.sources[scope], reference = cohort.provenance.source_updated_at ?? null;
     return { ...dimension, temporal_qualification: { ...dimension.temporal_qualification, source_release_id: CHILDCARE, source_reference_at: reference, assessment_as_of: ASSESSED, review_qualification: "unmeasured", review_due_at: null, current_operations_verified: false } };
