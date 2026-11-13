@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { APP_ROOT } from "./paths.mjs";
-import { readExactZipIndustrySummaryV33 } from "./exact-zip-industry-summary-v3-3.mjs";
+import { readExactZipIndustrySummaryV34 } from "./exact-zip-industry-summary-v3-4.mjs";
 
 const sha = value => createHash("sha256").update(value).digest("hex");
 const check = (value, message) => { if (!value) throw new Error(`Operational industry evidence rejected: ${message}.`); };
@@ -38,11 +38,13 @@ export function projectOperationalIndustryEvidence({ crosswalk, summary, disposi
   return { schema_version:"operational-industry-evidence-summary@1.1.0", state:{code:state,name:disposition.state_name,fips:disposition.state_fips,governed_zcta_zip5_rows:disposition.zip5_rows}, industries, unmapped_dimensions:crosswalk.dimensions.filter(row=>row.industries.length===0).map(row=>({id:row.id,reason:row.unmapped_reason})), special_geography:{included_in_state_denominator:false,non_zcta_unassigned_reported_separately:true,material_cross_state_zctas_reported_separately:true}, claims:{metric_unit:"ZIP5-by-source-dimension evidence cells",business_or_entity_counts_added:false,business_completeness:null,industry_completeness:null,current_operation_verified:false,usps_validity_verified:false,zip4_joined:false,network_requests:0,runtime_writes:0,production_enrollment:false,export_authorized:false} };
 }
 
-export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV33 }={}) {
+export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, state, summaryReader=readExactZipIndustrySummaryV34 }={}) {
   check(STATES.has(state), "state"); root=await fs.realpath(path.resolve(root));
-  const crosswalkRead=await boundedJson(path.join(root,"config","exact-zip-operational-industry-crosswalk.json"),200_000);
-  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-3.json"),200_000), registration=registrationRead.value;
-  check(registration.schema_version==="3.3.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
+  const crosswalkRead=await boundedJson(path.join(root,"config","exact-zip-operational-industry-crosswalk-v1-2.json"),200_000), crosswalkOverlay=crosswalkRead.value, crosswalkBaseRead=await boundedJson(path.join(root,crosswalkOverlay.base.path),200_000);
+  check(crosswalkOverlay.schema_version==="exact-zip-operational-industry-crosswalk-overlay@1.2.0"&&crosswalkBaseRead.sha256===crosswalkOverlay.base.sha256,"crosswalk overlay");
+  const crosswalk={...crosswalkBaseRead.value,schema_version:"exact-zip-operational-industry-crosswalk@1.2.0",matrix_schema_version:crosswalkOverlay.matrix_schema_version};
+  const registrationRead=await boundedJson(path.join(root,"config","datasets","state-exact-zip-industry-evidence-disposition-v3-4.json"),200_000), registration=registrationRead.value;
+  check(registration.schema_version==="3.4.0"&&registration.runtime_pointer===null&&registration.production_enrollment===false&&registration.retained_release?.dimension_count===51&&registration.retained_release?.industry_cells===2457894,"disposition registration");
   const manifestRead=await boundedJson(path.join(root,...registration.retained_release.manifest.split("/")),100_000), manifest=manifestRead.value;
   check(manifestRead.sha256===registration.retained_release.manifest_sha256&&manifest.release_id===registration.retained_release.release_id&&manifest.bindings?.matrix?.release_id,"disposition manifest");
   const artifact=manifest.artifacts?.[0], artifactRead=await boundedJson(path.join(path.dirname(manifestRead.path),artifact?.path??""),4_000_000);
@@ -50,5 +52,5 @@ export async function readOperationalIndustryEvidenceSummary({ root=APP_ROOT, st
   const states=artifactRead.value.filter(row=>/^state:\d{2}$/.test(row.scope_id)); check(states.length===51&&new Set(states.map(row=>row.postal_abbreviation)).size===51,"state roster");
   const row=states.find(item=>item.postal_abbreviation===state); check(row,"state row");
   const summary=await summaryReader({root}); check(summary.release_id===manifest.bindings.matrix.release_id&&summary.manifest_sha256===manifest.bindings.matrix.manifest_sha256,"summary matrix binding");
-  return {...projectOperationalIndustryEvidence({crosswalk:crosswalkRead.value,summary,disposition:row,state}),provenance:{crosswalk_sha256:crosswalkRead.sha256,summary_release_id:summary.release_id,summary_manifest_sha256:summary.manifest_sha256,state_disposition_release_id:manifest.release_id,state_disposition_manifest_sha256:manifestRead.sha256,state_disposition_artifact_sha256:artifactRead.sha256}};
+  return {...projectOperationalIndustryEvidence({crosswalk,summary,disposition:row,state}),provenance:{crosswalk_sha256:crosswalkRead.sha256,summary_release_id:summary.release_id,summary_manifest_sha256:summary.manifest_sha256,state_disposition_release_id:manifest.release_id,state_disposition_manifest_sha256:manifestRead.sha256,state_disposition_artifact_sha256:artifactRead.sha256}};
 }

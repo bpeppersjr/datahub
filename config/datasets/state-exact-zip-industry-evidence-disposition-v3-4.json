@@ -1,0 +1,29 @@
+{
+  "schema_version": "3.4.0",
+  "dataset_id": "state-exact-zip-industry-evidence-disposition",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "state-exact-zip-industry-evidence-disposition-ceeb82e83af301e5a508c4abc1eaa4c226a7f1124b748c068d2285d2a2ae7d41",
+    "manifest": "data/state-exact-zip-industry-evidence-disposition-v3-4/releases/state-exact-zip-industry-evidence-disposition-ceeb82e83af301e5a508c4abc1eaa4c226a7f1124b748c068d2285d2a2ae7d41/manifest.json",
+    "manifest_sha256": "7545dbd97b0848e4365114b5f3daa8b074742f0f82d5c892131c04f5bf4c8b05",
+    "manifest_bytes": 4006,
+    "artifact_sha256": "9006425a8fd9d3dd90b1cc32f378144b9409b5922760fc70e83fc33d6cc265e0",
+    "artifact_bytes": 3292136,
+    "scope_rows": 60,
+    "dimension_count": 51,
+    "industry_cells": 2457894
+  },
+  "replaces_dimensions_from": "state-exact-zip-industry-evidence-disposition-v3-3",
+  "replaced_dimensions": [
+    "childcare_pa_candidates",
+    "childcare_ct_candidates",
+    "childcare_md_candidates",
+    "childcare_vt_candidates",
+    "childcare_co_candidates",
+    "childcare_ut_candidates",
+    "childcare_ia_candidates"
+  ],
+  "documentation": "docs/STATE-EXACT-ZIP-INDUSTRY-EVIDENCE-DISPOSITION.md"
+}

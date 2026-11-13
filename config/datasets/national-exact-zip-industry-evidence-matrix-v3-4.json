@@ -1,0 +1,30 @@
+{
+  "schema_version": "3.4.0",
+  "dataset_id": "national-exact-zip-industry-evidence-matrix",
+  "status": "registered-pointer-free-local-review-only",
+  "runtime_pointer": null,
+  "production_enrollment": false,
+  "retained_release": {
+    "release_id": "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1",
+    "manifest": "data/national-exact-zip-industry-evidence-matrix-v3-4/releases/national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1/manifest.json",
+    "manifest_sha256": "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3",
+    "manifest_bytes": 22434,
+    "zip5_rows": 48194,
+    "dimension_count": 51,
+    "industry_cells": 2457894,
+    "artifact_count": 103,
+    "artifact_bytes": 909821082,
+    "max_prefix_artifact_bytes": 18126784
+  },
+  "replaces_dimensions_from": "national-exact-zip-industry-evidence-matrix-v3-3",
+  "replaced_dimensions": [
+    "childcare_pa_candidates",
+    "childcare_ct_candidates",
+    "childcare_md_candidates",
+    "childcare_vt_candidates",
+    "childcare_co_candidates",
+    "childcare_ut_candidates",
+    "childcare_ia_candidates"
+  ],
+  "documentation": "docs/NATIONAL-EXACT-ZIP-INDUSTRY-EVIDENCE-MATRIX.md"
+}

@@ -10,6 +10,7 @@
     "goal-federation:verify": "node scripts/verify-national-goal-evidence-federation.mjs",
     "goal-federation:v3.4:build": "node scripts/build-national-goal-evidence-federation-v3-4.mjs",
     "goal-federation:v3.4:verify": "node scripts/verify-national-goal-evidence-federation-v3-4.mjs",
+    "promote:childcare:v3.4": "node scripts/promote-refreshed-childcare-v3-4.mjs",
     "epa-operational-segments:build": "node scripts/build-national-epa-echo-operational-segment-evidence.mjs",
     "epa-operational-segments:verify": "node scripts/verify-national-epa-echo-operational-segment-evidence.mjs",
     "naics-reference:build": "node scripts/build-us-census-naics-reference.mjs",

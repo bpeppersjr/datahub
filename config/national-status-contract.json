@@ -1,9 +1,9 @@
 {
-  "created_at": "2026-11-12T22:28:02.108Z",
+  "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
-    "gap-ledger.json": "011e2045cfc21fbb7a516f86c05c1548c08a0cfd6deb2d7470457b794ec55ff7",
-    "national-summary.json": "cef3c4c2715a86754374ab5b3e0b00ed2304ef050332d38e448c30808ca44d2d",
-    "state-industry-status.jsonl": "656ea5fe8d50ff0ea2b685b88e7f0455cd577c771cfab1233edd4d0c21483f6b",
+    "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
+    "national-summary.json": "1dd480973a6b321911dfa54016d2af3ad943bdd92b64e9d09a7992741d0f8c15",
+    "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
     "zip-status/prefix=01.jsonl.gz": "b68407063f415a025b01aa7732cefb5283cb8519e5ab8568074b2837611d8846",
@@ -20,9 +20,9 @@
     "zip-status/prefix=12.jsonl.gz": "03a2d98230c594b28b14881b580acd892089af433f265932b0364480b2139250",
     "zip-status/prefix=13.jsonl.gz": "414f5051bb8b27c8ad5951a63746b0d08876ccbddea5fe1600b992db0516dc9c",
     "zip-status/prefix=14.jsonl.gz": "3d722a8f043423171317074566c3a688d58868d528797b2166c282d61c96500a",
-    "zip-status/prefix=15.jsonl.gz": "8e2e41ca13bcfe418c8a08a6c6d559e266ac7e23335eba15b4b6cb5d842ce31d",
-    "zip-status/prefix=16.jsonl.gz": "9dd869cb995fd2346f5ef07ae2178b8afed33ad0d6ef7ea364838ac2c2921001",
-    "zip-status/prefix=17.jsonl.gz": "509be2295002c983eb730e4dd6ad6a2a5c4a8254cb5b4775a7415d6f4c9476c7",
+    "zip-status/prefix=15.jsonl.gz": "588f7e44d101e42569edb93ce669c5de23d7bbb8d5171b814d396cf7aa1d2937",
+    "zip-status/prefix=16.jsonl.gz": "8efe4398fc0c646832ca7e1d0f667c1d971690ae151923afea0fb63d74083d02",
+    "zip-status/prefix=17.jsonl.gz": "c5744894bced759e41d09a293cddf49a3f640d544d9e9960b07129a410af861b",
     "zip-status/prefix=18.jsonl.gz": "f63b9fc451c5a7e07202c06d520a1b88cfe7e6c4ea126d7b6b545b0f5fbe816a",
     "zip-status/prefix=19.jsonl.gz": "1249ea31028164e3a2d0ce2fa67557220f44da13b8690a05686c0c683e995907",
     "zip-status/prefix=20.jsonl.gz": "9d846df9506b56a105901d3f16094f84d276a644393a26a0c842bccd598c6dbe",
@@ -107,8 +107,8 @@
     "zip-status/prefix=99.jsonl.gz": "acb8380ccee3c401c082528f822f053ed988564a45ec13167e8b7e28dcb79a31"
   },
   "matrix_provenance": {
-    "release_id": "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13",
-    "manifest_sha256": "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad"
+    "release_id": "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1",
+    "manifest_sha256": "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3"
   },
   "geography_relationship_quality": {
     "registration_path": "config/datasets/business-entity-geography-relationship.json",
@@ -150,9 +150,9 @@
     "la_manifest_sha256": "12c202435226e226ae3c5debe384dc815c940f85ea5c6695a7c90542fa8aa55b"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-a11181f974ed0f6c2e50a3f3833b189e161bb9f95e2df970b97557b56220802d/manifest.json",
-  "manifest_sha256": "2d8f783d8a188143c8fa6e368e2497eeef1872fa540821d069f36d16acce0b78",
+  "release_id": "national-goal-evidence-federation-f1e80ce66c819fb5f4e6435d2ecdcc3dd45a162ab06cccc8fe16dbfdaf86a594",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f1e80ce66c819fb5f4e6435d2ecdcc3dd45a162ab06cccc8fe16dbfdaf86a594/manifest.json",
+  "manifest_sha256": "125d0b48d05cd932d7a85dc53ef229ed2b61a981de26c0745afea4a27447db11",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
@@ -507,13 +507,13 @@
     "zcta-overlay-unresolved": 3
   },
   "temporal_assessment": {
-    "schema_version": "exact-zip-industry-temporal-summary-projection@3.3.0",
-    "matrix_release_id": "national-exact-zip-industry-evidence-matrix-b74f7c9f4d63c5aa50bbfe05d5bd55ff04fa0fe774ae6f16c297734405e25b13",
-    "matrix_manifest_sha256": "9967de9da79f8bbd1d2c80194df9a3f2a928664eaa7bc9b7a6bd55b9b35588ad",
+    "schema_version": "exact-zip-industry-temporal-summary-projection@3.4.0",
+    "matrix_release_id": "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1",
+    "matrix_manifest_sha256": "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3",
     "source_dimensions": 51,
     "retained_assessment_dimension_counts": {
       "2026-10-02T16:30:00.000Z": 42,
-      "2026-11-12T19:21:14.719Z": 7,
+      "2026-11-12T23:25:00.000Z": 7,
       "2026-11-11T23:21:47.684Z": 2
     },
     "dimension_counts": {
@@ -531,7 +531,7 @@
       "publisher-active-snapshot": 3,
       "unknown-source-status": 1
     },
-    "projection_sha256": "9502054c1f4319f3e63b20997381912741f87634989ab25ae9bf726b51bcb855"
+    "projection_sha256": "dd7c58f03c05db1b7326f51b53a866b9d8711d462e42b476a94adddf5d2863eb"
   },
   "gaps": {
     "broad_business_missing_states": 40,
