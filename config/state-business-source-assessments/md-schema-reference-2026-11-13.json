@@ -1,0 +1,151 @@
+{
+  "schema_version": "md-sdat-corporate-file-schema-reference@1.0.0",
+  "reference_id": "md-sdat-corporate-file-schema-reference-2026-11-13",
+  "observed_at": "2026-11-13",
+  "state": "MD",
+  "publisher": "Maryland State Department of Assessments and Taxation (SDAT)",
+  "designated_contractor": "SpecPrint",
+  "scope": "standalone-documentation-only-prerequisite",
+  "related_assessment_id": "md-business-source-reassessment-2026-10-03",
+  "supersession_scope": "Supplemental documentation observations only; does not replace the immutable assessment, admit a connector, or change any readiness wave.",
+  "decision": "hold",
+  "current_schema_compatibility_verified": false,
+  "connector_ready": false,
+  "acquisition_authorized": false,
+  "required_source_files": 0,
+  "source_records_acquired": 0,
+  "broad_layer_gaps_resolved": 0,
+  "authority": {
+    "connector_implementation": false,
+    "network_execution": false,
+    "provider_contact": false,
+    "account_creation": false,
+    "terms_acceptance": false,
+    "paid_subscription": false,
+    "source_acquisition": false,
+    "production_publication": false,
+    "redistribution": false
+  },
+  "controls": {
+    "provider_row_requests": 0,
+    "datasets_acquired": 0,
+    "pdf_files_retained": 0,
+    "accounts_created": 0,
+    "fees_paid": 0,
+    "terms_accepted": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "data_mining": false,
+    "production_changes": 0
+  },
+  "policy": {
+    "ownership": "SDAT publishes the official services and website usage statements and designates SpecPrint as its Corporate File contractor.",
+    "source_layer": "provider-restricted-paid-file-pending-agreement-review",
+    "allowed_use": "This artifact records public documentation facts only and grants no source-data use rights.",
+    "terms": "SDAT states that data mining software access will be blocked and directs data access to SpecPrint. Do not automate interactive search or data mining; public document retrieval does not authorize source-file automation.",
+    "retention": "Retain this versioned evidence and citations; no PDF or source records are retained by this prerequisite.",
+    "attribution": "Attribute official policy to SDAT and contractor pricing/layout documentation to SpecPrint, with the observation date and URL.",
+    "redistribution": "No retention, transformation, geocoding, commercial derived-use or redistribution rights for source records have been established."
+  },
+  "retrieval_evidence_origin": "Coordinating-agent documentation retrieval observations supplied to this workstream; byte hashes describe observed responses, not retained source files or a compatibility guarantee.",
+  "current_documentation": {
+    "services": {
+      "url": "https://dat.maryland.gov/Pages/Services.aspx",
+      "evidence_kind": "official-page-text",
+      "http_status": 200,
+      "observed_bytes": 60819,
+      "observed_sha256": "81454ee1548414652c925da395e4b26a0f2ff248027569299410fbb960878bfb",
+      "designates_specprint": true,
+      "entity_families": ["corporations", "limited partnerships", "limited liability companies", "limited liability partnerships", "trade names"],
+      "historical_scope": "Entities active since 1982; this does not establish current operating status or statewide business completeness.",
+      "address_scope": ["principal office", "resident agent"],
+      "master_creation_cadence": "monthly",
+      "subscription_cadence": "weekly"
+    },
+    "website_usage": {
+      "url": "https://dat.maryland.gov/about/Pages/Website-Usage-Statements.aspx",
+      "evidence_kind": "official-page-text",
+      "http_status": 200,
+      "observed_bytes": 63411,
+      "observed_sha256": "daed92330967650ca0b7706563ae971ce15b6879ba4f66924496b8bb12161e61",
+      "data_mining_software_access": "will-be-blocked",
+      "interactive_search_automation_permitted": false,
+      "bulk_route": "SpecPrint"
+    },
+    "contractor_pricing": {
+      "url": "https://www.specprint.com/state_prc.html",
+      "evidence_kind": "publisher-designated-contractor-page-text",
+      "retrieval_transport": "browser",
+      "http_status": 200,
+      "observed_bytes": 7528,
+      "observed_sha256": "5a2655015f80153c36ebb7f52badd278de3d086e3218b269ace972fe40c3a566",
+      "product": "Corporate File",
+      "currency": "USD",
+      "published_price_per_file": 2100,
+      "published_average_weekly_records": 9300000,
+      "unique_entity_denominator_verified": false,
+      "preferred_delivery": "FTP",
+      "advance_payment_required": true,
+      "subscription_quote_verified": false,
+      "purchase_authorized": false
+    }
+  },
+  "published_layout": {
+    "url": "https://specprint.com/spec/CORP%20FILE%20LAYOUT.pdf",
+    "evidence_kind": "publisher-designated-contractor-layout",
+    "retrieval_transport": "browser",
+    "http_status": 200,
+    "content_type": "application/pdf",
+    "observed_bytes": 110151,
+    "observed_sha256": "46d84c82903da5f3e7ec7899521ec7f658f1c9a0db2ceb4183fd13fbbdb0a73e",
+    "retained_locally": false,
+    "reviewed_version_or_date": null,
+    "compatibility_promise_verified": false,
+    "current_schema_compatibility_verified": false,
+    "layout_facts_provenance": "Previously reviewed positional-layout facts preserved from md-business-source-reassessment-2026-10-03; successful current PDF retrieval does not independently validate delivered source files.",
+    "table_count": 25,
+    "documented_tables_of_interest": ["BUSENTIT", "BUSADDRE", "ENTITYST"],
+    "identifier": {
+      "candidate_fields": ["ID_BUS_PREFIX", "ID_BUS"],
+      "id_bus_declared_type": "CHAR 16",
+      "uniqueness_and_lifecycle_verified": false
+    },
+    "postal": {
+      "table": "BUSADDRE",
+      "field": "AD_ZIP",
+      "declared_type": "CHAR 9",
+      "normalization_constraint": "Preserve ZIP5 and ZIP4 separately; no postal deliverability or physical-site proof is established."
+    },
+    "status": {
+      "table": "ENTITYST",
+      "field": "FL_ACTIVE",
+      "allowed_values_verified": false,
+      "operating_status_proof": false
+    },
+    "address_role": {
+      "field": "CD_ADDRESS_TYPE",
+      "codebook_verified": false,
+      "agent_person_exclusions_verified": false
+    },
+    "record_encoding_verified": false,
+    "implementation_boundary": "Positional declarations, VARCHAR fields and binary-looking numeric positions are documentary constraints only, not a parser contract; preserve source-native identifiers and one-to-many relationships pending current schema verification."
+  },
+  "documentation_transport_observation": {
+    "client": "generic .NET HttpClient",
+    "scope": "SpecPrint documentation pages",
+    "http_status": 406,
+    "observed_bytes": 300,
+    "response_kind": "HTML",
+    "interpretation": "Documentation transport behavior only; browser retrieval success does not grant unattended source-file access, authorize evasion, or override the SDAT search/data-mining restriction."
+  },
+  "unresolved_gates": [
+    "Verify a versioned current schema and compatibility promise against an independently authorized delivered release.",
+    "Confirm positional encoding, VARCHAR representation, numeric representation and table inventory.",
+    "Confirm ID_BUS_PREFIX plus ID_BUS uniqueness, lifecycle, joins and relationship cardinality.",
+    "Obtain status and address-type value dictionaries; establish effective dates and exclude agent/person address roles appropriately.",
+    "Confirm full-versus-delta delivery, deletion and correction semantics, replay, completeness counts and checksums.",
+    "Review current price, subscription quote, unattended access, agreement, retention, privacy, transformation, commercial derived use and redistribution rights.",
+    "Obtain separate explicit acquisition authorization and governed connector approval before any source-file request."
+  ],
+  "next_action": "Maintain HOLD; review current unsigned schema and agreement documentation when separately authorized. Do not automate interactive search or data mining."
+}
