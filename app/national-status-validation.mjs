@@ -45,13 +45,15 @@ const connectorReadinessPins = Object.freeze({
   MS: Object.freeze(["config/connectors/mississippi-business-report-offline.json", "e8264e06f02dc7823c6752fb7dbb88a3975e220c7ae6d37d4107eeedcffebf78", "config/source-policies/mississippi-business-report-offline.json", "84e535a5282b8f1b7c6d847d4d146b98a92b9be38cfe8fe2bd938a6b1cae90b1", "config/state-business-source-assessments/ms-2026-10-03.json", "85e1c6bd5565935bcfd381c12b9dec665638f0aad23e7b68dfe70b47d6b477f9", 2]),
   OK: Object.freeze(["config/connectors/ok-business-bulk-offline.json", "3bb356dc4eb90f12535afbb831694ef0d9bb3a907134a4e22da5ac5494f9f7ad", "config/source-policies/ok-business-entities-bulk.json", "b7f7f5c163e69ef366be66bdd864bb8d2376b39010a549c5eec874df4acf1aa4", "config/state-business-source-assessments/ok-2026-10-03.json", "47f1766d065e562b2c6d648b65055039beb583a13328322ec715c3fe7f514da1", 1]),
   UT: Object.freeze(["config/connectors/utah-business-list-offline.json", "106122b84872d1f03e8791604fa031d0abb3fd34181d0e0708340a4e63ba6ec4", "config/source-policies/utah-business-list-offline.json", "ea2bb05d93839e4d3185196761f3e31b3ccc54a670001fe9ed742beb732d7800", "config/state-business-source-assessments/ut-2026-10-03.json", "b06b5aa95d2c28cd3beedf36db689da340120fe283f5317e5725e1241fe114a7", 3]),
+  MN: Object.freeze(["config/connectors/mn-active-business-data-zero-row.json", "0bc61a740f39d661b134de5019c92d8be644a067a6eda91778200300ea6803bf", "config/source-policies/mn-active-business-data-zero-row.json", "fb73c5174ad47b55f596273558ec20e869e69bed0d1531c856c9153b1b3ad69c", "config/state-business-source-assessments/mn-2026-10-03.json", "4a5eb48bd386a971a573a2cb8efddbc0c91e47dd70bfbdeab51d384d001ed065", 0]),
 });
 function validConnectorReadiness(value, state, gates) {
   const expected = connectorReadinessPins[state];
   if (!expected) return value === null;
-  return exact(value, ["schema_version", "status", "connector_path", "connector_sha256", "policy_path", "policy_sha256", "assessment_path", "assessment_sha256", "required_source_files", "source_rows_read", "network_requests", "actions_performed", "unresolved_gates", "broad_layer_gap_resolved", "authority"])
+  return exact(value, ["schema_version", "status", "readiness_kind", "connector_path", "connector_sha256", "policy_path", "policy_sha256", "assessment_path", "assessment_sha256", "required_source_files", "source_rows_read", "network_requests", "actions_performed", "unresolved_gates", "broad_layer_gap_resolved", "authority"])
     && value.schema_version === "broad-organization-connector-readiness@1.0.0"
     && value.status === "zero-row-ready-gap-unresolved"
+    && value.readiness_kind === (state === "MN" ? "documentation-header-only-zero-row" : "operator-package-offline-connector")
     && equal([value.connector_path, value.connector_sha256, value.policy_path, value.policy_sha256, value.assessment_path, value.assessment_sha256, value.required_source_files], expected)
     && value.source_rows_read === 0 && value.network_requests === 0 && value.actions_performed === 0
     && value.broad_layer_gap_resolved === false && equal(value.unresolved_gates, gates)

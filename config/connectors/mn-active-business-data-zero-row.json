@@ -1,0 +1,36 @@
+{
+  "connector_id": "mn-active-business-data-zero-row",
+  "version": "1.0.0",
+  "implementation_status": "implemented-synthetic-zero-row-schema-validation-only",
+  "description": "Code-only validator for the exact Minnesota Business Data (Active) CSV header; source rows and source packages are forbidden.",
+  "lifecycle": ["preflight", "plan", "acquire", "validate", "normalize", "reconcile", "quality gate", "publish", "finalize"],
+  "product": "Business Data (Active)",
+  "product_substitution_forbidden": ["Business Bulk Data", "Master ID", "full-bulk address domains"],
+  "documentation_evidence": "config/source-documentation/mn-active-business-data-guide-2025-08-01.json",
+  "named_secret_references": [],
+  "input_artifact_types": ["synthetic-zero-row-mn-active-header-fixture"],
+  "configuration_schema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["header", "rows"],
+    "properties": {
+      "header": {"type": "array", "minItems": 16, "maxItems": 16, "items": {"type": "string"}},
+      "rows": {"type": "array", "maxItems": 0}
+    }
+  },
+  "allowed_hosts": [],
+  "redirect_policy": "No network transport or redirects exist.",
+  "provider_budget_key": "mn-active-business-data-zero-row",
+  "resource_class": "bounded-offline-schema-validation",
+  "execution_limits": {"network_requests": 0, "source_rows": 0, "required_source_files": 0, "max_parallel_requests": 0},
+  "source_policy": "config/source-policies/mn-active-business-data-zero-row.json",
+  "output_artifact_types": ["mn-active-business-data-zero-row-schema-validation-result"],
+  "retention_profile": "Synthetic headers only; no Minnesota source package or business row may be read or retained.",
+  "retry": "Correct only the synthetic fixture or governed contract; never retry source access.",
+  "checkpoint": "Return an in-memory validation result only; write no release or pointer.",
+  "idempotency": "Exact pinned documentation, configuration, policy, header, and empty rows produce the same result.",
+  "cancellation": "Stop validation immediately; no source operation or staged output exists.",
+  "produced_entities": ["zero-row-schema-readiness-evidence"],
+  "produced_identifiers": ["unresolved-lifecycle File Number plus Business Filing Type composite identifier evidence"],
+  "authority": {"source_access": false, "contact": false, "account": false, "payment": false, "terms_acceptance": false, "acquisition": false, "publication": false, "national_admission": false, "pointer_change": false, "production": false}
+}

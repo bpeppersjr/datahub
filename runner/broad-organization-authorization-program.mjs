@@ -167,8 +167,8 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
       || backlog.supplemental_evidence[1]?.source_rows_read !== 0 || backlog.supplemental_evidence[1]?.network_requests !== 0
       || backlog.supplemental_evidence[1]?.broad_layer_gap_resolved !== false
       || Object.values(backlog.supplemental_evidence[1]?.authority ?? {}).some(value => value !== false)
-      || backlog.supplemental_evidence[2]?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.0.0"
-      || JSON.stringify(backlog.supplemental_evidence[2]?.states?.map(row => row.state)) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT"])
+      || backlog.supplemental_evidence[2]?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.1.0"
+      || JSON.stringify(backlog.supplemental_evidence[2]?.states?.map(row => row.state)) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT", "MN"])
       || backlog.supplemental_evidence[2]?.broad_layer_gaps_resolved !== 0
       || Object.values(backlog.supplemental_evidence[2]?.controls ?? {}).some(value => value !== 0 && value !== false))) fail("supplemental evidence lineage or authority boundary is invalid");
   if (JSON.stringify(backlog.states.map((row) => row.assessment?.state_abbreviation)) !== JSON.stringify(expectedStates)

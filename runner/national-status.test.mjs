@@ -62,7 +62,7 @@ test("National Status conserves headline units, nine state/DC industries and sep
       assert.equal(view.broad_gap_authorization.connector_readiness, null);
     } else assert.equal(view.broad_gap_authorization, null);
   }
-  for (const [state, required] of Object.entries({ IL: 5, KY: 1, MS: 2, OK: 1, UT: 3 })) {
+  for (const [state, required] of Object.entries({ IL: 5, KY: 1, MS: 2, OK: 1, UT: 3, MN: 0 })) {
     const view = await readNationalStatus({ kind: "state", state });
     assert.equal(validNationalStatus(view, state), true);
     assert.equal(view.broad_gap_authorization.connector_readiness.required_source_files, required);
@@ -236,7 +236,7 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
     assert.doesNotThrow(() => validNationalStatus(v));
     assert.equal(validNationalStatus(v), false, String(mutate));
   }
-  for (const readinessState of ["IL", "KY", "MS", "OK", "UT"]) {
+  for (const readinessState of ["IL", "KY", "MS", "OK", "UT", "MN"]) {
     const readiness = await readNationalStatus({ kind: "state", state: readinessState });
     for (const mutate of [
       (x) => { delete x.broad_gap_authorization.connector_readiness; },

@@ -1283,7 +1283,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       signal,
     ),
     connectorWave = broadAuthorizationProgram.supplemental_evidence?.find(
-      (row) => row.schema_version === "broad-organization-offline-connector-readiness-wave@1.0.0",
+      (row) => row.schema_version === "broad-organization-offline-connector-readiness-wave@1.1.0",
     ),
     connectorStates = new Map(connectorWave?.states?.map((row) => [row.state, row]) ?? []),
     broadAuthorizationStates = broadAuthorizationProgram.states.map((row) => ({
@@ -1303,6 +1303,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
           ? {
               schema_version: "broad-organization-connector-readiness@1.0.0",
               status: "zero-row-ready-gap-unresolved",
+              readiness_kind: connectorStates.get(row.state_abbreviation).readiness_kind,
               connector_path: connectorStates.get(row.state_abbreviation).connector_path,
               connector_sha256: connectorStates.get(row.state_abbreviation).connector_sha256,
               policy_path: connectorStates.get(row.state_abbreviation).policy_path,
@@ -1332,15 +1333,15 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       broadAuthorizationManifest.artifacts.length === 1 &&
       broadAuthorizationManifest.artifacts[0].path === "authorization-program.json" &&
       broadAuthorizationManifest.artifacts[0].sha256 ===
-        "640d543ed1b6472b76df09d53c4f75f325bf8dee49ae32b9c624f805804e38a6" &&
+        "747ff30b95ea351e0c3b3081963b25495d66bcc74f9fe2aa69a59f560c379295" &&
       broadAuthorizationProgram.scope.jurisdictions === 40 &&
       broadAuthorizationProgram.scope.gate_items === 371 &&
       broadAuthorizationProgram.scope.gate_key_count === 121 &&
       broadAuthorizationProgram.wave_state_abbreviations.length === 4 &&
-      connectorWave?.wave_id === "broad-organization-offline-connector-readiness-wave-2026-11-12" &&
+      connectorWave?.wave_id === "broad-organization-offline-connector-readiness-wave-2026-11-13" &&
       connectorWave.broad_layer_gaps_resolved === 0 &&
       Object.values(connectorWave.controls).every((value) => value === 0 || value === false) &&
-      r.equal([...connectorStates.keys()], ["IL", "KY", "MS", "OK", "UT"]) &&
+      r.equal([...connectorStates.keys()], ["IL", "KY", "MS", "OK", "UT", "MN"]) &&
       broadAuthorizationStates.length === 40 &&
       broadAuthorizationStates.reduce((n, row) => n + row.gate_count, 0) === 371 &&
       new Set(broadAuthorizationStates.flatMap((row) => row.gate_keys)).size === 121 &&
@@ -1357,7 +1358,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
           row.strongest_bounded_next_action.length > 0 &&
           Object.values(row.authority).every((value) => value === false),
       ) &&
-      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).length === 5 &&
+      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).length === 6 &&
       broadAuthorizationStates.filter((row) => row.connector_readiness !== null).every(
         (row) => r.equal(row.connector_readiness.unresolved_gates, row.gate_keys),
       ) &&

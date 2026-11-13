@@ -1,0 +1,19 @@
+{
+  "policy_id": "mn-active-business-data-zero-row",
+  "version": "1.0.0",
+  "publisher": "Office of the Minnesota Secretary of State",
+  "product": "Business Data (Active)",
+  "ownership": "Official publisher documentation metadata only; no business record or source package is bundled.",
+  "allowed_use": ["synthetic zero-row exact-header validation", "local code-only contract testing"],
+  "prohibited_use": ["network access", "publisher contact", "account creation", "payment", "terms acceptance", "source acquisition", "row-bearing input", "real source parser execution", "publication", "national admission", "pointer mutation", "production change", "Full Business Bulk Data substitution", "Master ID semantics", "full-bulk address semantics", "joining Zip Code and Zip Code Ext", "retaining Business Party Name Type", "retaining Party Full Name", "inferring current operation", "inferring identifier lifecycle stability"],
+  "person_bearing_fields": ["Business Party Name Type", "Party Full Name"],
+  "person_bearing_fields_admissible": false,
+  "zip5_field": "Zip Code",
+  "zip4_field": "Zip Code Ext",
+  "zip4_joined": false,
+  "redistribution": "not-authorized",
+  "attribution": "Schema documentation: Office of the Minnesota Secretary of State Business Data (Active) User Guide.",
+  "retention": "Retain only governed documentation metadata and synthetic zero-row validation evidence.",
+  "contains_personal_data": true,
+  "contains_secrets": false
+}

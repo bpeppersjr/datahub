@@ -34,9 +34,9 @@ import {
   validateStateBusinessSourceRevalidation,
 } from "./state-business-source-revalidation.mjs";
 
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.5.0";
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-11-12";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "fcae72ed36a660bb61a822c0e83c9a2da51c130f02a4914eab335a50daba6e30";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.6.0";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-11-13";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "71198c59a564260b5c2df5bbb120415f8b7e7e9f74f4e930b89c7b3992901764";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -196,11 +196,11 @@ const ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT = Object.freeze({
   authority_granted: false,
 });
 const BROAD_OFFLINE_WAVE_ARTIFACT = Object.freeze({
-  artifact_id: "broad-organization-offline-connector-readiness-wave-2026-11-12",
+  artifact_id: "broad-organization-offline-connector-readiness-wave-2026-11-13",
   artifact_kind: "supplemental-zero-row-connector-readiness-wave",
-  observed_at: "2026-11-12",
+  observed_at: "2026-11-13",
   coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
-  state_abbreviations: Object.freeze(["IL", "KY", "MS", "OK", "UT"]),
+  state_abbreviations: Object.freeze(["IL", "KY", "MS", "OK", "UT", "MN"]),
   canonical_file_sha256: BROAD_OFFLINE_WAVE_SHA256,
   authority_granted: false,
 });
@@ -488,7 +488,7 @@ export function validateStateBusinessSourceAssessmentCatalog(catalog) {
       || Object.values(illinois.authority ?? {}).some(value => value !== false)
       || illinois.evidence?.assessment_sha256 !== ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT.canonical_file_sha256) fail("Illinois zero-row supplemental evidence drifted");
   const wave = catalog.supplemental_evidence[2];
-  if (wave?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.0.0"
+  if (wave?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.1.0"
       || wave.wave_id !== BROAD_OFFLINE_WAVE_ARTIFACT.artifact_id
       || JSON.stringify(wave.states?.map(row => row.state)) !== JSON.stringify(BROAD_OFFLINE_WAVE_ARTIFACT.state_abbreviations)
       || wave.broad_layer_gaps_resolved !== 0 || Object.values(wave.controls ?? {}).some(value => value !== 0 && value !== false)) fail("broad offline connector wave drifted");

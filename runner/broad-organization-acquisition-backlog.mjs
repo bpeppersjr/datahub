@@ -162,9 +162,9 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
       || supplemental[1].primary_assessment_id !== "il-business-source-reassessment-2026-10-03"
       || supplemental[1].canonical_file_sha256 !== "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9"
       || supplemental[1].authority_granted !== false
-      || supplemental[2].artifact_id !== "broad-organization-offline-connector-readiness-wave-2026-11-12"
-      || JSON.stringify(supplemental[2].state_abbreviations) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT"])
-      || supplemental[2].canonical_file_sha256 !== "fd01ace8b08452f2d41d0c1f466c9f39cc5723e3c68ed6ba6a63fa90d8135353"
+      || supplemental[2].artifact_id !== "broad-organization-offline-connector-readiness-wave-2026-11-13"
+      || JSON.stringify(supplemental[2].state_abbreviations) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT", "MN"])
+      || supplemental[2].canonical_file_sha256 !== "ba5cbd7facef65b159905e595d7f7602fed68de5508965d5fa5b547840a2aced"
       || supplemental[2].authority_granted !== false) fail("supplemental prerequisite evidence is invalid");
   const supplementalEvidence = validated.supplemental_evidence;
   if (!Array.isArray(supplementalEvidence) || supplementalEvidence.length !== 3
@@ -185,8 +185,8 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
       || supplementalEvidence[1].broad_layer_gap_resolved !== false
       || Object.values(supplementalEvidence[1].authority ?? {}).some(value => value !== false)
       || supplementalEvidence[1].evidence?.assessment_sha256 !== supplemental[1].canonical_file_sha256
-      || supplementalEvidence[2].schema_version !== "broad-organization-offline-connector-readiness-wave@1.0.0"
-      || JSON.stringify(supplementalEvidence[2].states?.map(row => row.state)) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT"])
+      || supplementalEvidence[2].schema_version !== "broad-organization-offline-connector-readiness-wave@1.1.0"
+      || JSON.stringify(supplementalEvidence[2].states?.map(row => row.state)) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT", "MN"])
       || supplementalEvidence[2].broad_layer_gaps_resolved !== 0
       || Object.values(supplementalEvidence[2].controls ?? {}).some(value => value !== 0 && value !== false)) fail("supplemental prerequisite facts or authority boundary are invalid");
   return {
