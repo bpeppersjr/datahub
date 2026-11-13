@@ -1,0 +1,93 @@
+{
+  "schema_version": "id-statutory-source-route-reference@1.0.0",
+  "reference_id": "id-statutory-source-route-reference-2026-11-13",
+  "observed_at": "2026-11-13",
+  "state": "ID",
+  "publisher": "Idaho Legislature and Idaho Secretary of State",
+  "scope": "standalone-documentation-only-prerequisite",
+  "related_assessment_id": "id-business-source-reassessment-2026-10-03",
+  "supersession_scope": "Supplemental observations only; the October assessment remains unchanged and no readiness wave or connector is changed.",
+  "decision": "hold",
+  "current_product_verified": false,
+  "current_schema_compatibility_verified": false,
+  "connector_ready": false,
+  "acquisition_authorized": false,
+  "required_source_files": 0,
+  "source_records_acquired": 0,
+  "broad_layer_gaps_resolved": 0,
+  "authority": {
+    "connector_implementation": false,
+    "readiness_admission": false,
+    "source_acquisition": false,
+    "source_query": false,
+    "provider_contact": false,
+    "account_creation": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "production_publication": false,
+    "redistribution": false
+  },
+  "controls": {
+    "record_requests": 0,
+    "source_files_retained": 0,
+    "pdf_files_retained": 0,
+    "accounts_created": 0,
+    "fees_paid": 0,
+    "terms_accepted": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "observations": {
+    "statute": {
+      "url": "https://legislature.idaho.gov/statutesrules/idstat/Title74/T74CH1/SECT74-120/",
+      "evidence_origin": "coordinating agent ordinary fetch on observation date",
+      "http_status": 200,
+      "finding": "Section 74-120 generally restricts agency distribution or sale of lists of persons for mailing or telephone lists and use of agency-prepared lists for those purposes, subject to exceptions. Subsection (6) excludes the specified Secretary of State corporate information list from this section.",
+      "boundary": "The subsection (6) exception does not establish a current product, its availability or an affirmative grant of retention, commercial use, automation or redistribution rights. The described list includes registered agents, officers and directors; person-linked information requires separate review."
+    },
+    "business_resources": {
+      "url": "https://sos.idaho.gov/business-resources/",
+      "faq_url": "https://sos.idaho.gov/business-resources/business-faq/",
+      "evidence_origin": "coordinating agent current official page observations",
+      "finding": "Business resources and FAQ describe business search, filing and registered-agent guidance; they do not establish a current recurring business-master product or contract.",
+      "boundary": "A registered-agent address is a service address, not proof of an operating site; legal registration does not establish operating activity."
+    },
+    "sosbiz_lists": {
+      "url": "https://sosbiz.idaho.gov/lists",
+      "evidence_origin": "coordinating agent shell observation",
+      "finding": "The application shell is inconclusive about list products, contents, access and terms.",
+      "source_query_made": false
+    },
+    "public_records": {
+      "url": "https://sos.idaho.gov/public-records-requests/",
+      "redirect_url": "https://sosidaho.justfoia.com/publicportal/home/newrequest",
+      "evidence_origin": "coordinating agent redirect observation",
+      "finding": "The former public-records route redirects to JustFOIA; a redirect is not a business bulk delivery contract or authorization to submit a request."
+    },
+    "historical_ucc_guides": {
+      "implementation_url": "https://sos.idaho.gov/docs/pdf/UCCXMLImpGuide.pdf",
+      "quick_start_url": "https://sos.idaho.gov/docs/pdf/UCCXMLQuickStart.pdf",
+      "evidence_origin": "coordinating agent current retrieval observations and historical indexed guide descriptions",
+      "implementation_status": 404,
+      "quick_start_status": 404,
+      "finding": "Historical descriptions concern UCC financing-statement filing submission, not business-entity retrieval. Current 404 responses do not prove the historical service or a current business extract exists.",
+      "pdf_retained": false
+    },
+    "registered_agent_report": {
+      "url": "https://sosbiz.idaho.gov/api/report/FromActiveReport/0/RARecentlyAppointed/0",
+      "evidence_origin": "coordinating agent observed link only",
+      "body_requested": false,
+      "cohort_included": false,
+      "finding": "A recent registered-agent PDF report link was observed; its body was not requested. This cohort is excluded and does not establish a statewide business master, schema or rights."
+    }
+  },
+  "unresolved_gates": [
+    "Confirm existence, current scope and supported delivery of a recurring business product.",
+    "Review current terms, price, automation permission, privacy, retention, derived use and redistribution rights.",
+    "Verify a person-free schema, stable identifiers, status semantics, entity coverage and address roles.",
+    "Verify full and delta cadence, deletions, corrections, replay, counts and checksums.",
+    "Obtain separate explicit acquisition authorization and governed connector approval before any source query or file request."
+  ],
+  "next_action": "Maintain HOLD pending separately authorized document-only review of the current product and rights."
+}

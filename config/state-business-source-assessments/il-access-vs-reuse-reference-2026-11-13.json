@@ -1,0 +1,78 @@
+{
+  "schema_version": "il-access-vs-reuse-reference@1.0.0",
+  "reference_id": "il-access-vs-reuse-reference-2026-11-13",
+  "observed_at": "2026-11-13",
+  "state": "IL",
+  "scope": "standalone-documentation-only-prerequisite",
+  "decision": "hold",
+  "supersession_scope": "Supplemental evidence only; neither prior assessment, source policy nor readiness wave is changed.",
+  "connector_ready": false,
+  "acquisition_authorized": false,
+  "processing_authorized": false,
+  "publication_authorized": false,
+  "national_admission_authorized": false,
+  "reuse_reconciled": false,
+  "source_files_retained": 0,
+  "source_rows_retained": 0,
+  "authority": {
+    "automated_access": false,
+    "source_acquisition": false,
+    "processing": false,
+    "publication": false,
+    "national_admission": false,
+    "provider_contact": false,
+    "account_creation": false,
+    "login": false,
+    "payment": false,
+    "terms_acceptance": false,
+    "production_changes": false
+  },
+  "controls": {
+    "source_file_requests": 0,
+    "source_files_retained": 0,
+    "source_rows_retained": 0,
+    "contacts": 0,
+    "accounts": 0,
+    "payments": 0,
+    "terms_accepted": 0,
+    "processing_operations": 0,
+    "publications": 0,
+    "production_changes": 0
+  },
+  "official_sos_evidence": {
+    "landing_page": "https://www.ilsos.gov/data/bus-serv-home.html",
+    "evidence_origin": "Official page opened successfully for documentation review; no bulk files requested.",
+    "page_facts": "The Data Transparency Act page links Corporation and LLC bulk families, describes data as informational and disclaims completeness, accuracy and fitness; it strictly prohibits automated queries to the website.",
+    "automation_authorized": false,
+    "corporation_layout_url": "https://www.ilsos.gov/content/dam/data/bs/proc_corp_data.pdf",
+    "llc_layout_url": "https://www.ilsos.gov/content/dam/data/bs/proc_llc_data.pdf",
+    "layout_evidence_origin": "Official layout PDFs opened successfully; observations also preserved in the October assessment. No PDF or source file retained.",
+    "layout_version": "004",
+    "layout_date": "2024-04-04",
+    "layout_facts": "Daily full snapshots; eight-digit file numbers; Corporation Master, Name and Annual widths 160, 197 and 126; LLC Master and Name widths 136 and 128; RUN DATE headers and END OF FILE RECORD COUNT trailers. LLC records-office address is administrative and may be residential.",
+    "actual_package_verified": false
+  },
+  "statutory_evidence": {
+    "evidence_origin": "ILGA primary-domain search results exposed relevant statutory text. Repeated direct opens returned timeouts or 502; these observations do not establish a successful direct retrieval or a particular failure for each URL.",
+    "corporation_publication_url": "https://ilga.gov/documents/legislation/ilcs/documents/080500050K1.25.htm",
+    "corporation_definition_url": "https://www.ilga.gov/legislation/ilcs/fulltext?DocName=080500050K1.80",
+    "llc_publication_url": "https://www.ilga.gov/documents/legislation/ilcs/documents/080501800K50-5.htm",
+    "public_act_url": "https://www.ilga.gov/Legislation/PublicActs/PrinterFriendly/102-0049",
+    "observations": "Search results describe corporation reports and lists and LLC lists published as open data. The statutory definition describes machine-readable data freely available under an open license without registration or other restrictions impeding use or reuse. Public Act 102-0049 also addresses not-for-profit lists.",
+    "interpretation": "Positive evidence for reuse that must be reconciled with the particular datasets, source terms and existing policy. It is not authorization for automated website access, acquisition, processing or publication and does not establish a license for every field or product.",
+    "direct_live_page_retrieval_verified": false,
+    "reuse_reconciliation_complete": false
+  },
+  "privacy_discrepancy": "The source policy says contains_personal_data is false and mentions incidental personal names, while the October assessment identifies LLC records-office addresses as potentially residential. This discrepancy remains unresolved pending field-level privacy and policy review; no policy change is made.",
+  "prior_bindings": [
+    { "path": "config/state-business-source-assessments/il-2026-10-03.json", "sha256": "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323" },
+    { "path": "config/state-business-source-assessments/il-2026-11-12.json", "sha256": "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9" }
+  ],
+  "unresolved_gates": [
+    "Reconcile statutory open-data evidence with the specific datasets, website terms and source policy, including intended retention, transformation and redistribution.",
+    "Resolve automated retrieval authorization separately; statutory reuse evidence does not authorize automated queries.",
+    "Review potentially residential records-office addresses and the source policy discrepancy before any processing.",
+    "Obtain separate authorization and a complete same-run five-file package, then independently verify counts, joins, freshness and replay before any proposed release or admission."
+  ],
+  "next_action": "Keep HOLD and conduct documentary reconciliation only; no contact, account, payment, terms acceptance, acquisition, processing, publication, national admission or production change is authorized."
+}

@@ -1,0 +1,74 @@
+{
+  "schema_version": "ca-identifier-product-reference@1.0.0",
+  "reference_id": "ca-identifier-product-reference-2026-11-13",
+  "observed_at": "2026-11-13",
+  "state": "CA",
+  "publisher": "California Secretary of State",
+  "scope": "standalone-documentation-only-prerequisite",
+  "related_assessment_id": "ca-business-source-reassessment-2026-10-03",
+  "decision": "hold",
+  "current_schema_compatibility_verified": false,
+  "connector_ready": false,
+  "acquisition_authorized": false,
+  "required_source_files": 0,
+  "source_records_acquired": 0,
+  "broad_layer_gaps_resolved": 0,
+  "authority": {
+    "connector_implementation": false,
+    "network_execution": false,
+    "provider_contact": false,
+    "account_creation": false,
+    "order": false,
+    "terms_acceptance": false,
+    "payment": false,
+    "source_acquisition": false,
+    "production_publication": false,
+    "national_admission": false,
+    "redistribution": false
+  },
+  "controls": {
+    "source_row_requests": 0,
+    "source_files_retained": 0,
+    "pdf_files_retained": 0,
+    "accounts_created": 0,
+    "orders_placed": 0,
+    "terms_accepted": 0,
+    "fees_paid": 0,
+    "publisher_contacts": 0,
+    "portal_automation": false,
+    "production_changes": 0
+  },
+  "evidence_origin": "Official public documentation observations supplied by the coordinating agent; this loader performs no remote retrieval.",
+  "evidence": {
+    "bizfile": {
+      "url": "https://www.sos.ca.gov/business-programs/bizfile",
+      "identifier_observations": "New entity numbers are 12 characters beginning with B; existing entity numbers remain unchanged, conversions retain the original number, and bulk files include the new numbers.",
+      "boundary": "These statements are identifier documentation, not a complete lifecycle or current bulk schema contract. Do not infer entity type or operating status from an identifier."
+    },
+    "legacy_faq": {
+      "url": "https://www.sos.ca.gov/business-programs/business-entities/cbs-field-status-definitions",
+      "boundary": "Legacy public search field and status definitions are not a verified current bulk layout or exhaustive identifier format. Entity address, mailing address and agent service address have distinct roles; registry status does not prove operation."
+    },
+    "records": {
+      "url": "https://www.sos.ca.gov/administration/public-records-act-requests/business-entity-records",
+      "boundary": "The public records page describes business entity records and directs bulk ordering to bizfile; it does not establish an executable delivery contract or source-wide completeness."
+    },
+    "manual": {
+      "url": "https://bpd.cdn.sos.ca.gov/ucc/ucc-online-help.pdf",
+      "boundary": "The indexed page 132 describes Business Entity master and weekly data products. Pages 133-134 concern UCC; do not attribute their product details to Business Entity. The full PDF was not inspected or retained."
+    },
+    "terms": {
+      "url": "https://www.sos.ca.gov/business-programs/bizfile/privacy-warning-terms-and-conditions-use",
+      "boundary": "The filing-data use statement and portal access restrictions are distinct. Bulk-specific terms, automated access, retention and derived-use rights require reconciliation; this reference grants no action authority."
+    }
+  },
+  "unresolved_gates": [
+    "Verify current bulk schema, product scope and delivery compatibility.",
+    "Resolve identifier lifecycle and exceptions without interpreting entity type or operation from the identifier.",
+    "Map status and address roles and preserve ZIP5 separately from ZIP4.",
+    "Verify master and weekly change, deletion, correction, sequence, replay and control totals.",
+    "Resolve supported delivery, product-specific terms, privacy and derived-use rights.",
+    "Obtain separate authorization and governed approval before acquisition or connector implementation."
+  ],
+  "next_action": "Maintain HOLD and prepare a document-only review of the actual product contract and schema when separately authorized."
+}
