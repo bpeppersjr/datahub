@@ -621,6 +621,7 @@ async function summary(ctx) {
         "lifecycle_industry_jurisdiction",
         "broad_gap_authorization",
         "census_zbp_zip_profile_index",
+        "entity_resolution",
       ]),
     "summary schema/claims",
   );
@@ -999,6 +1000,67 @@ async function summary(ctx) {
       zbpIndex.claims.all_business_completion_percent === null,
     "Census ZBP ZIP profile index sidecar",
   );
+  const resolution = s.sidecars.entity_resolution,
+    er = pin.entity_resolution;
+  check(
+    exact(resolution, [
+      "schema_version",
+      "release_id",
+      "registration_sha256",
+      "pointer_sha256",
+      "manifest_sha256",
+      "status",
+      "artifact_count",
+      "artifact_bytes",
+      "coverage",
+      "benchmark",
+      "scope",
+      "claims",
+    ]) &&
+      resolution.release_id === er.release_id &&
+      resolution.registration_sha256 === er.registration_sha256 &&
+      resolution.pointer_sha256 === er.pointer_sha256 &&
+      resolution.manifest_sha256 === er.manifest_sha256 &&
+      resolution.status === "published-reviewable-partial" &&
+      resolution.artifact_count === 101 &&
+      resolution.artifact_bytes === 412615462 &&
+      equal(resolution.coverage, {
+        profiles: 8011213,
+        address_groups: 6505053,
+        multi_member_street_address_groups: 876076,
+        site_alias_decisions: 2325053,
+        establishment_alias_decisions: 146828,
+        review_candidate_decisions: 106431,
+        review_groups_skipped_for_size: 2,
+      }) &&
+      resolution.benchmark.release_id === er.benchmark_release_id &&
+      resolution.benchmark.registration_sha256 ===
+        er.benchmark_registration_sha256 &&
+      resolution.benchmark.pointer_sha256 === er.benchmark_pointer_sha256 &&
+      resolution.benchmark.manifest_sha256 === er.benchmark_manifest_sha256 &&
+      resolution.benchmark.status === "awaiting-independent-labels" &&
+      resolution.benchmark.total_sampled_candidates === 1275 &&
+      resolution.benchmark.submitted_labels === 0 &&
+      resolution.benchmark.benchmark_gate_passed === false &&
+      resolution.benchmark.complete_labeled_benchmark === false &&
+      resolution.benchmark.automatic_precision_gate_passed === false &&
+      resolution.benchmark.export_authorized === false &&
+      equal(resolution.claims, {
+        unique_businesses: null,
+        verified_active_businesses: null,
+        current_operation_verified: false,
+        ownership_inferred: false,
+        parent_relationships_inferred: false,
+        complete_entity_resolution: false,
+        benchmark_accepted: false,
+        export_authorized: false,
+        network_requests: 0,
+        acquisition_performed: false,
+        current_pointer_written: false,
+        production_enrollment: false,
+      }),
+    "entity-resolution metadata sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -1053,6 +1115,7 @@ async function summary(ctx) {
     lifecycle_industry_jurisdiction: lifecycleJurisdiction,
     broad_gap_authorization: broadGapAuthorization,
     census_zbp_zip_profile_index: zbpIndex,
+    entity_resolution: resolution,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });

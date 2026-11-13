@@ -89,6 +89,15 @@ test("National Status conserves headline units, nine state/DC industries and sep
     50,
   );
   assert.equal(summary.geography_relationship_quality.claims.numerator, false);
+  assert.equal(summary.entity_resolution.coverage.profiles, 8011213);
+  assert.equal(summary.entity_resolution.coverage.address_groups, 6505053);
+  assert.equal(summary.entity_resolution.coverage.site_alias_decisions, 2325053);
+  assert.equal(summary.entity_resolution.coverage.establishment_alias_decisions, 146828);
+  assert.equal(summary.entity_resolution.coverage.review_candidate_decisions, 106431);
+  assert.equal(summary.entity_resolution.benchmark.status, "awaiting-independent-labels");
+  assert.equal(summary.entity_resolution.benchmark.submitted_labels, 0);
+  assert.equal(summary.entity_resolution.claims.unique_businesses, null);
+  assert.equal(summary.entity_resolution.claims.current_operation_verified, false);
 });
 
 test("National Status rejects legacy temporal identity, dimension count and checksum", async () => {
@@ -205,6 +214,10 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
     (x) => x.lifecycle_industry_jurisdiction.summary.source_membership_count++,
     (x) => x.census_zbp_zip_profile_index.indexed_zip_count++,
     (x) => (x.census_zbp_zip_profile_index.claims.current_operations_verified = true),
+    (x) => x.entity_resolution.coverage.profiles++,
+    (x) => (x.entity_resolution.benchmark.benchmark_gate_passed = true),
+    (x) => (x.entity_resolution.claims.ownership_inferred = true),
+    (x) => (x.entity_resolution.manifest_sha256 = "f".repeat(64)),
   ]) {
     const v = structuredClone(summary);
     mutate(v);

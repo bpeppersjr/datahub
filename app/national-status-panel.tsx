@@ -158,6 +158,28 @@ type View = {
     artifact_bytes: number;
     scope: string;
   };
+  entity_resolution: {
+    status: string;
+    artifact_count: number;
+    artifact_bytes: number;
+    coverage: {
+      profiles: number;
+      address_groups: number;
+      multi_member_street_address_groups: number;
+      site_alias_decisions: number;
+      establishment_alias_decisions: number;
+      review_candidate_decisions: number;
+      review_groups_skipped_for_size: number;
+    };
+    benchmark: {
+      status: string;
+      total_sampled_candidates: number;
+      submitted_labels: number;
+      benchmark_gate_passed: false;
+      export_authorized: false;
+    };
+    scope: string;
+  };
   census_zbp_profile: {
     status: string;
     profile_status: string | null;
@@ -438,6 +460,31 @@ export function NationalStatusPanel({ state }: { state: string }) {
               provenance only: it grants no authorization, performs no
               acquisition, verifies no current operation, and does not override
               field-level export policy.
+            </p>
+          </details>
+          <details>
+            <summary>Entity resolution status</summary>
+            <p>
+              <strong>{n(view.entity_resolution.coverage.profiles)} profile memberships</strong>{" "}
+              are organized into {n(view.entity_resolution.coverage.address_groups)} address
+              groups, including {n(view.entity_resolution.coverage.multi_member_street_address_groups)}{" "}
+              multi-member street-address groups.
+            </p>
+            <p>
+              Retained decisions: {n(view.entity_resolution.coverage.site_alias_decisions)} site
+              aliases and {n(view.entity_resolution.coverage.establishment_alias_decisions)}{" "}
+              establishment aliases. Review candidates: {n(view.entity_resolution.coverage.review_candidate_decisions)};
+              groups skipped for size: {n(view.entity_resolution.coverage.review_groups_skipped_for_size)}.
+            </p>
+            <p>
+              Benchmark status: {label(view.entity_resolution.benchmark.status)};{" "}
+              {n(view.entity_resolution.benchmark.total_sampled_candidates)} sampled candidates and{" "}
+              {n(view.entity_resolution.benchmark.submitted_labels)} submitted independent labels.
+              The benchmark is not accepted and export is not authorized.
+            </p>
+            <p>
+              Decisions and memberships are not unique businesses, verified active or current
+              operations, ownership or parent relationships, or complete entity resolution.
             </p>
           </details>
           <details>

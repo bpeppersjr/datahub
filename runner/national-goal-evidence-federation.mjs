@@ -63,6 +63,12 @@ const INPUT_NAMES = [
   "broad_gap_authorization_manifest",
   "census_zbp_zip_profile_registration",
   "census_zbp_zip_profile_manifest",
+  "entity_resolution_registration",
+  "entity_resolution_pointer",
+  "entity_resolution_manifest",
+  "entity_resolution_benchmark_registration",
+  "entity_resolution_benchmark_pointer",
+  "entity_resolution_benchmark_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -1406,6 +1412,120 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       "Local-review-only Census 2023 employer-establishment ZIP aggregates; compact index inventory only, with no profile replay in federation build.",
     claims: zbpManifest.claims,
   };
+  const resolutionRegistration = inputs.entity_resolution_registration.value,
+    resolutionPointer = inputs.entity_resolution_pointer.value,
+    resolutionManifest = inputs.entity_resolution_manifest.value,
+    benchmarkRegistration =
+      inputs.entity_resolution_benchmark_registration.value,
+    benchmarkPointer = inputs.entity_resolution_benchmark_pointer.value,
+    benchmarkManifest = inputs.entity_resolution_benchmark_manifest.value,
+    resolutionCoverage = resolutionManifest.coverage,
+    benchmarkCoverage = benchmarkManifest.coverage;
+  check(
+    resolutionRegistration.dataset_id ===
+      "national-business-entity-resolution" &&
+      resolutionRegistration.runtime_pointer ===
+        "data/business-entity-resolution/current.json" &&
+      resolutionRegistration.current_verified_release.release_id ===
+        resolutionManifest.release_id &&
+      resolutionRegistration.current_verified_release.manifest_sha256 ===
+        inputs.entity_resolution_manifest.proof.sha256 &&
+      resolutionPointer.release_id === resolutionManifest.release_id &&
+      resolutionPointer.manifest ===
+        `releases/${resolutionManifest.release_id}/manifest.json` &&
+      resolutionPointer.status === "published-reviewable-partial" &&
+      resolutionManifest.complete_entity_resolution === false &&
+      resolutionManifest.artifacts.length === 101 &&
+      resolutionManifest.artifacts.reduce(
+        (total, item) => total + item.bytes,
+        0,
+      ) === 412615462 &&
+      resolutionCoverage.profiles === 8011213 &&
+      resolutionCoverage.address_groups === 6505053 &&
+      resolutionCoverage.multi_member_street_address_groups === 876076 &&
+      resolutionCoverage.site_alias_decisions === 2325053 &&
+      resolutionCoverage.establishment_alias_decisions === 146828 &&
+      resolutionCoverage.review_candidate_decisions === 106431 &&
+      resolutionCoverage.review_groups_skipped_for_size === 2 &&
+      r.equal(resolutionManifest.decision_semantics.not_inferred, [
+        "ownership",
+        "parent company",
+        "general operating status",
+        "co-location as establishment identity",
+        "name-only identity",
+      ]) &&
+      benchmarkRegistration.dataset_id ===
+        "national-business-entity-resolution-benchmark" &&
+      benchmarkRegistration.runtime_pointer ===
+        "data/business-entity-resolution-benchmark/current.json" &&
+      benchmarkRegistration.current_verified_sample.release_id ===
+        benchmarkManifest.release_id &&
+      benchmarkRegistration.current_verified_sample.manifest_sha256 ===
+        inputs.entity_resolution_benchmark_manifest.proof.sha256 &&
+      benchmarkPointer.release_id === benchmarkManifest.release_id &&
+      benchmarkPointer.manifest ===
+        `releases/${benchmarkManifest.release_id}/manifest.json` &&
+      benchmarkPointer.status === "awaiting-independent-labels" &&
+      benchmarkManifest.status === "awaiting-independent-labels" &&
+      benchmarkManifest.complete_labeled_benchmark === false &&
+      benchmarkManifest.dependencies.resolution.release_id ===
+        resolutionManifest.release_id &&
+      benchmarkManifest.dependencies.resolution.manifest_sha256 ===
+        inputs.entity_resolution_manifest.proof.sha256 &&
+      benchmarkManifest.artifacts.length === 3 &&
+      benchmarkManifest.artifacts.reduce(
+        (total, item) => total + item.bytes,
+        0,
+      ) === 899732 &&
+      benchmarkCoverage.total_sampled_candidates === 1275 &&
+      benchmarkCoverage.submitted_labels === 0 &&
+      benchmarkCoverage.benchmark_gate_passed === false,
+    "entity-resolution and benchmark metadata conservation",
+  );
+  const entityResolutionSidecar = {
+    schema_version: `${DATASET}-entity-resolution@1.0.0`,
+    release_id: resolutionManifest.release_id,
+    registration_sha256: inputs.entity_resolution_registration.proof.sha256,
+    pointer_sha256: inputs.entity_resolution_pointer.proof.sha256,
+    manifest_sha256: inputs.entity_resolution_manifest.proof.sha256,
+    status: resolutionManifest.status,
+    artifact_count: 101,
+    artifact_bytes: 412615462,
+    coverage: resolutionCoverage,
+    benchmark: {
+      release_id: benchmarkManifest.release_id,
+      registration_sha256:
+        inputs.entity_resolution_benchmark_registration.proof.sha256,
+      pointer_sha256: inputs.entity_resolution_benchmark_pointer.proof.sha256,
+      manifest_sha256:
+        inputs.entity_resolution_benchmark_manifest.proof.sha256,
+      status: benchmarkManifest.status,
+      artifact_count: 3,
+      artifact_bytes: 899732,
+      total_sampled_candidates: 1275,
+      submitted_labels: 0,
+      benchmark_gate_passed: false,
+      complete_labeled_benchmark: false,
+      automatic_precision_gate_passed: false,
+      export_authorized: false,
+    },
+    scope:
+      "Reversible site/establishment alias decisions and unapplied review candidates; metadata only and separate from federation numerators.",
+    claims: {
+      unique_businesses: null,
+      verified_active_businesses: null,
+      current_operation_verified: false,
+      ownership_inferred: false,
+      parent_relationships_inferred: false,
+      complete_entity_resolution: false,
+      benchmark_accepted: false,
+      export_authorized: false,
+      network_requests: 0,
+      acquisition_performed: false,
+      current_pointer_written: false,
+      production_enrollment: false,
+    },
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1485,6 +1605,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       lifecycle_industry_jurisdiction: lifecycleIndustryJurisdictionSidecar,
       broad_gap_authorization: broadGapAuthorizationSidecar,
       census_zbp_zip_profile_index: censusZbpZipProfileSidecar,
+      entity_resolution: entityResolutionSidecar,
     },
     claims: CLAIMS,
   };
