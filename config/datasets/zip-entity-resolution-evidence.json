@@ -6,13 +6,13 @@
   "production_enrollment": false,
   "export_policy": "local-review-only",
   "retained_release": {
-    "release_id": "zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564",
-    "manifest": "data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564/manifest.json",
-    "manifest_sha256": "742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba",
+    "release_id": "zip-entity-resolution-evidence-595b8001d70664c3a1c166bcefb78e90c8107e7abc7f6b3b56ccc3e64a5885c2",
+    "manifest": "data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-595b8001d70664c3a1c166bcefb78e90c8107e7abc7f6b3b56ccc3e64a5885c2/manifest.json",
+    "manifest_sha256": "1fec8db433fef8c083b8870935f9e8c7b08f9f7ef25dbde33b90762a564803bb",
     "manifest_bytes": 17795,
     "artifact_count": 100,
-    "zip_rows": 26919,
-    "artifact_bytes": 16276503,
+    "zip_rows": 26920,
+    "artifact_bytes": 16276497,
     "maximum_prefix_bytes": 324550
   },
   "claims": {

@@ -176,7 +176,7 @@ test('active-business acceptance binds exact governance releases and stays block
     assert.ok(binding.release_id, name); assert.match(binding.manifest_sha256, /^[a-f0-9]{64}$/);
     assert.match(binding.registration_sha256 ?? binding.manifest_sha256, /^[a-f0-9]{64}$/);
   }
-  assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba');
+  assert.equal(readiness.bindings.zip_entity_resolution.manifest_sha256, '1fec8db433fef8c083b8870935f9e8c7b08f9f7ef25dbde33b90762a564803bb');
 assert.equal(readiness.bindings.zip_industry_matrix.release_id,'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9');
   assert.equal(readiness.bindings.zip_industry_matrix.registration_sha256,'04b0ff129f6ff46cbc38d1374dd3e08babd4dd9852a890ea769be430cef1b72b');
   assert.equal(readiness.bindings.zip_industry_matrix.manifest_sha256, '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7');

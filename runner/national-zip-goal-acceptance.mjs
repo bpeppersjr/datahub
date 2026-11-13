@@ -234,9 +234,9 @@ function validateGoalReadinessBindings(value) {
     nonZcta = value?.bindings?.non_zcta_source_geography_context;
   check(entity?.claims?.entity_resolution_applied === false
     && entity.claims.benchmark_gate_passed === false
-    && entity.release_id === 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564'
-    && entity.registration_sha256 === 'a99311cfc37b523a9a924555cceb21ab184c65d4192ad9dbe30a428e5da34c39'
-    && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba', 'ZIP entity-resolution evidence pin/semantics');
+    && entity.release_id === 'zip-entity-resolution-evidence-595b8001d70664c3a1c166bcefb78e90c8107e7abc7f6b3b56ccc3e64a5885c2'
+    && entity.registration_sha256 === '49bb8dbca914230dbec26f73b236282e9ad314eb33be0ade4aa252461fe2ab6b'
+    && entity.manifest_sha256 === '1fec8db433fef8c083b8870935f9e8c7b08f9f7ef25dbde33b90762a564803bb', 'ZIP entity-resolution evidence pin/semantics');
   check(industry?.version === ZIP_INDUSTRY_VERSION
     && industry.release_id === 'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9'
     && industry.registration_sha256 === '04b0ff129f6ff46cbc38d1374dd3e08babd4dd9852a890ea769be430cef1b72b'
@@ -834,7 +834,7 @@ async function readObjectiveReadiness({ signal }) {
     &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='chicago_current_active_business_license_physical_sites'&&row.semantic_class==='source-defined-current'&&row.publisher_jurisdiction==='City of Chicago'&&row.reported_address_jurisdiction_may_differ===true&&row.address_jurisdiction_inferred===false&&row.current_operations_verified===false&&row.continuous_operation_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.unique_business_count===null&&row.record_export_policy==='local-review-only'&&row.evidence_disposition?.additive===false)
     &&industryTemporal.temporal_qualification.rows.some(row=>row.dimension_id==='ny_retail_food_license_address_evidence_count'&&row.semantic_class==='non-active-reporting'&&row.review_qualification==='stale'&&row.current_operations_verified===false&&row.site_occupancy_verified===false&&row.public_access_verified===false&&row.coordinates_available===true&&row.coordinates_are_verified_premises===false&&row.evidence_disposition?.additive===false),
   'v3.0 national summary binding');
-  check(entity.available && entity.registration_sha256 && entity.manifest_sha256 === '742ffc2d35cc3f4e5541cc2325879b2da563ae7565a9d86829e9ec20560277ba'
+  check(entity.available && entity.registration_sha256 === '49bb8dbca914230dbec26f73b236282e9ad314eb33be0ade4aa252461fe2ab6b' && entity.manifest_sha256 === '1fec8db433fef8c083b8870935f9e8c7b08f9f7ef25dbde33b90762a564803bb'
     && entity.evidence?.entity_resolution_applied === false && entity.evidence?.benchmark_gate_passed === false, 'registered ZIP entity-resolution evidence');
   check(industry.status === 'present' && industry.release_id === 'national-exact-zip-industry-evidence-matrix-e5287a4adc3f9b657499135d2f5641dac05b67359d9dbaf14ad4b72d598c97c9'
     && industry.manifest_sha256 === '07192a24eae937d5fbe3d58f4c877d5cfefcc70d3f2ca24237b450d316d111f7'
@@ -967,8 +967,8 @@ async function readObjectiveReadiness({ signal }) {
   validateReportingOnlySiteBinding(reportingBinding);
   const bindings = {
     zip_entity_resolution: { registration_path: 'config/datasets/zip-entity-resolution-evidence.json', registration_sha256: entity.registration_sha256,
-      release_id: 'zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564',
-      manifest_path: 'data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-576079155175db7c5abbedf9a81c5481c53294cfd74cfd23fa994b2decd67564/manifest.json',
+      release_id: 'zip-entity-resolution-evidence-595b8001d70664c3a1c166bcefb78e90c8107e7abc7f6b3b56ccc3e64a5885c2',
+      manifest_path: 'data/zip-entity-resolution-evidence/releases/zip-entity-resolution-evidence-595b8001d70664c3a1c166bcefb78e90c8107e7abc7f6b3b56ccc3e64a5885c2/manifest.json',
       manifest_sha256: entity.manifest_sha256, source_release_id: ZIP_ENTITY_RELEASE, source_manifest_sha256: ZIP_ENTITY_MANIFEST_SHA,
       claims: { entity_resolution_applied: entity.evidence.entity_resolution_applied, benchmark_gate_passed: entity.evidence.benchmark_gate_passed } },
     zip_industry_matrix: { registration_path: 'config/datasets/national-exact-zip-industry-evidence-matrix-v3-0.json', registration_sha256: industryRegistration.evidence.sha256,

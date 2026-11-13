@@ -60,7 +60,7 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
   assert.equal(value.lineage.zip_industry_matrix.national_summary_registration_sha256,'6d08eb60a5182fa3316467f67fd3ebfb72daecd0f99993c36faa185be9164155');
   assert.deepEqual([value.lineage.zip_industry_matrix.dimension_count,value.lineage.zip_industry_matrix.industry_cells],[51,2457894]);
   assert.match(value.lineage.goal_completion_matrix.report_sha256, /^[a-f0-9]{64}$/);
-  assert.equal(value.lineage.broad_organization_projection.program_manifest_sha256, "6609ff744a497db7be6156f65c12237a27de3a50db2158479f316eaa6fbd25e2");
+  assert.equal(value.lineage.broad_organization_projection.program_manifest_sha256, "27bd824bc065e1666c6ce8d5b3fe6c8921448bb877a5893b6c5436c9c2c42853");
   assert.equal(value.lineage.lifecycle_eligibility.profile_count, 8011213);
   assert.equal(value.lineage.lifecycle_eligibility.active_business_eligible_count, 0);
   assert.equal(value.lineage.lifecycle_eligibility.registry_profile_count, 8011213);
