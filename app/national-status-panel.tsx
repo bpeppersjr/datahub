@@ -93,6 +93,24 @@ type View = {
     };
     scope: string;
   };
+  irs_eo_supplemental: {
+    summary: {
+      zip5_rows: number;
+      positive_zip5_rows: number;
+      organization_membership_count: number;
+      geography_disposition_scope_rows: number;
+      reported_filing_address_jurisdiction_rows: number;
+      evidence_kind: string;
+      industry: string;
+      review_status: string;
+    };
+    review: {
+      source_posting_date: string;
+      assessment_as_of: string;
+      refresh_context: { status: string; records_downloaded: number };
+    };
+    scope: string;
+  };
   industries: Industry[];
   zip5: string;
   zip4: null;
@@ -244,6 +262,30 @@ export function NationalStatusPanel({ state }: { state: string }) {
               Aggregate relationship quality only; not a numerator, denominator,
               unique-business count, USPS-validity, current-operation,
               geocode-verification or completeness measure.
+            </p>
+          </details>
+          <details>
+            <summary>IRS tax-exempt supplemental evidence</summary>
+            <p>
+              <strong>
+                {n(view.irs_eo_supplemental.summary.organization_membership_count)}{" "}
+                filing-address organization memberships
+              </strong>{" "}
+              across {n(view.irs_eo_supplemental.summary.positive_zip5_rows)} positive
+              ZIPs, {n(view.irs_eo_supplemental.summary.geography_disposition_scope_rows)}{" "}
+              geography scopes and{" "}
+              {n(
+                view.irs_eo_supplemental.summary
+                  .reported_filing_address_jurisdiction_rows,
+              )}{" "}
+              separately reported filing-address jurisdictions.
+            </p>
+            <p>
+              {view.irs_eo_supplemental.scope} Source posting{" "}
+              {view.irs_eo_supplemental.review.source_posting_date}; assessed{" "}
+              {view.irs_eo_supplemental.review.assessment_as_of}. Counts are not
+              unique businesses, verified current operations, completeness, or
+              additive to business or industry totals.
             </p>
           </details>
           <details>

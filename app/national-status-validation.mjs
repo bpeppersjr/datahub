@@ -226,6 +226,7 @@ function validateNationalStatus(v, state = null) {
         "source_policy_provenance",
         "publisher_membership_reconciliation",
         "state_registration_license_supplemental",
+        "irs_eo_supplemental",
         "claims",
         "provenance",
       ]) ||
@@ -237,6 +238,47 @@ function validateNationalStatus(v, state = null) {
       !equal(v.geography_scope_counts, pin.geography_scope_counts) ||
       sum(Object.values(v.geography_scope_counts)) !== v.zip5_cohort_rows ||
       !equal(v.gaps, pin.gaps)
+    )
+      return false;
+    const irs = v.irs_eo_supplemental,
+      ir = pin.irs_eo_supplemental;
+    if (
+      !exact(irs, [
+        "schema_version",
+        "release_id",
+        "registration_sha256",
+        "manifest_sha256",
+        "summary_artifact_sha256",
+        "scope_artifact_sha256",
+        "reported_jurisdictions_artifact_sha256",
+        "summary",
+        "review",
+        "scope",
+        "claims",
+      ]) ||
+      irs.release_id !== ir.release_id ||
+      irs.registration_sha256 !== ir.registration_sha256 ||
+      irs.manifest_sha256 !== ir.manifest_sha256 ||
+      irs.summary_artifact_sha256 !== ir.summary_artifact_sha256 ||
+      irs.scope_artifact_sha256 !== ir.scope_artifact_sha256 ||
+      irs.reported_jurisdictions_artifact_sha256 !==
+        ir.reported_jurisdictions_artifact_sha256 ||
+      !equal(irs.summary, {
+        zip5_rows: 48194,
+        positive_zip5_rows: 36950,
+        organization_membership_count: 1955841,
+        geography_disposition_scope_rows: 60,
+        reported_filing_address_jurisdiction_rows: 56,
+        evidence_kind: "supplemental-non-active-reporting-membership",
+        industry: "tax-exempt-organizations",
+        review_status: "stale",
+      }) ||
+      irs.claims.unique_business_count !== null ||
+      irs.claims.current_operation_verified !== false ||
+      irs.claims.all_business_completeness !== null ||
+      irs.claims.additive_to_business_or_industry_totals !== false ||
+      irs.claims
+        .geography_disposition_and_reported_jurisdiction_are_separate !== true
     )
       return false;
     const q = v.geography_relationship_quality,

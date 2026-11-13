@@ -2,7 +2,7 @@
   "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
     "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
-    "national-summary.json": "461080a94cd879eea921480c2c60be80ab5b4792069d48b662d28d149ca7c094",
+    "national-summary.json": "34a63a6a08b9516688e7320bc63c4293e6782dfec4859cd4d54a287a28f8b7a2",
     "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -159,10 +159,20 @@
     "scope_artifact_sha256": "50614e7ea44050a28d3c827bea2fbf0f7f3b12e897884e6e778313c1344d641f",
     "issuer_marginals_artifact_sha256": "27ae03b7619a2c1c86ffa85a00f33fe14d878172cb6b0205a48eaf1154ef0764"
   },
+  "irs_eo_supplemental": {
+    "registration_path": "config/datasets/national-irs-eo-supplemental-industry-evidence.json",
+    "registration_sha256": "09fcf954fd84f622adc08e736d517b594ae760992e9964ac6c3c17183dfd9029",
+    "release_id": "national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65",
+    "manifest_path": "data/national-irs-eo-supplemental-industry-evidence/releases/national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65/manifest.json",
+    "manifest_sha256": "ea1f62b477375269fc829562172137c3368b54f5596ad2aa69d51ae1b60d8aa1",
+    "summary_artifact_sha256": "3875515521d403de10629707015071b3ebabb9db374f40856dcc6a26c6b84e4d",
+    "scope_artifact_sha256": "c65867324217a85fa7c47235f1056e67e2ae1fa7eb1e475282912a1ef3053d95",
+    "reported_jurisdictions_artifact_sha256": "12be8e625923b4d97773a202f057713f06c72feaa570846853a5cd3c134db53d"
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-38479a5aa2966dc83642f0d0ea68a13fd6830647e413a4d105aae4678d2c1000",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-38479a5aa2966dc83642f0d0ea68a13fd6830647e413a4d105aae4678d2c1000/manifest.json",
-  "manifest_sha256": "e654c33c1a5f227728394657ad49d8895fcff987e547bd2c2fe3d4ec3fac3f11",
+  "release_id": "national-goal-evidence-federation-05bc88f30f2270f3aae6c31446eacb6dda36db495346d232260428b85c35a2fb",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-05bc88f30f2270f3aae6c31446eacb6dda36db495346d232260428b85c35a2fb/manifest.json",
+  "manifest_sha256": "a3d3db89947c27226baf567f20630a4278041abf34073fb39c9757d10c9346b9",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

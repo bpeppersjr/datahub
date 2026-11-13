@@ -242,6 +242,33 @@ async function load(root, signal) {
       srm.release_id === sr.release_id,
     "state registration/license compact pins",
   );
+  const ir = pin.irs_eo_supplemental,
+    irsRegistrationFile = r.contained(root, ir.registration_path),
+    irsRegistration = await r.secureBuffer(
+      root,
+      irsRegistrationFile,
+      100_000,
+      signal,
+    ),
+    irr = JSON.parse(decoder.decode(irsRegistration.raw)),
+    irsManifestFile = r.contained(root, ir.manifest_path),
+    irsManifest = await r.secureBuffer(
+      root,
+      irsManifestFile,
+      100_000,
+      signal,
+    ),
+    irm = JSON.parse(decoder.decode(irsManifest.raw));
+  check(
+    irsRegistration.sha256 === ir.registration_sha256 &&
+      irr.retained_release.release_id === ir.release_id &&
+      irr.retained_release.manifest_sha256 === ir.manifest_sha256 &&
+      irr.runtime_pointer === null &&
+      irr.production_enrollment === false &&
+      irsManifest.sha256 === ir.manifest_sha256 &&
+      irm.release_id === ir.release_id,
+    "IRS EO supplemental compact pins",
+  );
   return {
     root,
     signal,
@@ -266,6 +293,10 @@ async function load(root, signal) {
     supplementalRegistrationHash: supplementalRegistration.sha256,
     supplementalManifestFile,
     supplementalManifestHash: supplementalManifest.sha256,
+    irsRegistrationFile,
+    irsRegistrationHash: irsRegistration.sha256,
+    irsManifestFile,
+    irsManifestHash: irsManifest.sha256,
   };
 }
 async function artifact(ctx, name, max) {
@@ -426,7 +457,23 @@ async function finish(ctx, value, selector = null) {
           100_000,
           ctx.signal,
         )
-      ).sha256 === ctx.supplementalManifestHash,
+      ).sha256 === ctx.supplementalManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.irsRegistrationFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.irsRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.irsManifestFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.irsManifestHash,
     "stable release selection",
   );
   return value;
@@ -469,6 +516,7 @@ async function summary(ctx) {
         "source_policy_provenance",
         "publisher_membership_reconciliation",
         "state_registration_license_supplemental",
+        "irs_eo_supplemental",
       ]),
     "summary schema/claims",
   );
@@ -653,6 +701,47 @@ async function summary(ctx) {
       supplemental.claims.all_business_completeness === null,
     "state registration/license supplemental sidecar",
   );
+  const irs = s.sidecars.irs_eo_supplemental,
+    ir = pin.irs_eo_supplemental;
+  check(
+    exact(irs, [
+      "schema_version",
+      "release_id",
+      "registration_sha256",
+      "manifest_sha256",
+      "summary_artifact_sha256",
+      "scope_artifact_sha256",
+      "reported_jurisdictions_artifact_sha256",
+      "summary",
+      "review",
+      "scope",
+      "claims",
+    ]) &&
+      irs.release_id === ir.release_id &&
+      irs.registration_sha256 === ir.registration_sha256 &&
+      irs.manifest_sha256 === ir.manifest_sha256 &&
+      irs.summary_artifact_sha256 === ir.summary_artifact_sha256 &&
+      irs.scope_artifact_sha256 === ir.scope_artifact_sha256 &&
+      irs.reported_jurisdictions_artifact_sha256 ===
+        ir.reported_jurisdictions_artifact_sha256 &&
+      equal(irs.summary, {
+        zip5_rows: 48194,
+        positive_zip5_rows: 36950,
+        organization_membership_count: 1955841,
+        geography_disposition_scope_rows: 60,
+        reported_filing_address_jurisdiction_rows: 56,
+        evidence_kind: "supplemental-non-active-reporting-membership",
+        industry: "tax-exempt-organizations",
+        review_status: "stale",
+      }) &&
+      irs.claims.unique_business_count === null &&
+      irs.claims.current_operation_verified === false &&
+      irs.claims.all_business_completeness === null &&
+      irs.claims.additive_to_business_or_industry_totals === false &&
+      irs.claims.geography_disposition_and_reported_jurisdiction_are_separate ===
+        true,
+    "IRS EO supplemental sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -702,6 +791,7 @@ async function summary(ctx) {
     publisher_membership_reconciliation:
       s.sidecars.publisher_membership_reconciliation,
     state_registration_license_supplemental: supplemental,
+    irs_eo_supplemental: irs,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });

@@ -89,6 +89,16 @@
       "release_id": "national-state-registration-license-supplemental-evidence-560d12835e8adf6d9c5c627b580ee12e7ccd54fb8210e384ed3f168a2bea2ebd",
       "schema_version": "national-state-registration-license-supplemental-evidence@1.0.0"
     },
+    "irs_eo_supplemental_registration": {
+      "path": "config/datasets/national-irs-eo-supplemental-industry-evidence.json",
+      "sha256": "09fcf954fd84f622adc08e736d517b594ae760992e9964ac6c3c17183dfd9029"
+    },
+    "irs_eo_supplemental_manifest": {
+      "path": "data/national-irs-eo-supplemental-industry-evidence/releases/national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65/manifest.json",
+      "sha256": "ea1f62b477375269fc829562172137c3368b54f5596ad2aa69d51ae1b60d8aa1",
+      "release_id": "national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65",
+      "schema_version": "national-irs-eo-supplemental-industry-evidence@1.0.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"

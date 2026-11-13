@@ -53,6 +53,8 @@ const INPUT_NAMES = [
   "temporal_lifecycle_reconciliation_registration",
   "state_registration_license_registration",
   "state_registration_license_manifest",
+  "irs_eo_supplemental_registration",
+  "irs_eo_supplemental_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -966,6 +968,108 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       "Supplemental source-reported registration/license address memberships; separate from federation evidence-cell numerators and percentages.",
     claims: supplementalClaims,
   };
+  const irsRegistration = inputs.irs_eo_supplemental_registration.value,
+    irsManifest = inputs.irs_eo_supplemental_manifest.value;
+  check(
+    irsRegistration.dataset_id ===
+      "national-irs-eo-supplemental-industry-evidence" &&
+      irsRegistration.runtime_pointer === null &&
+      irsRegistration.production_enrollment === false &&
+      irsRegistration.retained_release.release_id === irsManifest.release_id &&
+      irsRegistration.retained_release.manifest_sha256 ===
+        inputs.irs_eo_supplemental_manifest.proof.sha256,
+    "IRS EO supplemental selected release pin",
+  );
+  const irsSummary = await artifact(
+      input,
+      "irs_eo_supplemental_manifest",
+      "national-summary.json",
+      10_000,
+      signal,
+    ),
+    irsScopes = await artifact(
+      input,
+      "irs_eo_supplemental_manifest",
+      "geography-disposition-scopes.json",
+      100_000,
+      signal,
+    ),
+    irsReported = await artifact(
+      input,
+      "irs_eo_supplemental_manifest",
+      "reported-jurisdictions.json",
+      100_000,
+      signal,
+    );
+  check(
+    irsSummary.zip5_rows === 48194 &&
+      irsSummary.positive_zip5_rows === 36950 &&
+      irsSummary.organization_membership_count === 1955841 &&
+      irsSummary.geography_disposition_scope_rows === 60 &&
+      irsSummary.state_scope_rows === 51 &&
+      irsSummary.territory_scope_rows === 5 &&
+      irsSummary.special_scope_rows === 4 &&
+      irsSummary.reported_filing_address_jurisdiction_rows === 56 &&
+      irsScopes.length === 60 &&
+      irsReported.length === 56 &&
+      irsScopes.reduce(
+        (total, row) => total + row.organization_membership_count,
+        0,
+      ) === irsSummary.organization_membership_count &&
+      irsReported.reduce(
+        (total, row) => total + row.organization_membership_count,
+        0,
+      ) === irsSummary.organization_membership_count,
+    "IRS EO supplemental compact conservation",
+  );
+  const irsClaims = irsSummary.claims;
+  check(
+    irsClaims.unique_business_count === null &&
+      irsClaims.current_operation_verified === false &&
+      irsClaims.all_business_completeness === null &&
+      irsClaims.additive_to_business_or_industry_totals === false &&
+      irsClaims.geography_disposition_and_reported_jurisdiction_are_separate ===
+        true &&
+      irsClaims.network_requests === 0 &&
+      irsClaims.source_acquisition_performed === false &&
+      irsClaims.current_pointer_written === false &&
+      irsClaims.production_enrollment === false,
+    "IRS EO supplemental claim boundary",
+  );
+  const irsEoSupplementalSidecar = {
+    schema_version: `${DATASET}-irs-eo-supplemental@1.0.0`,
+    release_id: irsManifest.release_id,
+    registration_sha256: inputs.irs_eo_supplemental_registration.proof.sha256,
+    manifest_sha256: inputs.irs_eo_supplemental_manifest.proof.sha256,
+    summary_artifact_sha256: r.declaration(
+      inputs.irs_eo_supplemental_manifest,
+      "national-summary.json",
+    ).sha256,
+    scope_artifact_sha256: r.declaration(
+      inputs.irs_eo_supplemental_manifest,
+      "geography-disposition-scopes.json",
+    ).sha256,
+    reported_jurisdictions_artifact_sha256: r.declaration(
+      inputs.irs_eo_supplemental_manifest,
+      "reported-jurisdictions.json",
+    ).sha256,
+    summary: {
+      zip5_rows: irsSummary.zip5_rows,
+      positive_zip5_rows: irsSummary.positive_zip5_rows,
+      organization_membership_count: irsSummary.organization_membership_count,
+      geography_disposition_scope_rows:
+        irsSummary.geography_disposition_scope_rows,
+      reported_filing_address_jurisdiction_rows:
+        irsSummary.reported_filing_address_jurisdiction_rows,
+      evidence_kind: irsSummary.evidence_kind,
+      industry: irsSummary.industry,
+      review_status: irsSummary.review_status,
+    },
+    review: irsSummary.review,
+    scope:
+      "Supplemental filing-address organization memberships; geography disposition and reported filing-address jurisdictions remain separate, nonadditive marginals.",
+    claims: irsClaims,
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1040,6 +1144,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       source_policy_provenance: policySidecar,
       publisher_membership_reconciliation: publisherMembership,
       state_registration_license_supplemental: stateRegistrationLicenseSidecar,
+      irs_eo_supplemental: irsEoSupplementalSidecar,
     },
     claims: CLAIMS,
   };

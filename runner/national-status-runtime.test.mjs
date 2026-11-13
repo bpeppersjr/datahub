@@ -47,7 +47,8 @@ test("actual runtime enforces bearer/origin/query/method boundaries and serves b
     await fs.copyFile(path.join(APP_ROOT, q.manifest_path), qm);
     const sp = pin.source_policy_provenance,
       pr = pin.publisher_membership_reconciliation,
-      sr = pin.state_registration_license_supplemental;
+      sr = pin.state_registration_license_supplemental,
+      ir = pin.irs_eo_supplemental;
     for (const relative of [
       sp.registration_path,
       sp.manifest_path,
@@ -55,6 +56,8 @@ test("actual runtime enforces bearer/origin/query/method boundaries and serves b
       pr.la_manifest_path,
       sr.registration_path,
       sr.manifest_path,
+      ir.registration_path,
+      ir.manifest_path,
     ]) {
       const target = path.join(root, relative);
       await fs.mkdir(path.dirname(target), { recursive: true });
