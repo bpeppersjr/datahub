@@ -1,0 +1,29 @@
+{
+  "schema_version": "national-goal-evidence-federation-successor-config@1.0.0",
+  "base": {
+    "path": "config/national-goal-evidence-federation.json",
+    "sha256": "fd67a1ef0edf12d6c3b2f2e45fa56c2332d2368c11b3c0b5ac1d7c4273220bb0"
+  },
+  "overrides": {
+    "matrix": {
+      "path": "data/national-exact-zip-industry-evidence-matrix-v3-4/releases/national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1/manifest.json",
+      "sha256": "684696094db7e73753ef73f6301543306fbd0c130e7300ab5600268bde1352b3",
+      "release_id": "national-exact-zip-industry-evidence-matrix-384004fd1ea98f4c938194fdb425c747f9c7b5d9c1c1e0b3e051f3fffc21cdb1",
+      "schema_version": "national-exact-zip-industry-evidence-matrix@3.4.0"
+    },
+    "disposition": {
+      "path": "data/state-exact-zip-industry-evidence-disposition-v3-4/releases/state-exact-zip-industry-evidence-disposition-ceeb82e83af301e5a508c4abc1eaa4c226a7f1124b748c068d2285d2a2ae7d41/manifest.json",
+      "sha256": "7545dbd97b0848e4365114b5f3daa8b074742f0f82d5c892131c04f5bf4c8b05",
+      "release_id": "state-exact-zip-industry-evidence-disposition-ceeb82e83af301e5a508c4abc1eaa4c226a7f1124b748c068d2285d2a2ae7d41",
+      "schema_version": "state-exact-zip-industry-evidence-disposition@3.4.0"
+    },
+    "summary_implementation": {
+      "path": "runner/exact-zip-industry-summary-v3-4.mjs",
+      "sha256": "565d8a0c5115f12f5bc73c429f5bf61415c92d4c4881410b767c86bacc2d9367"
+    },
+    "operational_crosswalk": {
+      "path": "config/exact-zip-operational-industry-crosswalk-v1-2.json",
+      "sha256": "c03787922cb91bcfe0fd531f9ff267eb15b31125b71163c5dd60d3d7d26470ff"
+    }
+  }
+}

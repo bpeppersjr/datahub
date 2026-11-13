@@ -12,7 +12,7 @@ const percent = (n, d) => d ? Number((n / d * 100).toFixed(1)) : null;
 async function boundedJson(file, max) { const resolved = await fs.realpath(file), info = await fs.lstat(resolved); check(info.isFile() && !info.isSymbolicLink() && info.size > 0 && info.size <= max, "bounded regular file"); const bytes = await fs.readFile(resolved); const after = await fs.lstat(resolved); check(after.size === info.size && after.mtimeMs === info.mtimeMs, "file changed while reading"); return { value: JSON.parse(bytes), bytes, sha256: sha(bytes), path: resolved }; }
 
 export function projectOperationalIndustryEvidence({ crosswalk, summary, disposition, state }) {
-  check(crosswalk?.schema_version === "exact-zip-operational-industry-crosswalk@1.1.0" && crosswalk.matrix_schema_version === summary?.schema_version, "crosswalk version");
+  check(["exact-zip-operational-industry-crosswalk@1.1.0", "exact-zip-operational-industry-crosswalk@1.2.0"].includes(crosswalk?.schema_version) && crosswalk.matrix_schema_version === summary?.schema_version, "crosswalk version");
   check(STATES.has(state), "state");
   const summaryById = new Map(summary.dimensions.map(row => [row.id, row]));
   const dimensionIds = Object.keys(disposition.dimensions ?? {});

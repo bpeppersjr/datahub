@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { APP_ROOT } from './paths.mjs';
 import { echoReplay as r, STATE_DC_CODES } from './national-epa-echo-naics-zip-industry-evidence.mjs';
 import { readExactZipIndustrySummaryV33 } from './exact-zip-industry-summary-v3-3.mjs';
+import { readExactZipIndustrySummaryV34 } from './exact-zip-industry-summary-v3-4.mjs';
 import { projectOperationalIndustryEvidence } from './operational-industry-evidence-summary.mjs';
 import { verifyBusinessEntityGeographyRelationship } from './business-entity-geography-relationship.mjs';
 import { readBusinessEntitySourcePolicyProvenance } from './business-entity-source-policy-provenance.mjs';
@@ -23,7 +24,12 @@ const check = (value,message) => { if (!value) throw Error(`Goal federation reje
 const json = (root,p,max,signal) => r.secureBuffer(root,r.contained(root,p),max,signal).then(proof=>({...proof,value:JSON.parse(proof.raw),filename:r.contained(root,p)}));
 
 async function load(root,configPath,signal) {
-  const configRead=await json(root,configPath??`config/${DATASET}.json`,100_000,signal), config=configRead.value;
+  const configRead=await json(root,configPath??`config/${DATASET}.json`,100_000,signal);let config=configRead.value;
+  if(config.schema_version===`${DATASET}-successor-config@1.0.0`){
+    check(r.exact(config,['schema_version','base','overrides'])&&r.exact(config.base,['path','sha256'])&&r.exact(config.overrides,['matrix','disposition','summary_implementation','operational_crosswalk']),'successor overlay config');
+    const base=await json(root,config.base.path,100_000,signal);check(base.sha256===config.base.sha256,'successor base config hash drift');
+    config={schema_version:`${DATASET}-config@1.0.0`,inputs:{...base.value.inputs,...config.overrides}};
+  }
   check(r.exact(config,['schema_version','inputs']) && config.schema_version===`${DATASET}-config@1.0.0` && r.exact(config.inputs,INPUT_NAMES),'closed config');
   const inputs={};
   for (const name of INPUT_NAMES) {
@@ -35,19 +41,25 @@ async function load(root,configPath,signal) {
     if(manifest) check(value.release_id===pin.release_id && value.schema_version===pin.schema_version,`${name} release identity`);
     inputs[name]={filename:r.contained(root,pin.path),proof,value};
   }
+  if(inputs.operational_crosswalk.value.schema_version==='exact-zip-operational-industry-crosswalk-overlay@1.2.0'){
+    const overlay=inputs.operational_crosswalk.value;check(r.exact(overlay,['schema_version','base','matrix_schema_version'])&&r.exact(overlay.base,['path','sha256']),'operational crosswalk overlay');
+    const base=await json(root,overlay.base.path,200_000,signal);check(base.sha256===overlay.base.sha256&&base.value.schema_version==='exact-zip-operational-industry-crosswalk@1.1.0','operational crosswalk base');
+    inputs.operational_crosswalk.value={...base.value,schema_version:'exact-zip-operational-industry-crosswalk@1.2.0',matrix_schema_version:overlay.matrix_schema_version};
+  }
   const contractHashes={};for(const p of CONTRACTS)contractHashes[p]=(await r.secureBuffer(root,r.contained(root,p),200_000,signal)).sha256;
-  check(inputs.goal.value.schema_version==='national-goal-completion-matrix@1.3.0' && inputs.matrix.value.schema_version==='national-exact-zip-industry-evidence-matrix@3.3.0','required versions');
+  const successor=config.inputs.summary_implementation.path==='runner/exact-zip-industry-summary-v3-4.mjs', version=successor?'3.4':'3.3';
+  check(inputs.goal.value.schema_version==='national-goal-completion-matrix@1.3.0' && inputs.matrix.value.schema_version===`national-exact-zip-industry-evidence-matrix@${version}.0`,'required versions');
   check(inputs.disposition.value.bindings.matrix.release_id===inputs.matrix.value.release_id && inputs.disposition.value.bindings.matrix.manifest_sha256===inputs.matrix.proof.sha256,'disposition matrix pin');
-  check(config.inputs.summary_implementation.path==='runner/exact-zip-industry-summary-v3-3.mjs','v3.3 summary implementation path');
-  const summary=await readExactZipIndustrySummaryV33({root,signal});
-  check(summary.schema_version==='national-exact-zip-industry-summary-view@3.3.0' && summary.release_id===inputs.matrix.value.release_id && summary.manifest_sha256===inputs.matrix.proof.sha256 && summary.source_dimensions===51 && summary.zip5_rows===48194 && summary.industry_cells===2457894,'summary binding/conservation');
+  check(['runner/exact-zip-industry-summary-v3-3.mjs','runner/exact-zip-industry-summary-v3-4.mjs'].includes(config.inputs.summary_implementation.path),'summary implementation path');
+  const summary=successor?await readExactZipIndustrySummaryV34({root,signal}):await readExactZipIndustrySummaryV33({root,signal});
+  check(summary.schema_version===`national-exact-zip-industry-summary-view@${version}.0` && summary.release_id===inputs.matrix.value.release_id && summary.manifest_sha256===inputs.matrix.proof.sha256 && summary.source_dimensions===51 && summary.zip5_rows===48194 && summary.industry_cells===2457894,'summary binding/conservation');
   check(summary.dimensions.length===51 && new Set(summary.dimensions.map(d=>d.id)).size===51,'summary dimensions');
   const temporal=summary.temporal_qualification, matrix=inputs.matrix.value;
-  check(temporal.schema_version==='exact-zip-industry-temporal-summary-projection@3.3.0' &&
+  check(temporal.schema_version===`exact-zip-industry-temporal-summary-projection@${version}.0` &&
     temporal.matrix_release_id===matrix.release_id && temporal.matrix_manifest_sha256===inputs.matrix.proof.sha256 &&
     temporal.source_dimensions===matrix.summary.dimension_count && /^[a-f0-9]{64}$/.test(temporal.projection_sha256) &&
     [temporal.dimension_counts,temporal.semantic_dimension_counts,temporal.retained_assessment_dimension_counts]
-      .every(tally=>Object.values(tally).every(count)&&Object.values(tally).reduce((sum,n)=>sum+n,0)===51),'v3.3 temporal projection binding/conservation');
+      .every(tally=>Object.values(tally).every(count)&&Object.values(tally).reduce((sum,n)=>sum+n,0)===51),`${version} temporal projection binding/conservation`);
   const snapshot=inputs.ny_retail_food_snapshot_manifest;
   check(snapshot.proof.sha256===config.inputs.ny_retail_food_snapshot_manifest.sha256 && snapshot.value.release_id===config.inputs.ny_retail_food_snapshot_manifest.release_id &&
     ['ny_retail_food_location_profiles','ny_retail_food_license_address_evidence_count'].every(id=>{
@@ -55,7 +67,7 @@ async function load(root,configPath,signal) {
       return qualification?.source_release_id===snapshot.value.source_release_id &&
         qualification.source_reference_at===snapshot.value.source_rows_updated_at && qualification.assessment_as_of===snapshot.value.retrieved_at;
     }),'New York temporal projection source and assessment pin');
-  return {root,configRead,config,inputs,contractHashes,summary};
+  return {root,configRead,config,inputs,contractHashes,summary,version};
 }
 
 async function stream(input,name,artifact,signal,consume) { await r.streamArtifact(input.root,path.dirname(input.inputs[name].filename),r.declaration(input.inputs[name],artifact),signal,consume); }
@@ -200,7 +212,7 @@ export async function verifyNationalGoalEvidenceFederation(manifestPath,options=
   const expectedInventory=sorted(['manifest.json','national-summary.json','state-industry-status.jsonl','gap-ledger.json','territories.json',...Array.from({length:100},(_,i)=>`zip-status/prefix=${String(i).padStart(2,'0')}.jsonl.gz`)]);
   check(r.equal(await inventory(directory),expectedInventory),'closed output inventory');
   const input=await load(root,options.configPath,options.signal);
-  check(r.equal(m.summary?.temporal_assessment,input.summary.temporal_qualification),'v3.3 temporal projection manifest pin');
+  check(r.equal(m.summary?.temporal_assessment,input.summary.temporal_qualification),`${input.version} temporal projection manifest pin`);
   const replay=await fs.mkdtemp(path.join(path.dirname(directory),'.verify-'));
   try {
     const result=await derive(input,replay,options.signal),expected=manifestFor(input,result,m.created_at);check(r.equal(m,expected),'independent semantic reconstruction');

@@ -1,0 +1,8 @@
+{
+  "schema_version": "exact-zip-operational-industry-crosswalk-overlay@1.2.0",
+  "base": {
+    "path": "config/exact-zip-operational-industry-crosswalk.json",
+    "sha256": "114b34577108a3c0f07ade860d6771800f6111b2e3ed5d0966726dd970b59666"
+  },
+  "matrix_schema_version": "national-exact-zip-industry-summary-view@3.4.0"
+}
