@@ -138,6 +138,18 @@ type View = {
     industry_assignment_count?: number;
     industries?: { industry_id: string; source_assignment_count: number }[];
   };
+  broad_gap_authorization: null | {
+    status: "current-broad-gap";
+    decision: "hold";
+    assessment_id: string;
+    observed_at: string;
+    wave: number;
+    gate_count: number;
+    gate_keys: string[];
+    required_exclusions: string[];
+    strongest_bounded_next_action: string;
+    authority: Record<string, false>;
+  };
   industries: Industry[];
   zip5: string;
   zip4: null;
@@ -580,6 +592,38 @@ export function NationalStatusPanel({ state }: { state: string }) {
                   Separate lifecycle evidence only; not merged with evidence reach,
                   maintenance, unique-business counts, or completeness.
                 </p>
+              </section>
+              <section>
+                <h4>Broad-organization gap</h4>
+                {selected.view.broad_gap_authorization ? (
+                  <>
+                    <p>
+                      Current governed gap · HOLD · wave{" "}
+                      {selected.view.broad_gap_authorization.wave} ·{" "}
+                      {selected.view.broad_gap_authorization.gate_count} unresolved
+                      gates.
+                    </p>
+                    <p>
+                      Gap reasons:{" "}
+                      {selected.view.broad_gap_authorization.gate_keys
+                        .map(label)
+                        .join(" · ")}
+                    </p>
+                    <p>
+                      Next bounded action:{" "}
+                      {
+                        selected.view.broad_gap_authorization
+                          .strongest_bounded_next_action
+                      }
+                    </p>
+                    <p>
+                      Review evidence only. No acquisition, contact, download,
+                      payment, record request, or production change is authorized.
+                    </p>
+                  </>
+                ) : (
+                  <p>No current broad-organization gap is recorded for this state.</p>
+                )}
               </section>
             </div>
           )}

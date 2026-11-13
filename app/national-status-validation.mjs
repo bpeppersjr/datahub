@@ -197,6 +197,7 @@ function validateNationalStatus(v, state = null) {
         "state",
         "industries",
         "lifecycle_industry_jurisdiction",
+        "broad_gap_authorization",
         "claims",
         "provenance",
       ]) &&
@@ -215,7 +216,20 @@ function validateNationalStatus(v, state = null) {
         (row, i) =>
           row.industry_id === pin.industries[i] &&
           integer(row.source_assignment_count),
-      )
+      ) &&
+      (v.broad_gap_authorization === null ||
+        (v.broad_gap_authorization.status === "current-broad-gap" &&
+          v.broad_gap_authorization.decision === "hold" &&
+          integer(v.broad_gap_authorization.wave) &&
+          integer(v.broad_gap_authorization.gate_count) &&
+          v.broad_gap_authorization.gate_count ===
+            v.broad_gap_authorization.gate_keys?.length &&
+          v.broad_gap_authorization.required_exclusions?.length > 0 &&
+          typeof v.broad_gap_authorization.strongest_bounded_next_action ===
+            "string" &&
+          Object.values(v.broad_gap_authorization.authority).every(
+            (value) => value === false,
+          )))
     );
   if (v.kind === "summary") {
     if (
@@ -238,6 +252,7 @@ function validateNationalStatus(v, state = null) {
         "irs_eo_supplemental",
         "lifecycle_industry_zip",
         "lifecycle_industry_jurisdiction",
+        "broad_gap_authorization",
         "claims",
         "provenance",
       ]) ||
@@ -300,6 +315,42 @@ function validateNationalStatus(v, state = null) {
       lifecycleIndustry.claims.unique_business_count !== null ||
       lifecycleIndustry.claims.current_operation_verified !== false ||
       lifecycleIndustry.claims.all_business_completeness !== null
+    )
+      return false;
+    const broadGap = v.broad_gap_authorization,
+      bg = pin.broad_gap_authorization;
+    if (
+      !exact(broadGap, [
+        "schema_version",
+        "release_id",
+        "manifest_sha256",
+        "artifact_sha256",
+        "observed_at",
+        "state_count",
+        "wave_count",
+        "gate_item_count",
+        "distinct_gate_key_count",
+        "states",
+        "authority",
+        "scope",
+      ]) ||
+      broadGap.release_id !== bg.release_id ||
+      broadGap.manifest_sha256 !== bg.manifest_sha256 ||
+      broadGap.artifact_sha256 !== bg.artifact_sha256 ||
+      broadGap.state_count !== 40 ||
+      broadGap.wave_count !== 4 ||
+      broadGap.gate_item_count !== 371 ||
+      broadGap.distinct_gate_key_count !== 121 ||
+      broadGap.states?.length !== 40 ||
+      broadGap.states.reduce((n, row) => n + row.gate_count, 0) !== 371 ||
+      new Set(broadGap.states.flatMap((row) => row.gate_keys)).size !== 121 ||
+      broadGap.states.some(
+        (row) =>
+          row.decision !== "hold" ||
+          row.gate_count !== row.gate_keys.length ||
+          Object.values(row.authority).some((value) => value !== false),
+      ) ||
+      Object.values(broadGap.authority).some((value) => value !== false)
     )
       return false;
     const lifecycleJurisdiction = v.lifecycle_industry_jurisdiction,

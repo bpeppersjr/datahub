@@ -59,6 +59,7 @@ const INPUT_NAMES = [
   "lifecycle_industry_zip_manifest",
   "lifecycle_industry_jurisdiction_registration",
   "lifecycle_industry_jurisdiction_manifest",
+  "broad_gap_authorization_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -1264,6 +1265,88 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       "Governed lifecycle-industry jurisdiction disposition; state/DC rows are selectable, while territories and special scopes remain separate and unassigned.",
     claims: jurisdictionClaims,
   };
+  const broadAuthorizationManifest = inputs.broad_gap_authorization_manifest.value,
+    broadAuthorizationProgram = await artifact(
+      input,
+      "broad_gap_authorization_manifest",
+      "authorization-program.json",
+      1_100_000,
+      signal,
+    ),
+    broadAuthorizationStates = broadAuthorizationProgram.states.map((row) => ({
+      state: row.state_abbreviation,
+      wave: row.wave,
+      decision: row.assessment_snapshot.decision,
+      assessment_id: row.assessment_snapshot.assessment_id,
+      observed_at: row.assessment_snapshot.observed_at,
+      gate_count: row.unresolved_gates.length,
+      gate_keys: row.unresolved_gates,
+      required_exclusions: row.required_exclusions,
+      strongest_bounded_next_action:
+        row.assessment_snapshot.strongest_bounded_next_action,
+      authority: row.authority,
+    }));
+  check(
+    broadAuthorizationManifest.state_count === 40 &&
+      broadAuthorizationManifest.gate_item_count === 371 &&
+      broadAuthorizationManifest.gate_key_count === 121 &&
+      broadAuthorizationManifest.artifacts.length === 1 &&
+      broadAuthorizationManifest.artifacts[0].path === "authorization-program.json" &&
+      broadAuthorizationManifest.artifacts[0].sha256 ===
+        "d8c495b6a1770af716777a2ee5836fe3c92dce1a67784fd3fa6985934bcdf02d" &&
+      broadAuthorizationProgram.scope.jurisdictions === 40 &&
+      broadAuthorizationProgram.scope.gate_items === 371 &&
+      broadAuthorizationProgram.scope.gate_key_count === 121 &&
+      broadAuthorizationProgram.wave_state_abbreviations.length === 4 &&
+      broadAuthorizationStates.length === 40 &&
+      broadAuthorizationStates.reduce((n, row) => n + row.gate_count, 0) === 371 &&
+      new Set(broadAuthorizationStates.flatMap((row) => row.gate_keys)).size === 121 &&
+      r.equal(
+        broadAuthorizationStates.map((row) => row.state).sort(),
+        [...missingBroad].sort(),
+      ) &&
+      broadAuthorizationStates.every(
+        (row) =>
+          row.decision === "hold" &&
+          row.gate_count === row.gate_keys.length &&
+          row.required_exclusions.length > 0 &&
+          typeof row.strongest_bounded_next_action === "string" &&
+          row.strongest_bounded_next_action.length > 0 &&
+          Object.values(row.authority).every((value) => value === false),
+      ) &&
+      broadAuthorizationProgram.scope.acquisition_authorized === false &&
+      broadAuthorizationProgram.scope.evidence_request_authorized === false &&
+      broadAuthorizationProgram.scope.source_actions_performed === 0 &&
+      broadAuthorizationProgram.scope.network_requests === 0 &&
+      broadAuthorizationProgram.scope.current_pointer_changed === false,
+    "broad-gap authorization conservation and authority boundary",
+  );
+  const broadGapAuthorizationSidecar = {
+    schema_version: `${DATASET}-broad-gap-authorization@1.0.0`,
+    release_id: broadAuthorizationManifest.release_id,
+    manifest_sha256: inputs.broad_gap_authorization_manifest.proof.sha256,
+    artifact_sha256: r.declaration(
+      inputs.broad_gap_authorization_manifest,
+      "authorization-program.json",
+    ).sha256,
+    observed_at: broadAuthorizationProgram.observed_at,
+    state_count: 40,
+    wave_count: 4,
+    gate_item_count: 371,
+    distinct_gate_key_count: 121,
+    states: broadAuthorizationStates,
+    authority: {
+      acquisition_authorized: false,
+      evidence_request_authorized: false,
+      contact_authorized: false,
+      download_authorized: false,
+      payment_authorized: false,
+      row_bearing_evidence_authorized: false,
+      production_change_authorized: false,
+    },
+    scope:
+      "Governed readiness taxonomy for the exact 40 current broad-organization gaps; review evidence only and no source-action authority.",
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1341,6 +1424,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       irs_eo_supplemental: irsEoSupplementalSidecar,
       lifecycle_industry_zip: lifecycleIndustryZipSidecar,
       lifecycle_industry_jurisdiction: lifecycleIndustryJurisdictionSidecar,
+      broad_gap_authorization: broadGapAuthorizationSidecar,
     },
     claims: CLAIMS,
   };

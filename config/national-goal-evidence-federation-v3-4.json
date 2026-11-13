@@ -2,7 +2,7 @@
   "schema_version": "national-goal-evidence-federation-successor-config@1.0.0",
   "base": {
     "path": "config/national-goal-evidence-federation.json",
-    "sha256": "f27728d31e5eada297da7dc9de826861acce8154ffd27bc203bb54ca35e82685"
+    "sha256": "4593d3958ccb95a3d5217536abb74b96824b0357a9a7dbd7da3c5594228db6f5"
   },
   "overrides": {
     "matrix": {

@@ -47,7 +47,23 @@ test("National Status conserves headline units, nine state/DC industries and sep
     assert.equal(view.industries.length, 9);
     assert.equal(validNationalStatus(view, state), true);
     assert.ok(Buffer.byteLength(JSON.stringify(view)) < 128000);
+    if (state === "NJ") {
+      assert.equal(view.broad_gap_authorization.status, "current-broad-gap");
+      assert.equal(view.broad_gap_authorization.decision, "hold");
+      assert.equal(
+        view.broad_gap_authorization.gate_count,
+        view.broad_gap_authorization.gate_keys.length,
+      );
+      assert.ok(
+        Object.values(view.broad_gap_authorization.authority).every(
+          (value) => value === false,
+        ),
+      );
+    } else assert.equal(view.broad_gap_authorization, null);
   }
+  assert.equal(summary.broad_gap_authorization.state_count, 40);
+  assert.equal(summary.broad_gap_authorization.gate_item_count, 371);
+  assert.equal(summary.broad_gap_authorization.distinct_gate_key_count, 121);
   for (const state of ["PR", "AS", "ZZ", "nj", "", null])
     await assert.rejects(
       readNationalStatus({ kind: "state", state }),

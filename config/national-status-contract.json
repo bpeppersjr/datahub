@@ -2,7 +2,7 @@
   "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
     "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
-    "national-summary.json": "3ce293d7c70c7f9945d6155a1930dbee8ec32fc8515329f434b3570f2b500b52",
+    "national-summary.json": "93f16d15cbec39bd87fef96be0c2ce26366d3facdca0dbb53a1834905b5f5197",
     "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -186,10 +186,19 @@
     "manifest_sha256": "7c8bddbefefb780a5aab846d901770fda7e8b4d4686b0ebdbfe3a1c041ac8fc6",
     "jurisdictions_artifact_sha256": "54150df0060c19bdc9924f8bcb497cb213dcecc363b49bd8a2e086951adba5ff"
   },
+  "broad_gap_authorization": {
+    "release_id": "broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177",
+    "manifest_sha256": "6609ff744a497db7be6156f65c12237a27de3a50db2158479f316eaa6fbd25e2",
+    "artifact_sha256": "d8c495b6a1770af716777a2ee5836fe3c92dce1a67784fd3fa6985934bcdf02d",
+    "state_count": 40,
+    "wave_count": 4,
+    "gate_item_count": 371,
+    "distinct_gate_key_count": 121
+  },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-551a3fc958fd54c3f655ea6e43924eab7e46175d7319eb83c4df1e72c7950abd",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-551a3fc958fd54c3f655ea6e43924eab7e46175d7319eb83c4df1e72c7950abd/manifest.json",
-  "manifest_sha256": "c172e063571f9d63936007d3e36c417d17697d8e4381bdaa5f67b0d8b92f5f4d",
+  "release_id": "national-goal-evidence-federation-3ec96a8226e33f5d126ab3842d5288c12548ecbf7a87e938dfc54b2bfdda7c64",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-3ec96a8226e33f5d126ab3842d5288c12548ecbf7a87e938dfc54b2bfdda7c64/manifest.json",
+  "manifest_sha256": "f0d5f9083f88afe0999719e2e3f04f5db6408c8ea8ce797f63c48a0b3a74eefa",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,

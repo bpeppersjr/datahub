@@ -21,7 +21,7 @@ const check = (v, label) => {
 const decoder = new TextDecoder("utf-8", { fatal: true });
 export const NATIONAL_STATUS_LIMITS = Object.freeze({
   manifest: 100000,
-  summary: 100000,
+  summary: 130000,
   state: 2000000,
   compressed: 64000,
   decoded: 3000000,
@@ -618,6 +618,7 @@ async function summary(ctx) {
         "irs_eo_supplemental",
         "lifecycle_industry_zip",
         "lifecycle_industry_jurisdiction",
+        "broad_gap_authorization",
       ]),
     "summary schema/claims",
   );
@@ -918,6 +919,51 @@ async function summary(ctx) {
       lifecycleJurisdiction.claims.all_business_completeness === null,
     "lifecycle-industry jurisdiction sidecar",
   );
+  const broadGapAuthorization = s.sidecars.broad_gap_authorization,
+    bg = pin.broad_gap_authorization;
+  check(
+    exact(broadGapAuthorization, [
+      "schema_version",
+      "release_id",
+      "manifest_sha256",
+      "artifact_sha256",
+      "observed_at",
+      "state_count",
+      "wave_count",
+      "gate_item_count",
+      "distinct_gate_key_count",
+      "states",
+      "authority",
+      "scope",
+    ]) &&
+      broadGapAuthorization.release_id === bg.release_id &&
+      broadGapAuthorization.manifest_sha256 === bg.manifest_sha256 &&
+      broadGapAuthorization.artifact_sha256 === bg.artifact_sha256 &&
+      broadGapAuthorization.state_count === bg.state_count &&
+      broadGapAuthorization.wave_count === bg.wave_count &&
+      broadGapAuthorization.gate_item_count === bg.gate_item_count &&
+      broadGapAuthorization.distinct_gate_key_count ===
+        bg.distinct_gate_key_count &&
+      broadGapAuthorization.states.length === 40 &&
+      broadGapAuthorization.states.reduce((n, row) => n + row.gate_count, 0) ===
+        371 &&
+      new Set(broadGapAuthorization.states.flatMap((row) => row.gate_keys)).size ===
+        121 &&
+      equal(
+        broadGapAuthorization.states.map((row) => row.state).sort(),
+        s.sidecars.goal_matrix.missing_broad_states.slice().sort(),
+      ) &&
+      broadGapAuthorization.states.every(
+        (row) =>
+          row.decision === "hold" &&
+          row.gate_count === row.gate_keys.length &&
+          Object.values(row.authority).every((value) => value === false),
+      ) &&
+      Object.values(broadGapAuthorization.authority).every(
+        (value) => value === false,
+      ),
+    "broad-gap authorization sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -970,6 +1016,7 @@ async function summary(ctx) {
     irs_eo_supplemental: irs,
     lifecycle_industry_zip: lifecycleIndustry,
     lifecycle_industry_jurisdiction: lifecycleJurisdiction,
+    broad_gap_authorization: broadGapAuthorization,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });
@@ -1036,6 +1083,9 @@ export async function readNationalStatus({
       lifecycleIndustryJurisdiction = jurisdictionRows.find(
         (row) => row.scope_kind === "state" && row.postal_abbreviation === state,
       );
+    const broadGap = (await summary(ctx)).broad_gap_authorization.states.find(
+      (row) => row.state === state,
+    );
     check(
       declaration?.sha256 ===
         pin.lifecycle_industry_jurisdiction.jurisdictions_artifact_sha256 &&
@@ -1054,6 +1104,21 @@ export async function readNationalStatus({
           rows.find((row) => row.state === state && row.id === id),
         ),
         lifecycle_industry_jurisdiction: lifecycleIndustryJurisdiction,
+        broad_gap_authorization: broadGap
+          ? {
+              status: "current-broad-gap",
+              decision: broadGap.decision,
+              assessment_id: broadGap.assessment_id,
+              observed_at: broadGap.observed_at,
+              wave: broadGap.wave,
+              gate_count: broadGap.gate_count,
+              gate_keys: broadGap.gate_keys,
+              required_exclusions: broadGap.required_exclusions,
+              strongest_bounded_next_action:
+                broadGap.strongest_bounded_next_action,
+              authority: broadGap.authority,
+            }
+          : null,
         claims: pin.claims,
         provenance: provenance(ctx, stateArtifact),
       },

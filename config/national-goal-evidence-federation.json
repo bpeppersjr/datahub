@@ -119,6 +119,12 @@
       "release_id": "national-business-lifecycle-industry-jurisdiction-evidence-78a6260b319dd10c7006a0bace30736712ddaad5bc515b30fe7c9faa5cb14cd2",
       "schema_version": "national-business-lifecycle-industry-jurisdiction-evidence@1.1.0"
     },
+    "broad_gap_authorization_manifest": {
+      "path": "data/broad-organization-authorization-program/releases/broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177/manifest.json",
+      "sha256": "6609ff744a497db7be6156f65c12237a27de3a50db2158479f316eaa6fbd25e2",
+      "release_id": "broad-organization-authorization-program-2026-11-12T05-17-11.911Z-d8c495b6a177",
+      "schema_version": "broad-organization-authorization-program-manifest@2.0.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"
