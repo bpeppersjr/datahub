@@ -8,7 +8,7 @@ import { DATASET, CLAIMS, federationGeographyScope, buildNationalGoalEvidenceFed
 
 const configPath=path.join(APP_ROOT,`config/${DATASET}.json`);
 const currentConfigPath=path.join(APP_ROOT,'config/national-goal-evidence-federation-v3-4.json');
-const successorRelease='national-goal-evidence-federation-f11722c4916de60bc47d14e965a361259c59cf570c2f28b09d47558e8cb7fc01';
+const successorRelease='national-goal-evidence-federation-d44bc1bcf16b59717513e7c18e436ec142e7ae6f618d424f3e9416cf44a8b949';
 const successorManifest=path.join(APP_ROOT,`data/${DATASET}/releases/${successorRelease}/manifest.json`);
 const json=async p=>JSON.parse(await fs.readFile(p,'utf8'));
 async function fixture(t) {const root=await fs.mkdtemp(path.join(APP_ROOT,'data/tmp/goal-federation-test-'));t.after(()=>fs.rm(root,{recursive:true,force:true}));return root;}
@@ -47,7 +47,7 @@ test('symlink input ancestry is rejected before evidence processing',async t=>{
 
 test('selected v3.4 federation successor has full independent replay, closed units and correct evidence gaps',async()=>{
   const manifest=successorManifest;
-  const verified=await verifyNationalGoalEvidenceFederation(manifest,{configPath:currentConfigPath});assert.equal(verified.manifest_sha256,'38274a819a413af048326d1499730a5e211de13e620677c4ccc791c0fa8c7e43');
+  const verified=await verifyNationalGoalEvidenceFederation(manifest,{configPath:currentConfigPath});assert.equal(verified.manifest_sha256,'bf01e2bc8e8c0a6a6df17ef627e56062dbd433b16ff81c71a1ba17560acf5e3c');
   assert.equal(verified.zip5_cohort_rows,48194);assert.equal(verified.matrix_evidence_cells,2457894);assert.equal(verified.state_industry_rows,459);
   assert.deepEqual(verified.gaps,{broad_business_missing_states:40,unsupported_industry_access_cells:181,unmeasured_industry_access_cells:2,restricted_sample_industry_access_cells:1,stale_temporal_dimensions:0,unmeasured_temporal_dimensions:20});
   const directory=path.dirname(manifest),summary=await json(path.join(directory,'national-summary.json')),gaps=await json(path.join(directory,'gap-ledger.json')),territories=await json(path.join(directory,'territories.json'));

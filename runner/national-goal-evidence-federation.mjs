@@ -1285,7 +1285,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
     connectorWave = broadAuthorizationProgram.supplemental_evidence?.find(
       (row) => row.schema_version === "broad-organization-offline-connector-readiness-wave@1.0.0",
     ),
-    illinoisConnector = connectorWave?.states?.find((row) => row.state === "IL"),
+    connectorStates = new Map(connectorWave?.states?.map((row) => [row.state, row]) ?? []),
     broadAuthorizationStates = broadAuthorizationProgram.states.map((row) => ({
       state: row.state_abbreviation,
       wave: row.wave,
@@ -1299,21 +1299,21 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
         row.assessment_snapshot.strongest_bounded_next_action,
       authority: row.authority,
       connector_readiness:
-        row.state_abbreviation === "IL"
+        connectorStates.has(row.state_abbreviation)
           ? {
               schema_version: "broad-organization-connector-readiness@1.0.0",
               status: "zero-row-ready-gap-unresolved",
-              connector_path: illinoisConnector?.connector_path,
-              connector_sha256: illinoisConnector?.connector_sha256,
-              policy_path: illinoisConnector?.policy_path,
-              policy_sha256: illinoisConnector?.policy_sha256,
-              assessment_path: illinoisConnector?.assessment_path,
-              assessment_sha256: illinoisConnector?.assessment_sha256,
-              required_source_files: illinoisConnector?.required_source_files,
+              connector_path: connectorStates.get(row.state_abbreviation).connector_path,
+              connector_sha256: connectorStates.get(row.state_abbreviation).connector_sha256,
+              policy_path: connectorStates.get(row.state_abbreviation).policy_path,
+              policy_sha256: connectorStates.get(row.state_abbreviation).policy_sha256,
+              assessment_path: connectorStates.get(row.state_abbreviation).assessment_path,
+              assessment_sha256: connectorStates.get(row.state_abbreviation).assessment_sha256,
+              required_source_files: connectorStates.get(row.state_abbreviation).required_source_files,
               source_rows_read: connectorWave?.controls?.source_rows_read,
               network_requests: connectorWave?.controls?.network_requests,
               actions_performed: 0,
-              unresolved_gates: illinoisConnector?.unresolved_gates,
+              unresolved_gates: connectorStates.get(row.state_abbreviation).unresolved_gates,
               broad_layer_gap_resolved: false,
               authority: {
                 acquisition_authorized: false,
@@ -1340,10 +1340,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       connectorWave?.wave_id === "broad-organization-offline-connector-readiness-wave-2026-11-12" &&
       connectorWave.broad_layer_gaps_resolved === 0 &&
       Object.values(connectorWave.controls).every((value) => value === 0 || value === false) &&
-      illinoisConnector?.connector_sha256 === "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c" &&
-      illinoisConnector.policy_sha256 === "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8" &&
-      illinoisConnector.assessment_sha256 === "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323" &&
-      illinoisConnector.required_source_files === 5 &&
+      r.equal([...connectorStates.keys()], ["IL", "KY", "MS", "OK", "UT"]) &&
       broadAuthorizationStates.length === 40 &&
       broadAuthorizationStates.reduce((n, row) => n + row.gate_count, 0) === 371 &&
       new Set(broadAuthorizationStates.flatMap((row) => row.gate_keys)).size === 121 &&
@@ -1360,8 +1357,10 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
           row.strongest_bounded_next_action.length > 0 &&
           Object.values(row.authority).every((value) => value === false),
       ) &&
-      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).length === 1 &&
-      broadAuthorizationStates.find((row) => row.state === "IL")?.connector_readiness?.unresolved_gates.length === 7 &&
+      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).length === 5 &&
+      broadAuthorizationStates.filter((row) => row.connector_readiness !== null).every(
+        (row) => r.equal(row.connector_readiness.unresolved_gates, row.gate_keys),
+      ) &&
       broadAuthorizationProgram.scope.acquisition_authorized === false &&
       broadAuthorizationProgram.scope.evidence_request_authorized === false &&
       broadAuthorizationProgram.scope.source_actions_performed === 0 &&

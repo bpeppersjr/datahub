@@ -59,17 +59,20 @@ test("National Status conserves headline units, nine state/DC industries and sep
           (value) => value === false,
         ),
       );
+      assert.equal(view.broad_gap_authorization.connector_readiness, null);
     } else assert.equal(view.broad_gap_authorization, null);
   }
-  const illinois = await readNationalStatus({ kind: "state", state: "IL" });
-  assert.equal(validNationalStatus(illinois, "IL"), true);
-  assert.equal(illinois.broad_gap_authorization.connector_readiness.required_source_files, 5);
-  assert.equal(illinois.broad_gap_authorization.connector_readiness.source_rows_read, 0);
-  assert.equal(illinois.broad_gap_authorization.connector_readiness.network_requests, 0);
-  assert.equal(illinois.broad_gap_authorization.connector_readiness.actions_performed, 0);
-  assert.equal(illinois.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved, false);
-  assert.deepEqual(illinois.broad_gap_authorization.connector_readiness.unresolved_gates, illinois.broad_gap_authorization.gate_keys);
-  assert.equal(Object.values(illinois.broad_gap_authorization.connector_readiness.authority).every(value => value === false), true);
+  for (const [state, required] of Object.entries({ IL: 5, KY: 1, MS: 2, OK: 1, UT: 3 })) {
+    const view = await readNationalStatus({ kind: "state", state });
+    assert.equal(validNationalStatus(view, state), true);
+    assert.equal(view.broad_gap_authorization.connector_readiness.required_source_files, required);
+    assert.equal(view.broad_gap_authorization.connector_readiness.source_rows_read, 0);
+    assert.equal(view.broad_gap_authorization.connector_readiness.network_requests, 0);
+    assert.equal(view.broad_gap_authorization.connector_readiness.actions_performed, 0);
+    assert.equal(view.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved, false);
+    assert.deepEqual(view.broad_gap_authorization.connector_readiness.unresolved_gates, view.broad_gap_authorization.gate_keys);
+    assert.equal(Object.values(view.broad_gap_authorization.connector_readiness.authority).every(value => value === false), true);
+  }
   assert.equal(summary.broad_gap_authorization.state_count, 40);
   assert.equal(summary.broad_gap_authorization.gate_item_count, 371);
   assert.equal(summary.broad_gap_authorization.distinct_gate_key_count, 121);
@@ -233,18 +236,20 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
     assert.doesNotThrow(() => validNationalStatus(v));
     assert.equal(validNationalStatus(v), false, String(mutate));
   }
-  const illinois = await readNationalStatus({ kind: "state", state: "IL" });
-  for (const mutate of [
-    (x) => { delete x.broad_gap_authorization.connector_readiness; },
-    (x) => { x.broad_gap_authorization.connector_readiness.connector_sha256 = "f".repeat(64); },
-    (x) => { x.broad_gap_authorization.connector_readiness.required_source_files = 4; },
-    (x) => { x.broad_gap_authorization.connector_readiness.source_rows_read = 1; },
-    (x) => { x.broad_gap_authorization.connector_readiness.unresolved_gates.pop(); },
-    (x) => { x.broad_gap_authorization.connector_readiness.authority.acquisition_authorized = true; },
-    (x) => { x.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved = true; },
-  ]) {
-    const changed = structuredClone(illinois); mutate(changed);
-    assert.equal(validNationalStatus(changed, "IL"), false, String(mutate));
+  for (const readinessState of ["IL", "KY", "MS", "OK", "UT"]) {
+    const readiness = await readNationalStatus({ kind: "state", state: readinessState });
+    for (const mutate of [
+      (x) => { delete x.broad_gap_authorization.connector_readiness; },
+      (x) => { x.broad_gap_authorization.connector_readiness.connector_sha256 = "f".repeat(64); },
+      (x) => { x.broad_gap_authorization.connector_readiness.required_source_files = 99; },
+      (x) => { x.broad_gap_authorization.connector_readiness.source_rows_read = 1; },
+      (x) => { x.broad_gap_authorization.connector_readiness.unresolved_gates.pop(); },
+      (x) => { x.broad_gap_authorization.connector_readiness.authority.acquisition_authorized = true; },
+      (x) => { x.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved = true; },
+    ]) {
+      const changed = structuredClone(readiness); mutate(changed);
+      assert.equal(validNationalStatus(changed, readinessState), false, `${readinessState}:${String(mutate)}`);
+    }
   }
   for (const mutate of [
     (x) => (x.state = "PR"),

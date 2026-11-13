@@ -39,6 +39,25 @@ const temporalKeys = [
 ];
 const boundedString = (v) =>
   typeof v === "string" && v.length > 0 && v.length <= 1000;
+const connectorReadinessPins = Object.freeze({
+  IL: Object.freeze(["config/connectors/il-business-registry.json", "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c", "config/source-policies/il-business-registry.json", "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8", "config/state-business-source-assessments/il-2026-10-03.json", "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323", 5]),
+  KY: Object.freeze(["config/connectors/kentucky-business-entity-bulk-offline.json", "8b27d9ca6e9bcaca24f21b1cbdacbd8fb61812c172f81fdbe6b741a1812d1cfe", "config/source-policies/kentucky-business-entity-bulk-offline.json", "bbb13a97a2e51d03db5857edc4287e98412547432b78615933ed8580fd42735a", "config/state-business-source-assessments/ky-2026-10-03.json", "b8fc32faef8aa47ab9cdfddac3323d43bb66716b7bc9ac87690792804e37c5c7", 1]),
+  MS: Object.freeze(["config/connectors/mississippi-business-report-offline.json", "e8264e06f02dc7823c6752fb7dbb88a3975e220c7ae6d37d4107eeedcffebf78", "config/source-policies/mississippi-business-report-offline.json", "84e535a5282b8f1b7c6d847d4d146b98a92b9be38cfe8fe2bd938a6b1cae90b1", "config/state-business-source-assessments/ms-2026-10-03.json", "85e1c6bd5565935bcfd381c12b9dec665638f0aad23e7b68dfe70b47d6b477f9", 2]),
+  OK: Object.freeze(["config/connectors/ok-business-bulk-offline.json", "3bb356dc4eb90f12535afbb831694ef0d9bb3a907134a4e22da5ac5494f9f7ad", "config/source-policies/ok-business-entities-bulk.json", "b7f7f5c163e69ef366be66bdd864bb8d2376b39010a549c5eec874df4acf1aa4", "config/state-business-source-assessments/ok-2026-10-03.json", "47f1766d065e562b2c6d648b65055039beb583a13328322ec715c3fe7f514da1", 1]),
+  UT: Object.freeze(["config/connectors/utah-business-list-offline.json", "106122b84872d1f03e8791604fa031d0abb3fd34181d0e0708340a4e63ba6ec4", "config/source-policies/utah-business-list-offline.json", "ea2bb05d93839e4d3185196761f3e31b3ccc54a670001fe9ed742beb732d7800", "config/state-business-source-assessments/ut-2026-10-03.json", "b06b5aa95d2c28cd3beedf36db689da340120fe283f5317e5725e1241fe114a7", 3]),
+});
+function validConnectorReadiness(value, state, gates) {
+  const expected = connectorReadinessPins[state];
+  if (!expected) return value === null;
+  return exact(value, ["schema_version", "status", "connector_path", "connector_sha256", "policy_path", "policy_sha256", "assessment_path", "assessment_sha256", "required_source_files", "source_rows_read", "network_requests", "actions_performed", "unresolved_gates", "broad_layer_gap_resolved", "authority"])
+    && value.schema_version === "broad-organization-connector-readiness@1.0.0"
+    && value.status === "zero-row-ready-gap-unresolved"
+    && equal([value.connector_path, value.connector_sha256, value.policy_path, value.policy_sha256, value.assessment_path, value.assessment_sha256, value.required_source_files], expected)
+    && value.source_rows_read === 0 && value.network_requests === 0 && value.actions_performed === 0
+    && value.broad_layer_gap_resolved === false && equal(value.unresolved_gates, gates)
+    && exact(value.authority, ["acquisition_authorized", "row_bearing_preflight_authorized", "publication_authorized", "national_admission_authorized", "production_change_authorized"])
+    && Object.values(value.authority).every(flag => flag === false);
+}
 export function validTemporal(v) {
   return (
     exact(v, temporalKeys) &&
@@ -231,24 +250,7 @@ function validateNationalStatus(v, state = null) {
           Object.values(v.broad_gap_authorization.authority).every(
             (value) => value === false,
           ) &&
-          (v.state === "IL"
-            ? exact(v.broad_gap_authorization.connector_readiness, ["schema_version", "status", "connector_path", "connector_sha256", "policy_path", "policy_sha256", "assessment_path", "assessment_sha256", "required_source_files", "source_rows_read", "network_requests", "actions_performed", "unresolved_gates", "broad_layer_gap_resolved", "authority"]) &&
-              v.broad_gap_authorization.connector_readiness.schema_version === "broad-organization-connector-readiness@1.0.0" &&
-              v.broad_gap_authorization.connector_readiness.status === "zero-row-ready-gap-unresolved" &&
-              v.broad_gap_authorization.connector_readiness.connector_path === "config/connectors/il-business-registry.json" &&
-              v.broad_gap_authorization.connector_readiness.connector_sha256 === "af068da74c95ef81d5e79fb4bd9b5670f1cc9b17c54da22b06f2996667b6777c" &&
-              v.broad_gap_authorization.connector_readiness.policy_path === "config/source-policies/il-business-registry.json" &&
-              v.broad_gap_authorization.connector_readiness.policy_sha256 === "b5c71332111005c3c78829bb0672adefa5e651312abb3673d101beaeee505be8" &&
-              v.broad_gap_authorization.connector_readiness.assessment_path === "config/state-business-source-assessments/il-2026-10-03.json" &&
-              v.broad_gap_authorization.connector_readiness.assessment_sha256 === "58905b77a08494fd381654805bff0e70f73d08307355ef3b61ab94ef1264f323" &&
-              v.broad_gap_authorization.connector_readiness.required_source_files === 5 &&
-              v.broad_gap_authorization.connector_readiness.source_rows_read === 0 &&
-              v.broad_gap_authorization.connector_readiness.network_requests === 0 &&
-              v.broad_gap_authorization.connector_readiness.actions_performed === 0 &&
-              v.broad_gap_authorization.connector_readiness.broad_layer_gap_resolved === false &&
-              equal(v.broad_gap_authorization.connector_readiness.unresolved_gates, v.broad_gap_authorization.gate_keys) &&
-              Object.values(v.broad_gap_authorization.connector_readiness.authority).every(value => value === false)
-            : v.broad_gap_authorization.connector_readiness === null)))
+          validConnectorReadiness(v.broad_gap_authorization.connector_readiness, v.state, v.broad_gap_authorization.gate_keys)))
     );
   if (v.kind === "summary") {
     if (

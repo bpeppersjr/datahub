@@ -2,7 +2,7 @@
   "created_at": "2026-11-13T00:30:00.000Z",
   "artifact_sha256": {
     "gap-ledger.json": "b07d784a541d6e8ed95a2d453a85f8435f51fae2c6dab571e9c3c4b3bda3d48d",
-    "national-summary.json": "0733d57ed4d9664088e7ceef4ca9498c0597d81cf924ed955e516ecde3fbb8d2",
+    "national-summary.json": "47c8d351593a341af531a4305d7c5c0898e3b6b3640dc874d3d922af9b9bc623",
     "state-industry-status.jsonl": "2ec65fe548f451f5b76622cf3ead2049b2a8c273819c6166b2da7df04b69c857",
     "territories.json": "f543a3840eb89463057514a10679ecba5a367a945f7f33793413359658492bf6",
     "zip-status/prefix=00.jsonl.gz": "f06ba7868a8f11e7f5abfd0d90214c6e44e4119e7d2a9c6b129a02922faac96c",
@@ -217,9 +217,9 @@
     "benchmark_manifest_sha256": "78620bf22f6bf002aa5472ae1159a1be11d7d208fe525e2a9d3da982f79d35e9"
   },
   "schema_version": "national-status-view@1.0.0",
-  "release_id": "national-goal-evidence-federation-f11722c4916de60bc47d14e965a361259c59cf570c2f28b09d47558e8cb7fc01",
-  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-f11722c4916de60bc47d14e965a361259c59cf570c2f28b09d47558e8cb7fc01/manifest.json",
-  "manifest_sha256": "38274a819a413af048326d1499730a5e211de13e620677c4ccc791c0fa8c7e43",
+  "release_id": "national-goal-evidence-federation-d44bc1bcf16b59717513e7c18e436ec142e7ae6f618d424f3e9416cf44a8b949",
+  "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-d44bc1bcf16b59717513e7c18e436ec142e7ae6f618d424f3e9416cf44a8b949/manifest.json",
+  "manifest_sha256": "bf01e2bc8e8c0a6a6df17ef627e56062dbd433b16ff81c71a1ba17560acf5e3c",
   "claims": {
     "all_business_denominator": null,
     "business_completeness": null,
