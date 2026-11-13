@@ -154,12 +154,16 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
     first_wave: index < BROAD_ORGANIZATION_ACQUISITION_BACKLOG_FIRST_WAVE_SIZE,
     assessment,
   }));
-  const supplemental = validated.source_artifacts.filter((artifact) => artifact.artifact_kind === "supplemental-document-prerequisite");
-  if (supplemental.length !== 1 || supplemental[0].state_abbreviation !== "VT"
+  const supplemental = validated.source_artifacts.filter((artifact) => ["supplemental-document-prerequisite", "supplemental-zero-row-preflight"].includes(artifact.artifact_kind));
+  if (supplemental.length !== 2 || supplemental[0].state_abbreviation !== "VT"
       || supplemental[0].primary_assessment_id !== "vt-business-source-reassessment-2026-10-03"
-      || supplemental[0].authority_granted !== false || !/^[a-f0-9]{64}$/.test(supplemental[0].canonical_file_sha256)) fail("supplemental prerequisite evidence is invalid");
+      || supplemental[0].authority_granted !== false || !/^[a-f0-9]{64}$/.test(supplemental[0].canonical_file_sha256)
+      || supplemental[1].artifact_kind !== "supplemental-zero-row-preflight" || supplemental[1].state_abbreviation !== "IL"
+      || supplemental[1].primary_assessment_id !== "il-business-source-reassessment-2026-10-03"
+      || supplemental[1].canonical_file_sha256 !== "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9"
+      || supplemental[1].authority_granted !== false) fail("supplemental prerequisite evidence is invalid");
   const supplementalEvidence = validated.supplemental_evidence;
-  if (!Array.isArray(supplementalEvidence) || supplementalEvidence.length !== 1
+  if (!Array.isArray(supplementalEvidence) || supplementalEvidence.length !== 2
       || supplementalEvidence[0].assessment_id !== supplemental[0].artifact_id
       || supplementalEvidence[0].supersedes_assessment_id !== supplemental[0].primary_assessment_id
       || supplementalEvidence[0].interface_observation?.content_class !== "application-shell"
@@ -169,7 +173,14 @@ export function deriveBroadOrganizationAcquisitionBacklog(catalog, matrixSource)
       || supplementalEvidence[0].claims?.business_count !== null
       || supplementalEvidence[0].claims?.statewide_completeness !== null
       || supplementalEvidence[0].unresolved_gates?.length !== 10
-      || Object.values(supplementalEvidence[0].authority ?? {}).some((value) => value !== false)) fail("supplemental prerequisite facts or authority boundary are invalid");
+      || Object.values(supplementalEvidence[0].authority ?? {}).some((value) => value !== false)
+      || supplementalEvidence[1].schema_version !== "illinois-business-source-zero-row-preflight-result@1.0.0"
+      || supplementalEvidence[1].state !== "IL" || supplementalEvidence[1].status !== "hold"
+      || supplementalEvidence[1].source_rows_read !== 0 || supplementalEvidence[1].network_requests !== 0
+      || supplementalEvidence[1].required_offline_source_files !== 5 || supplementalEvidence[1].unresolved_gates?.length !== 7
+      || supplementalEvidence[1].broad_layer_gap_resolved !== false
+      || Object.values(supplementalEvidence[1].authority ?? {}).some(value => value !== false)
+      || supplementalEvidence[1].evidence?.assessment_sha256 !== supplemental[1].canonical_file_sha256) fail("supplemental prerequisite facts or authority boundary are invalid");
   return {
     schema_version: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_SCHEMA_VERSION,
     dataset_id: BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID,
@@ -358,13 +369,17 @@ export async function loadCurrentBroadOrganizationAcquisitionBacklog({
   matrixSource = null,
 } = {}) {
   const matrix = matrixSource ?? await loadCurrentBroadOrganizationGapEvidence();
+  const catalog = await loadStateBusinessSourceAssessmentCatalog();
+  const catalogSha256 = sha256(Buffer.from(JSON.stringify(catalog), "utf8"));
   const rows = await readAuthorizationViewReleases(backlogRoot, BROAD_ORGANIZATION_ACQUISITION_BACKLOG_DATASET_ID, "backlog.json");
   const cohort = newestAuthorizationCohort(rows, (row) => row.instant);
-  const current = cohort.filter(({ manifest }) => manifest.schema_version === CURRENT_MANIFEST_VERSION);
+  const current = cohort.filter(({ manifest }) => manifest.schema_version === CURRENT_MANIFEST_VERSION
+    && manifest.assessment_catalog_id === catalog.assessment_catalog_id
+    && manifest.assessment_catalog_sha256 === catalogSha256);
   if (current.length !== 1 || current[0].manifest.source_matrix_release_id !== matrix.manifest.release_id
       || current[0].instant !== Date.parse(matrix.report.created_at)) fail("newest v3 backlog for the current goal-completion matrix is unavailable or ambiguous");
   const { manifestPath, manifestSha256 } = current[0];
-  const verified = await verifyBroadOrganizationAcquisitionBacklog(manifestPath, { matrixSource: matrix });
+  const verified = await verifyBroadOrganizationAcquisitionBacklog(manifestPath, { catalog, matrixSource: matrix });
   const manifestBytes = jsonBytes(verified.manifest);
   if (sha256(manifestBytes) !== manifestSha256) fail("newest backlog changed during verification");
   return { ...verified, manifestPath, manifestBytes };

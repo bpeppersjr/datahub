@@ -1302,7 +1302,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       broadAuthorizationManifest.artifacts.length === 1 &&
       broadAuthorizationManifest.artifacts[0].path === "authorization-program.json" &&
       broadAuthorizationManifest.artifacts[0].sha256 ===
-        "d8c495b6a1770af716777a2ee5836fe3c92dce1a67784fd3fa6985934bcdf02d" &&
+        "9502be32796350ded9505c03ebbbecd5fb65c4be169faef5f6fa97d940af6634" &&
       broadAuthorizationProgram.scope.jurisdictions === 40 &&
       broadAuthorizationProgram.scope.gate_items === 371 &&
       broadAuthorizationProgram.scope.gate_key_count === 121 &&

@@ -26,7 +26,7 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
   const backlog = deriveBroadOrganizationAcquisitionBacklog(catalog, matrix);
   assert.equal(backlog.states.length, 40);
   assert.equal(backlog.schema_version, "3.0.0");
-  assert.equal(backlog.assessment_catalog.schema_version, "1.3.0");
+  assert.equal(backlog.assessment_catalog.schema_version, "1.4.0");
   assert.equal(backlog.states.find(({ assessment }) => assessment.state_abbreviation === "VT").assessment.assessment_id, "vt-business-source-reassessment-2026-10-03");
   assert.deepEqual(backlog.supplemental_evidence, catalog.supplemental_evidence);
   const supplemental = backlog.supplemental_evidence[0];
@@ -39,6 +39,12 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
   assert.equal(supplemental.claims.statewide_completeness, null);
   assert.equal(supplemental.unresolved_gates.length, 10);
   assert.equal(Object.values(supplemental.authority).every((value) => value === false), true);
+  const illinoisSupplemental = backlog.supplemental_evidence[1];
+  assert.equal(illinoisSupplemental.state, "IL");
+  assert.equal(illinoisSupplemental.source_rows_read, 0);
+  assert.equal(illinoisSupplemental.network_requests, 0);
+  assert.equal(illinoisSupplemental.broad_layer_gap_resolved, false);
+  assert.equal(Object.values(illinoisSupplemental.authority).every(value => value === false), true);
   const arkansas = backlog.states.find(({ assessment }) => assessment.state_abbreviation === "AR");
   assert.equal(arkansas.assessment.assessment_id, "ar-business-source-reassessment-2026-10-03");
   assert.equal(arkansas.assessment.assessment_kind, "official-source-reassessment");
@@ -62,7 +68,7 @@ test("derives exactly the current 40 matrix-gap jurisdictions, excludes admitted
 test("continues to verify the immutable historical v1 lineage without treating it as current", async () => {
   const historical = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases", "broad-organization-acquisition-backlog-2026-09-22-a485cf7845ff", "manifest.json");
   const currentCatalog = await loadStateBusinessSourceAssessmentCatalog();
-  assert.equal(currentCatalog.schema_version, "1.3.0");
+  assert.equal(currentCatalog.schema_version, "1.4.0");
   const verified = await verifyBroadOrganizationAcquisitionBacklog(historical, { catalog: currentCatalog });
   assert.equal(verified.manifest.schema_version, "broad-organization-acquisition-backlog-manifest@1.0.0");
   assert.equal(verified.backlog.assessment_catalog.schema_version, "1.0.0");
@@ -90,7 +96,7 @@ test("replays the newest v3 backlog while preserving the October v3 release by i
   const releases = path.join(DATA_DIR, "broad-organization-acquisition-backlog", "releases");
   const current = await loadCurrentBroadOrganizationAcquisitionBacklog();
   const historical = await verifyBroadOrganizationAcquisitionBacklog(path.join(releases, "broad-organization-acquisition-backlog-2026-10-07T05-23-37.982Z-111caa82f3c6", "manifest.json"));
-  assert.equal(current.manifest.source_matrix_release_id, "national-goal-completion-20261112051711-1b351542");
+  assert.equal(current.manifest.source_matrix_release_id, "national-goal-completion-20261112180509-fecbaabb");
   assert.equal(historical.manifest.source_matrix_release_id, "national-goal-completion-20261007052337-6ca8bb3a");
   assert.equal(current.manifest.schema_version, historical.manifest.schema_version);
 });
@@ -212,6 +218,9 @@ test("rejects rehashed supplemental fact, gate, claim, and authority mutation", 
     (catalog) => { catalog.supplemental_evidence[0].unresolved_gates.pop(); },
     (catalog) => { catalog.supplemental_evidence[0].claims.business_count = 1; },
     (catalog) => { catalog.supplemental_evidence[0].authority.network_execution_authorized = true; },
+    (catalog) => { catalog.supplemental_evidence[1].authority.acquisition = true; },
+    (catalog) => { catalog.supplemental_evidence[1].state = "IN"; },
+    (catalog) => { catalog.supplemental_evidence[1].broad_layer_gap_resolved = true; },
     (catalog) => { catalog.supplemental_evidence = []; },
   ]) {
     const catalog = await loadStateBusinessSourceAssessmentCatalog();

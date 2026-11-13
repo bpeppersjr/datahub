@@ -46,6 +46,11 @@ test("derives the pinned current-gap waves from the newest assessment catalog wi
   assert.equal(program.scope.source_actions_performed, 0);
   assert.equal(program.scope.current_pointer_changed, false);
   assert.equal(program.scope.acquisition_authorized, false);
+  assert.equal(program.supplemental_evidence.length, 2);
+  assert.equal(program.supplemental_evidence[0].assessment_id, "vt-business-source-document-prerequisite-2026-10-07");
+  assert.equal(program.supplemental_evidence[1].state, "IL");
+  assert.equal(program.supplemental_evidence[1].broad_layer_gap_resolved, false);
+  assert.equal(Object.values(program.supplemental_evidence[1].authority).every(value => value === false), true);
 });
 
 test("pins current gate boundaries without obsolete AK/DC approval items", async () => {
@@ -108,6 +113,9 @@ test("rejects backlog omission, duplication, order, gate substitution, and unkno
     (b) => { [b.states[0], b.states[1]] = [b.states[1], b.states[0]]; },
     (b) => { b.states[10].assessment.unresolved_gates[0] = "csv-schema"; },
     (b) => { b.states[0].assessment.unresolved_gates.push("unknown-gate"); },
+    (b) => { b.supplemental_evidence.pop(); },
+    (b) => { b.supplemental_evidence[1].state = "IN"; },
+    (b) => { b.supplemental_evidence[1].authority.acquisition = true; },
   ];
   for (const mutate of invalid) {
     const changed = structuredClone(source.backlog);
