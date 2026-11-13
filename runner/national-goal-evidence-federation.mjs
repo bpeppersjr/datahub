@@ -55,6 +55,8 @@ const INPUT_NAMES = [
   "state_registration_license_manifest",
   "irs_eo_supplemental_registration",
   "irs_eo_supplemental_manifest",
+  "lifecycle_industry_zip_registration",
+  "lifecycle_industry_zip_manifest",
   "access",
   "industries",
   "operational_crosswalk",
@@ -1070,6 +1072,111 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       "Supplemental filing-address organization memberships; geography disposition and reported filing-address jurisdictions remain separate, nonadditive marginals.",
     claims: irsClaims,
   };
+  const lifecycleIndustryRegistration =
+      inputs.lifecycle_industry_zip_registration.value,
+    lifecycleIndustryManifest = inputs.lifecycle_industry_zip_manifest.value;
+  check(
+    lifecycleIndustryRegistration.dataset_id ===
+      "national-business-lifecycle-industry-zip-evidence" &&
+      lifecycleIndustryRegistration.runtime_pointer === null &&
+      lifecycleIndustryRegistration.production_enrollment === false &&
+      lifecycleIndustryRegistration.retained_release.release_id ===
+        lifecycleIndustryManifest.release_id &&
+      lifecycleIndustryRegistration.retained_release.manifest_sha256 ===
+        inputs.lifecycle_industry_zip_manifest.proof.sha256,
+    "lifecycle-industry ZIP selected release pin",
+  );
+  const lifecycleIndustrySummary = await artifact(
+      input,
+      "lifecycle_industry_zip_manifest",
+      "summary.json",
+      10_000,
+      signal,
+    ),
+    outsideDeclaration = r.declaration(
+      inputs.lifecycle_industry_zip_manifest,
+      "outside-cohort.jsonl.gz",
+    );
+  check(
+    lifecycleIndustrySummary.zip5_rows === 48194 &&
+      lifecycleIndustrySummary.positive_zip5_rows === 42267 &&
+      lifecycleIndustrySummary.zero_profile_zip5_rows === 5927 &&
+      lifecycleIndustrySummary.source_membership_count === 8011213 &&
+      Object.values(lifecycleIndustrySummary.lifecycle_evidence_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(lifecycleIndustrySummary.review_status_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(lifecycleIndustrySummary.source_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(lifecycleIndustrySummary.cohort_classification_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 48194 &&
+      lifecycleIndustrySummary.mapped_source_record_union_count === 6780627 &&
+      lifecycleIndustrySummary.unresolved_source_record_count === 1230586 &&
+      lifecycleIndustrySummary.industry_assignment_count === 6782745 &&
+      Object.values(lifecycleIndustrySummary.industry_assignment_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 6782745 &&
+      lifecycleIndustrySummary.epa_refinement.source_record_count === 1517826 &&
+      lifecycleIndustrySummary.epa_refinement.records_with_segment === 294477 &&
+      lifecycleIndustrySummary.epa_refinement.segment_assignments === 296595 &&
+      lifecycleIndustrySummary.epa_refinement.multisegment_records === 2107 &&
+      lifecycleIndustrySummary.epa_refinement.records_partially_unmapped ===
+        25035 &&
+      lifecycleIndustrySummary.epa_refinement.unresolved_source_records ===
+        1223349 &&
+      lifecycleIndustrySummary.fully_mapped_source_count === 13 &&
+      lifecycleIndustrySummary.partially_mapped_source_count === 1 &&
+      lifecycleIndustrySummary.fully_unmapped_source_count === 1 &&
+      outsideDeclaration.record_count === 0 &&
+      outsideDeclaration.decoded_bytes === 0 &&
+      outsideDeclaration.bytes === 20,
+    "lifecycle-industry ZIP compact conservation",
+  );
+  const lifecycleIndustryClaims = lifecycleIndustryManifest.claims;
+  check(
+    lifecycleIndustryClaims.mapped_source_record_union_separate_from_industry_assignments ===
+      true &&
+      lifecycleIndustryClaims.industry_assignments_additive === false &&
+      lifecycleIndustryClaims.source_memberships_additive_across_industries ===
+        false &&
+      lifecycleIndustryClaims.cross_source_additivity === false &&
+      lifecycleIndustryClaims.unique_business_count === null &&
+      lifecycleIndustryClaims.active_business_count === null &&
+      lifecycleIndustryClaims.current_operating_business_count === null &&
+      lifecycleIndustryClaims.all_business_completeness === null &&
+      lifecycleIndustryClaims.industry_completeness === null &&
+      lifecycleIndustryClaims.current_operation_verified === false &&
+      lifecycleIndustryClaims.network_requests === 0 &&
+      lifecycleIndustryClaims.source_acquisition_performed === false &&
+      lifecycleIndustryClaims.current_pointer_written === false &&
+      lifecycleIndustryClaims.production_enrollment === false,
+    "lifecycle-industry ZIP claim boundary",
+  );
+  const lifecycleIndustryZipSidecar = {
+    schema_version: `${DATASET}-lifecycle-industry-zip@1.0.0`,
+    release_id: lifecycleIndustryManifest.release_id,
+    registration_sha256:
+      inputs.lifecycle_industry_zip_registration.proof.sha256,
+    manifest_sha256: inputs.lifecycle_industry_zip_manifest.proof.sha256,
+    summary_artifact_sha256: r.declaration(
+      inputs.lifecycle_industry_zip_manifest,
+      "summary.json",
+    ).sha256,
+    outside_cohort_artifact_sha256: outsideDeclaration.sha256,
+    summary: lifecycleIndustrySummary,
+    scope:
+      "Source-relative lifecycle memberships with mapped source-record union distinct from nonadditive operational-industry assignments; separate from federation evidence-cell numerators and percentages.",
+    claims: lifecycleIndustryClaims,
+  };
   const summaryResult = {
     schema_version: VERSION,
     scope:
@@ -1145,6 +1252,7 @@ async function derive(input, output, signal, hooks, verifyRelationship = true) {
       publisher_membership_reconciliation: publisherMembership,
       state_registration_license_supplemental: stateRegistrationLicenseSidecar,
       irs_eo_supplemental: irsEoSupplementalSidecar,
+      lifecycle_industry_zip: lifecycleIndustryZipSidecar,
     },
     claims: CLAIMS,
   };

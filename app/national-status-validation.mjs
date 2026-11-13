@@ -227,6 +227,7 @@ function validateNationalStatus(v, state = null) {
         "publisher_membership_reconciliation",
         "state_registration_license_supplemental",
         "irs_eo_supplemental",
+        "lifecycle_industry_zip",
         "claims",
         "provenance",
       ]) ||
@@ -238,6 +239,57 @@ function validateNationalStatus(v, state = null) {
       !equal(v.geography_scope_counts, pin.geography_scope_counts) ||
       sum(Object.values(v.geography_scope_counts)) !== v.zip5_cohort_rows ||
       !equal(v.gaps, pin.gaps)
+    )
+      return false;
+    const lifecycleIndustry = v.lifecycle_industry_zip,
+      li = pin.lifecycle_industry_zip;
+    if (
+      !exact(lifecycleIndustry, [
+        "schema_version",
+        "release_id",
+        "registration_sha256",
+        "manifest_sha256",
+        "summary_artifact_sha256",
+        "outside_cohort_artifact_sha256",
+        "summary",
+        "scope",
+        "claims",
+      ]) ||
+      lifecycleIndustry.release_id !== li.release_id ||
+      lifecycleIndustry.registration_sha256 !== li.registration_sha256 ||
+      lifecycleIndustry.manifest_sha256 !== li.manifest_sha256 ||
+      lifecycleIndustry.summary_artifact_sha256 !==
+        li.summary_artifact_sha256 ||
+      lifecycleIndustry.outside_cohort_artifact_sha256 !==
+        li.outside_cohort_artifact_sha256 ||
+      lifecycleIndustry.summary.zip5_rows !== 48194 ||
+      lifecycleIndustry.summary.positive_zip5_rows !== 42267 ||
+      lifecycleIndustry.summary.zero_profile_zip5_rows !== 5927 ||
+      lifecycleIndustry.summary.source_membership_count !== 8011213 ||
+      lifecycleIndustry.summary.mapped_source_record_union_count !== 6780627 ||
+      lifecycleIndustry.summary.unresolved_source_record_count !== 1230586 ||
+      lifecycleIndustry.summary.industry_assignment_count !== 6782745 ||
+      Object.values(lifecycleIndustry.summary.lifecycle_evidence_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) !== 8011213 ||
+      Object.values(lifecycleIndustry.summary.review_status_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) !== 8011213 ||
+      Object.values(lifecycleIndustry.summary.source_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) !== 8011213 ||
+      lifecycleIndustry.summary.epa_refinement.source_record_count !== 1517826 ||
+      lifecycleIndustry.summary.epa_refinement.segment_assignments !== 296595 ||
+      lifecycleIndustry.summary.epa_refinement.multisegment_records !== 2107 ||
+      lifecycleIndustry.summary.epa_refinement.records_partially_unmapped !==
+        25035 ||
+      lifecycleIndustry.claims.industry_assignments_additive !== false ||
+      lifecycleIndustry.claims.unique_business_count !== null ||
+      lifecycleIndustry.claims.current_operation_verified !== false ||
+      lifecycleIndustry.claims.all_business_completeness !== null
     )
       return false;
     const irs = v.irs_eo_supplemental,

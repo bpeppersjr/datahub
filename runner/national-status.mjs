@@ -269,6 +269,33 @@ async function load(root, signal) {
       irm.release_id === ir.release_id,
     "IRS EO supplemental compact pins",
   );
+  const li = pin.lifecycle_industry_zip,
+    lifecycleIndustryRegistrationFile = r.contained(root, li.registration_path),
+    lifecycleIndustryRegistration = await r.secureBuffer(
+      root,
+      lifecycleIndustryRegistrationFile,
+      100_000,
+      signal,
+    ),
+    lir = JSON.parse(decoder.decode(lifecycleIndustryRegistration.raw)),
+    lifecycleIndustryManifestFile = r.contained(root, li.manifest_path),
+    lifecycleIndustryManifest = await r.secureBuffer(
+      root,
+      lifecycleIndustryManifestFile,
+      100_000,
+      signal,
+    ),
+    lim = JSON.parse(decoder.decode(lifecycleIndustryManifest.raw));
+  check(
+    lifecycleIndustryRegistration.sha256 === li.registration_sha256 &&
+      lir.retained_release.release_id === li.release_id &&
+      lir.retained_release.manifest_sha256 === li.manifest_sha256 &&
+      lir.runtime_pointer === null &&
+      lir.production_enrollment === false &&
+      lifecycleIndustryManifest.sha256 === li.manifest_sha256 &&
+      lim.release_id === li.release_id,
+    "lifecycle-industry ZIP compact pins",
+  );
   return {
     root,
     signal,
@@ -297,6 +324,10 @@ async function load(root, signal) {
     irsRegistrationHash: irsRegistration.sha256,
     irsManifestFile,
     irsManifestHash: irsManifest.sha256,
+    lifecycleIndustryRegistrationFile,
+    lifecycleIndustryRegistrationHash: lifecycleIndustryRegistration.sha256,
+    lifecycleIndustryManifestFile,
+    lifecycleIndustryManifestHash: lifecycleIndustryManifest.sha256,
   };
 }
 async function artifact(ctx, name, max) {
@@ -473,7 +504,23 @@ async function finish(ctx, value, selector = null) {
           100_000,
           ctx.signal,
         )
-      ).sha256 === ctx.irsManifestHash,
+      ).sha256 === ctx.irsManifestHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.lifecycleIndustryRegistrationFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.lifecycleIndustryRegistrationHash &&
+      (
+        await r.secureBuffer(
+          ctx.root,
+          ctx.lifecycleIndustryManifestFile,
+          100_000,
+          ctx.signal,
+        )
+      ).sha256 === ctx.lifecycleIndustryManifestHash,
     "stable release selection",
   );
   return value;
@@ -517,6 +564,7 @@ async function summary(ctx) {
         "publisher_membership_reconciliation",
         "state_registration_license_supplemental",
         "irs_eo_supplemental",
+        "lifecycle_industry_zip",
       ]),
     "summary schema/claims",
   );
@@ -742,6 +790,57 @@ async function summary(ctx) {
         true,
     "IRS EO supplemental sidecar",
   );
+  const lifecycleIndustry = s.sidecars.lifecycle_industry_zip,
+    li = pin.lifecycle_industry_zip;
+  check(
+    exact(lifecycleIndustry, [
+      "schema_version",
+      "release_id",
+      "registration_sha256",
+      "manifest_sha256",
+      "summary_artifact_sha256",
+      "outside_cohort_artifact_sha256",
+      "summary",
+      "scope",
+      "claims",
+    ]) &&
+      lifecycleIndustry.release_id === li.release_id &&
+      lifecycleIndustry.registration_sha256 === li.registration_sha256 &&
+      lifecycleIndustry.manifest_sha256 === li.manifest_sha256 &&
+      lifecycleIndustry.summary_artifact_sha256 ===
+        li.summary_artifact_sha256 &&
+      lifecycleIndustry.outside_cohort_artifact_sha256 ===
+        li.outside_cohort_artifact_sha256 &&
+      lifecycleIndustry.summary.zip5_rows === 48194 &&
+      lifecycleIndustry.summary.positive_zip5_rows === 42267 &&
+      lifecycleIndustry.summary.zero_profile_zip5_rows === 5927 &&
+      lifecycleIndustry.summary.source_membership_count === 8011213 &&
+      lifecycleIndustry.summary.mapped_source_record_union_count === 6780627 &&
+      lifecycleIndustry.summary.unresolved_source_record_count === 1230586 &&
+      lifecycleIndustry.summary.industry_assignment_count === 6782745 &&
+      Object.values(lifecycleIndustry.summary.lifecycle_evidence_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(lifecycleIndustry.summary.review_status_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      Object.values(lifecycleIndustry.summary.source_counts).reduce(
+        (total, value) => total + value,
+        0,
+      ) === 8011213 &&
+      lifecycleIndustry.summary.epa_refinement.source_record_count === 1517826 &&
+      lifecycleIndustry.summary.epa_refinement.segment_assignments === 296595 &&
+      lifecycleIndustry.summary.epa_refinement.multisegment_records === 2107 &&
+      lifecycleIndustry.summary.epa_refinement.records_partially_unmapped ===
+        25035 &&
+      lifecycleIndustry.claims.industry_assignments_additive === false &&
+      lifecycleIndustry.claims.unique_business_count === null &&
+      lifecycleIndustry.claims.current_operation_verified === false &&
+      lifecycleIndustry.claims.all_business_completeness === null,
+    "lifecycle-industry ZIP sidecar",
+  );
   const { raw: territoryRaw } = await artifact(ctx, "territories.json", 350000),
     t = parseJson(territoryRaw);
   check(
@@ -792,6 +891,7 @@ async function summary(ctx) {
       s.sidecars.publisher_membership_reconciliation,
     state_registration_license_supplemental: supplemental,
     irs_eo_supplemental: irs,
+    lifecycle_industry_zip: lifecycleIndustry,
     claims: s.claims,
     provenance: provenance(ctx, a),
   });

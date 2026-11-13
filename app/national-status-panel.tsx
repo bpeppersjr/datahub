@@ -111,6 +111,24 @@ type View = {
     };
     scope: string;
   };
+  lifecycle_industry_zip: {
+    summary: {
+      zip5_rows: number;
+      positive_zip5_rows: number;
+      zero_profile_zip5_rows: number;
+      source_membership_count: number;
+      mapped_source_record_union_count: number;
+      unresolved_source_record_count: number;
+      industry_assignment_count: number;
+      epa_refinement: {
+        source_record_count: number;
+        segment_assignments: number;
+        multisegment_records: number;
+        records_partially_unmapped: number;
+      };
+    };
+    scope: string;
+  };
   industries: Industry[];
   zip5: string;
   zip4: null;
@@ -286,6 +304,35 @@ export function NationalStatusPanel({ state }: { state: string }) {
               {view.irs_eo_supplemental.review.assessment_as_of}. Counts are not
               unique businesses, verified current operations, completeness, or
               additive to business or industry totals.
+            </p>
+          </details>
+          <details>
+            <summary>Lifecycle by operational industry</summary>
+            <p>
+              <strong>
+                {n(view.lifecycle_industry_zip.summary.source_membership_count)}{" "}
+                source-relative lifecycle memberships
+              </strong>{" "}
+              across {n(view.lifecycle_industry_zip.summary.positive_zip5_rows)} positive
+              ZIPs and {n(view.lifecycle_industry_zip.summary.zero_profile_zip5_rows)}{" "}
+              governed zero-profile ZIPs. The mapped source-record union is{" "}
+              {n(view.lifecycle_industry_zip.summary.mapped_source_record_union_count)};
+              unresolved source records are{" "}
+              {n(view.lifecycle_industry_zip.summary.unresolved_source_record_count)};
+              nonadditive industry assignments are{" "}
+              {n(view.lifecycle_industry_zip.summary.industry_assignment_count)}.
+            </p>
+            <p>
+              {view.lifecycle_industry_zip.scope} EPA refinement retains{" "}
+              {n(view.lifecycle_industry_zip.summary.epa_refinement.segment_assignments)}
+              segment assignments, including{" "}
+              {n(view.lifecycle_industry_zip.summary.epa_refinement.multisegment_records)}
+              multisegment records and{" "}
+              {n(
+                view.lifecycle_industry_zip.summary.epa_refinement
+                  .records_partially_unmapped,
+              )}{" "}
+              partially unmapped records.
             </p>
           </details>
           <details>

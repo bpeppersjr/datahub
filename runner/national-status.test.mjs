@@ -164,6 +164,12 @@ test("closed client views reject claim/pin/count/roster/percentage/vector and ne
     (x) =>
       (x.irs_eo_supplemental.reported_jurisdictions_artifact_sha256 =
         "f".repeat(64)),
+    (x) => x.lifecycle_industry_zip.summary.source_membership_count++,
+    (x) => (x.lifecycle_industry_zip.claims.unique_business_count = 1),
+    (x) =>
+      (x.lifecycle_industry_zip.outside_cohort_artifact_sha256 = "f".repeat(
+        64,
+      )),
   ]) {
     const v = structuredClone(summary);
     mutate(v);
@@ -238,7 +244,10 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       srm = path.join(root, sr.manifest_path),
       ir = pin.irs_eo_supplemental,
       irr = path.join(root, ir.registration_path),
-      irm = path.join(root, ir.manifest_path);
+      irm = path.join(root, ir.manifest_path),
+      li = pin.lifecycle_industry_zip,
+      lir = path.join(root, li.registration_path),
+      lim = path.join(root, li.manifest_path);
     for (const [from, to] of [
       [sp.registration_path, spr],
       [sp.manifest_path, spm],
@@ -248,6 +257,8 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       [sr.manifest_path, srm],
       [ir.registration_path, irr],
       [ir.manifest_path, irm],
+      [li.registration_path, lir],
+      [li.manifest_path, lim],
     ]) {
       await fs.mkdir(path.dirname(to), { recursive: true });
       await fs.copyFile(path.join(APP_ROOT, from), to);
@@ -307,6 +318,15 @@ test("runtime reads only selected artifacts; immutable pin/hash/registry/ancesto
       await fs.writeFile(file, raw);
     }
     for (const file of [irr, irm]) {
+      const raw = await fs.readFile(file);
+      await fs.appendFile(file, " ");
+      await assert.rejects(
+        readNationalStatus({ root }),
+        /compact pins|unsafe input identity/,
+      );
+      await fs.writeFile(file, raw);
+    }
+    for (const file of [lir, lim]) {
       const raw = await fs.readFile(file);
       await fs.appendFile(file, " ");
       await assert.rejects(

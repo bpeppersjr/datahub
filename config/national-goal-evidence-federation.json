@@ -99,6 +99,16 @@
       "release_id": "national-irs-eo-supplemental-industry-evidence-011a6a090fe9d1a27aa7f05ed5a33b40f2c5e9f6e9ab49b04f131a4db799ad65",
       "schema_version": "national-irs-eo-supplemental-industry-evidence@1.0.0"
     },
+    "lifecycle_industry_zip_registration": {
+      "path": "config/datasets/national-business-lifecycle-industry-zip-evidence.json",
+      "sha256": "76a81b1ba71034ea54fd9496f046716664a114bcf443c4c7b2e629fd569abf88"
+    },
+    "lifecycle_industry_zip_manifest": {
+      "path": "data/national-business-lifecycle-industry-zip-evidence/releases/national-business-lifecycle-industry-zip-evidence-b35d710da5b241737dde2b0fb0f6663510af489df49acb45c12364958b987c3b/manifest.json",
+      "sha256": "830eaec18ee614250e9234386e6fb897a4891e67a2188b6bf39bf16a03e15f4c",
+      "release_id": "national-business-lifecycle-industry-zip-evidence-b35d710da5b241737dde2b0fb0f6663510af489df49acb45c12364958b987c3b",
+      "schema_version": "national-business-lifecycle-industry-zip-evidence@1.1.0"
+    },
     "access": {
       "path": "data/state-access/reports/20261112164205-8904a092-b00f-4f93-8d9c-9d4078202e0c.json",
       "sha256": "7781f4392be6348538bec2c3555afe5dcfc7b90bf0de0f476f3c64c1f6234246"
