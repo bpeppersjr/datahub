@@ -22,11 +22,12 @@ test('optional context validator binds selection, release, component conservatio
 test('renders unique labels and bounded controls; state change hides old result immediately',async()=>{
   const h=harness(async()=>retained);await h.mount();const tree=h.render(),rendered=text(tree);
   assert.match(rendered,/District of Columbia unresolved areas/);assert.match(rendered,/167 retained polygon components/);assert.match(rendered,/Park, tribal, private-property, population and business status remain unresolved/);
-  assert.equal(nodes(tree).filter(node=>node.type==='tr').length,101);
+  const areaTable=nodes(tree).find(node=>node.type==='div'&&node.props?.['aria-label']==='State unresolved area reference labels');
+  assert.equal(nodes(areaTable).filter(node=>node.type==='tr').length,101);
   assert.equal(nodes(tree).find(node=>node.type==='button'&&text(node)==='Previous areas').props.disabled,true);
   assert.equal(nodes(tree).find(node=>node.type==='button'&&text(node)==='Next areas').props.disabled,false);
   assert.doesNotMatch(text(h.render('MN')),/District of Columbia unresolved areas/);
 });
 test('failed or incompatible optional context leaves the map available',async()=>{
-  for(const request of [async()=>{throw Error('missing')},async()=>({...retained,claims:{...retained.claims,population:0}})]){const h=harness(request);await h.mount();assert.match(text(h.render()),/The state\/ZCTA map remains available/);assert.equal(nodes(h.render()).some(node=>node.type==='table'),false)}
+  for(const request of [async()=>{throw Error('missing')},async()=>({...retained,claims:{...retained.claims,population:0}})]){const h=harness(request);await h.mount();const tree=h.render();assert.match(text(tree),/The state\/ZCTA map remains available/);assert.equal(nodes(tree).some(node=>node.type==='div'&&node.props?.['aria-label']==='State unresolved area reference labels'),false);assert.equal(nodes(tree).some(node=>node.type==='div'&&node.props?.['aria-label']==='Non-population and unresolved geography treatment'),true)}
 });
