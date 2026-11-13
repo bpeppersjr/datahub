@@ -24,7 +24,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
     assert.equal(stateAssessment(catalog, stateAbbreviation).authorized_next_action_type, "bounded-connector-implementation");
   }
   assert.deepEqual(summarizeStateBusinessSourceAssessments(catalog, catalog.coverage_release_id), {
-    schema_version: "1.4.0",
+    schema_version: "1.5.0",
     assessment_catalog_id: "state-business-source-assessment-catalog-51-2026-11-12",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-11-12",
@@ -88,6 +88,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
       "wa-business-source-reassessment-2026-10-03",
       "vt-business-source-document-prerequisite-2026-10-07",
       "il-business-source-zero-row-preflight-2026-11-12",
+      "broad-organization-offline-connector-readiness-wave-2026-11-12",
     ],
     jurisdictions_assessed: 51,
     jurisdictions_revalidated: 0,
@@ -101,7 +102,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
     production_ready_jurisdictions: 8,
   });
   assert.deepEqual(summarizeLegacyStateBusinessSourceRevalidation(catalog, catalog.coverage_release_id), {
-    schema_version: "1.4.0",
+    schema_version: "1.5.0",
     revalidation_id: "state-business-source-revalidation-2026-09-03",
     observed_at: "2026-09-03",
     coverage_release_id: catalog.coverage_release_id,
@@ -137,7 +138,7 @@ test("loads a non-overlapping governed catalog with current source reassessments
   const vermont = stateAssessment(catalog, "VT");
   assert.equal(vermont.assessment_id, "vt-business-source-reassessment-2026-10-03");
   assert.equal(vermont.observed_at, "2026-10-03");
-  assert.deepEqual(catalog.source_artifacts.at(-2), {
+  assert.deepEqual(catalog.source_artifacts.at(-3), {
     artifact_id: "vt-business-source-document-prerequisite-2026-10-07",
     artifact_kind: "supplemental-document-prerequisite",
     observed_at: "2026-10-07",
@@ -147,8 +148,9 @@ test("loads a non-overlapping governed catalog with current source reassessments
     canonical_file_sha256: "16cdc05219afd5e9dd4bd241781fccb38011ec073505f43621b31c47d0711ebb",
     authority_granted: false,
   });
-  assert.equal(catalog.source_artifacts.at(-1).artifact_id, "il-business-source-zero-row-preflight-2026-11-12");
-  assert.equal(catalog.supplemental_evidence.length, 2);
+  assert.equal(catalog.source_artifacts.at(-2).artifact_id, "il-business-source-zero-row-preflight-2026-11-12");
+  assert.equal(catalog.source_artifacts.at(-1).artifact_id, "broad-organization-offline-connector-readiness-wave-2026-11-12");
+  assert.equal(catalog.supplemental_evidence.length, 3);
   assert.equal(catalog.supplemental_evidence[0].assessment_id, "vt-business-source-document-prerequisite-2026-10-07");
   assert.equal(catalog.supplemental_evidence[0].interface_observation.observed_marker, "<app-root></app-root>");
   assert.deepEqual(catalog.supplemental_evidence[0].fields.website_address_roles, ["principal-office", "business-mailing-address", "registered-office-agent-address", "agent-mailing-address"]);
@@ -158,6 +160,8 @@ test("loads a non-overlapping governed catalog with current source reassessments
   assert.equal(catalog.supplemental_evidence[1].state, "IL");
   assert.equal(catalog.supplemental_evidence[1].broad_layer_gap_resolved, false);
   assert.equal(Object.values(catalog.supplemental_evidence[1].authority).every(value => value === false), true);
+  assert.deepEqual(catalog.supplemental_evidence[2].states.map(row => row.state), ["IL", "KY", "MS", "OK", "UT"]);
+  assert.equal(catalog.supplemental_evidence[2].broad_layer_gaps_resolved, 0);
 });
 
 test("rejects overlapping provenance, decision escalation, and source-artifact drift", async () => {
@@ -219,10 +223,12 @@ test("rejects supplemental roster, app-shell fact, status/address finding, gate,
     (catalog) => { catalog.supplemental_evidence[1].state = "IN"; },
     (catalog) => { catalog.supplemental_evidence[1].authority.acquisition = true; },
     (catalog) => { catalog.supplemental_evidence[1].broad_layer_gap_resolved = true; },
+    (catalog) => { catalog.supplemental_evidence[2].states.pop(); },
+    (catalog) => { catalog.supplemental_evidence[2].controls.acquisition_authorized = true; },
   ]) {
     const catalog = await loadStateBusinessSourceAssessmentCatalog();
     mutate(catalog);
-    assert.throws(() => validateStateBusinessSourceAssessmentCatalog(catalog), /supplemental|content digest|authority/);
+    assert.throws(() => validateStateBusinessSourceAssessmentCatalog(catalog), /supplemental|connector wave|content digest|authority/);
   }
 });
 

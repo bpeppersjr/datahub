@@ -23,6 +23,7 @@ import { TEXAS_REASSESSMENT_ID, loadTexasBusinessSourceReassessment } from "./te
 import { AK_DC_REASSESSMENT_IDS, loadAkDcBusinessSourceReassessments } from "./alaska-dc-business-source-reassessment.mjs";
 import { VERMONT_DOCUMENT_PREREQUISITE_ID, VERMONT_DOCUMENT_PREREQUISITE_SHA256, loadVermontBusinessSourceDocumentPrerequisite, validateVermontBusinessSourceDocumentPrerequisite } from "./vermont-business-source-document-prerequisite.mjs";
 import { readIllinoisBusinessSourceZeroRowPreflight } from "./illinois-business-source-zero-row-preflight.mjs";
+import { BROAD_OFFLINE_WAVE_SHA256, loadBroadOfflineConnectorReadinessWave } from "./broad-organization-offline-connector-readiness-wave.mjs";
 import { ASSESSMENT_STATES as VALIDATION_WAVE_STATES, loadStateBusinessSourceValidationAssessment } from "./state-business-source-validation-wave.mjs";
 import { EXISTING_SOURCE_STATES, loadExistingGovernedSourceAssessmentWave } from "./state-business-source-existing-wave.mjs";
 import { APP_ROOT } from "./paths.mjs";
@@ -33,9 +34,9 @@ import {
   validateStateBusinessSourceRevalidation,
 } from "./state-business-source-revalidation.mjs";
 
-export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.4.0";
+export const STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION = "1.5.0";
 export const STATE_BUSINESS_SOURCE_ASSESSMENT_CATALOG_ID = "state-business-source-assessment-catalog-51-2026-11-12";
-const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "a379bf78640b41016fd397a9fe8f0bd4390b429899f1eb99c8fb5a32192fa4e8";
+const STATE_BUSINESS_SOURCE_ASSESSMENT_CONTENT_DIGEST = "fcae72ed36a660bb61a822c0e83c9a2da51c130f02a4914eab335a50daba6e30";
 export const DEFAULT_STATE_BUSINESS_SOURCE_DISCOVERY_QUEUE_PATHS = Object.freeze([
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4.json"),
   path.join(APP_ROOT, "config", "state-business-source-discovery-queue-4-wave-2.json"),
@@ -194,13 +195,22 @@ const ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT = Object.freeze({
   canonical_file_sha256: "6878f1269fb50aba834bcc0fbd1b67672920519802f4e53d59fe5807b37d80a9",
   authority_granted: false,
 });
+const BROAD_OFFLINE_WAVE_ARTIFACT = Object.freeze({
+  artifact_id: "broad-organization-offline-connector-readiness-wave-2026-11-12",
+  artifact_kind: "supplemental-zero-row-connector-readiness-wave",
+  observed_at: "2026-11-12",
+  coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
+  state_abbreviations: Object.freeze(["IL", "KY", "MS", "OK", "UT"]),
+  canonical_file_sha256: BROAD_OFFLINE_WAVE_SHA256,
+  authority_granted: false,
+});
 const CURRENT_REASSESSMENT_PROVENANCE = Object.freeze(Object.fromEntries(Object.entries(CURRENT_REASSESSMENT_IDS).map(([state, assessmentId]) => [state, Object.freeze({
   assessment_id: assessmentId,
   assessment_kind: "official-source-reassessment",
   observed_at: "2026-10-03",
   coverage_release_id: STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID,
 })])));
-const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT, ARKANSAS_REASSESSMENT_ARTIFACT, ...CURRENT_REASSESSMENT_ARTIFACTS, VERMONT_SUPPLEMENTAL_ARTIFACT, ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT]);
+const EXPECTED_CATALOG_SOURCE_ARTIFACTS = Object.freeze([...EXPECTED_SOURCE_ARTIFACTS, KANSAS_CORRECTION_ARTIFACT, ARKANSAS_REASSESSMENT_ARTIFACT, ...CURRENT_REASSESSMENT_ARTIFACTS, VERMONT_SUPPLEMENTAL_ARTIFACT, ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT, BROAD_OFFLINE_WAVE_ARTIFACT]);
 const EXPECTED_STATE_SCOPE = Object.freeze(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations));
 const HISTORICAL_STATE_PROVENANCE = Object.fromEntries(SOURCE_ARTIFACT_SPECS.flatMap((artifact) => artifact.state_abbreviations.map((stateAbbreviation) => [
   stateAbbreviation,
@@ -460,7 +470,7 @@ export function validateStateBusinessSourceAssessmentCatalog(catalog) {
   if (!exactDate(catalog?.observed_at) || !catalog.assessment_catalog_id.endsWith(catalog.observed_at)) fail("catalog date is invalid");
   if (catalog?.coverage_release_id !== STATE_BUSINESS_SOURCE_REVALIDATION_COVERAGE_RELEASE_ID) fail("coverage release is not pinned");
   if (!Array.isArray(catalog?.source_artifacts) || JSON.stringify(catalog.source_artifacts) !== JSON.stringify(EXPECTED_CATALOG_SOURCE_ARTIFACTS)) fail("source artifact descriptors drifted");
-  if (!Array.isArray(catalog?.supplemental_evidence) || catalog.supplemental_evidence.length !== 2) fail("supplemental evidence roster drifted");
+  if (!Array.isArray(catalog?.supplemental_evidence) || catalog.supplemental_evidence.length !== 3) fail("supplemental evidence roster drifted");
   const supplemental = validateVermontBusinessSourceDocumentPrerequisite(catalog.supplemental_evidence[0]);
   if (supplemental.assessment_id !== VERMONT_DOCUMENT_PREREQUISITE_ID
       || supplemental.supersedes_assessment_id !== OK_NE_VT_ME_REASSESSMENT_IDS.VT
@@ -477,6 +487,11 @@ export function validateStateBusinessSourceAssessmentCatalog(catalog) {
       || illinois.unresolved_gates?.length !== 7 || illinois.broad_layer_gap_resolved !== false
       || Object.values(illinois.authority ?? {}).some(value => value !== false)
       || illinois.evidence?.assessment_sha256 !== ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT.canonical_file_sha256) fail("Illinois zero-row supplemental evidence drifted");
+  const wave = catalog.supplemental_evidence[2];
+  if (wave?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.0.0"
+      || wave.wave_id !== BROAD_OFFLINE_WAVE_ARTIFACT.artifact_id
+      || JSON.stringify(wave.states?.map(row => row.state)) !== JSON.stringify(BROAD_OFFLINE_WAVE_ARTIFACT.state_abbreviations)
+      || wave.broad_layer_gaps_resolved !== 0 || Object.values(wave.controls ?? {}).some(value => value !== 0 && value !== false)) fail("broad offline connector wave drifted");
   if (!Array.isArray(catalog?.states) || JSON.stringify(catalog.states.map((state) => state.state_abbreviation)) !== JSON.stringify(EXPECTED_STATE_SCOPE)) fail("state scope or order drifted");
   if (new Set(catalog.states.map((state) => state.state_abbreviation)).size !== catalog.states.length) fail("state assessments overlap");
 
@@ -506,7 +521,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
   ]);
   const revalidation = validateStateBusinessSourceRevalidation(JSON.parse(revalidationText));
   const discoveryQueues = queueTexts.map((text) => validateStateBusinessSourceDiscoveryQueue(JSON.parse(text)));
-  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments, njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, scMnAlReassessments, wisconsinReassessment, texasReassessment, akDcReassessments, vermontSupplemental, illinoisSupplemental] = await Promise.all([
+  const [assessmentWave, validationWave, existingSourceWave, kansasReassessment, arkansasReassessment, illinoisReassessment, mississippiReassessment, kyHiNvReassessments, utahReassessment, washingtonReassessment, caIdNhOhReassessments, miMdLaReassessments, georgiaReassessment, newMexicoReassessment, montanaReassessment, okNeVtMeReassessments, wyomingReassessment, rhodeIslandReassessment, southDakotaReassessment, wvNdNcReassessments, njVaTnMaReassessments, arizonaReassessment, missouriReassessment, indianaReassessment, scMnAlReassessments, wisconsinReassessment, texasReassessment, akDcReassessments, vermontSupplemental, illinoisSupplemental, broadOfflineWave] = await Promise.all([
     loadStateBusinessSourceAssessmentWave(),
     Promise.all(VALIDATION_WAVE_STATES.map((state) => loadStateBusinessSourceValidationAssessment(path.join(APP_ROOT, "config", `state-business-source-${state.toLowerCase()}-2026-09-22.json`), state))),
     loadExistingGovernedSourceAssessmentWave(),
@@ -537,6 +552,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     loadAkDcBusinessSourceReassessments(),
     loadVermontBusinessSourceDocumentPrerequisite(),
     readIllinoisBusinessSourceZeroRowPreflight(),
+    loadBroadOfflineConnectorReadinessWave(),
   ]);
   const sourceArtifacts = [
     {
@@ -559,6 +575,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     ...CURRENT_REASSESSMENT_ARTIFACTS.map((artifact) => ({ ...artifact, coverage_release_id: revalidation.coverage_release_id })),
     { ...VERMONT_SUPPLEMENTAL_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
     { ...ILLINOIS_ZERO_ROW_SUPPLEMENTAL_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
+    { ...BROAD_OFFLINE_WAVE_ARTIFACT, coverage_release_id: revalidation.coverage_release_id },
   ];
   const catalog = {
     schema_version: STATE_BUSINESS_SOURCE_ASSESSMENT_SCHEMA_VERSION,
@@ -566,7 +583,7 @@ export async function loadStateBusinessSourceAssessmentCatalog(
     observed_at: sourceArtifacts.map((artifact) => artifact.observed_at).sort().at(-1),
     coverage_release_id: revalidation.coverage_release_id,
     source_artifacts: sourceArtifacts,
-    supplemental_evidence: [structuredClone(vermontSupplemental), structuredClone(illinoisSupplemental)],
+    supplemental_evidence: [structuredClone(vermontSupplemental), structuredClone(illinoisSupplemental), structuredClone(broadOfflineWave)],
     states: (() => {
       const states = normalizeRevalidation(revalidation);
       const seen = new Set(states.map((state) => state.state_abbreviation));

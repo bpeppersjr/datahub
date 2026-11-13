@@ -1,0 +1,34 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { APP_ROOT } from "./paths.mjs";
+import { loadBroadOfflineConnectorReadinessWave, validateBroadOfflineConnectorReadinessWave } from "./broad-organization-offline-connector-readiness-wave.mjs";
+
+test("loads the exact five-state zero-row broad connector wave", async () => {
+  const wave = await loadBroadOfflineConnectorReadinessWave();
+  assert.deepEqual(wave.states.map(row => row.state), ["IL", "KY", "MS", "OK", "UT"]);
+  assert.deepEqual(wave.states.map(row => row.required_source_files), [5, 1, 2, 1, 3]);
+  assert.equal(wave.broad_layer_gaps_resolved, 0);
+  assert.equal(Object.values(wave.controls).every(value => value === 0 || value === false), true);
+});
+
+test("rejects omission, substitution and authority widening", async () => {
+  const wave = await loadBroadOfflineConnectorReadinessWave();
+  const bindings = {};
+  for (const row of wave.states) {
+    const load = async relative => JSON.parse(await readFile(path.join(APP_ROOT, relative), "utf8"));
+    bindings[row.state] = { ...row, connector: await load(row.connector_path), policy: await load(row.policy_path), assessment: await load(row.assessment_path) };
+  }
+  for (const mutate of [
+    value => value.states.pop(),
+    value => { value.states[0].state = "IN"; },
+    value => { value.states[0].connector_path = value.states[1].connector_path; },
+    value => { value.controls.acquisition_authorized = true; },
+    value => { value.states[0].unresolved_gates.pop(); },
+    value => { value.broad_layer_gaps_resolved = 1; },
+  ]) {
+    const changed = structuredClone(wave); mutate(changed);
+    assert.throws(() => validateBroadOfflineConnectorReadinessWave(changed, bindings), /wave is invalid/);
+  }
+});

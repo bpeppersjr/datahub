@@ -159,14 +159,18 @@ export function deriveBroadOrganizationAuthorizationProgram(backlog, backlogMani
       || backlog.scope?.acquisition_authorized !== false || backlog.scope?.source_actions_performed !== 0) fail("backlog identity, scope, or authority boundary is invalid");
   if (sha256(jsonBytes(backlog)) !== backlogManifest?.artifacts?.[0]?.sha256) fail("backlog content differs from its immutable manifest artifact");
   if (!historical && (backlog.scope?.network_requests !== 0 || backlog.scope?.current_broad_layer_gaps !== 40)) fail("current backlog network or gap-only boundary is invalid");
-  if (!historical && (backlog.supplemental_evidence?.length !== 2
+  if (!historical && (backlog.supplemental_evidence?.length !== 3
       || backlog.supplemental_evidence[0]?.assessment_id !== "vt-business-source-document-prerequisite-2026-10-07"
       || Object.values(backlog.supplemental_evidence[0]?.authority ?? {}).some(value => value !== false)
       || backlog.supplemental_evidence[1]?.schema_version !== "illinois-business-source-zero-row-preflight-result@1.0.0"
       || backlog.supplemental_evidence[1]?.state !== "IL" || backlog.supplemental_evidence[1]?.status !== "hold"
       || backlog.supplemental_evidence[1]?.source_rows_read !== 0 || backlog.supplemental_evidence[1]?.network_requests !== 0
       || backlog.supplemental_evidence[1]?.broad_layer_gap_resolved !== false
-      || Object.values(backlog.supplemental_evidence[1]?.authority ?? {}).some(value => value !== false))) fail("supplemental evidence lineage or authority boundary is invalid");
+      || Object.values(backlog.supplemental_evidence[1]?.authority ?? {}).some(value => value !== false)
+      || backlog.supplemental_evidence[2]?.schema_version !== "broad-organization-offline-connector-readiness-wave@1.0.0"
+      || JSON.stringify(backlog.supplemental_evidence[2]?.states?.map(row => row.state)) !== JSON.stringify(["IL", "KY", "MS", "OK", "UT"])
+      || backlog.supplemental_evidence[2]?.broad_layer_gaps_resolved !== 0
+      || Object.values(backlog.supplemental_evidence[2]?.controls ?? {}).some(value => value !== 0 && value !== false))) fail("supplemental evidence lineage or authority boundary is invalid");
   if (JSON.stringify(backlog.states.map((row) => row.assessment?.state_abbreviation)) !== JSON.stringify(expectedStates)
       || backlog.states.some((row, i) => row.priority !== i + 1 || row.first_wave !== (i < 10))) fail("backlog ordering or first-wave selection differs from the pinned contiguous waves");
   const gateKeys = [...new Set(backlog.states.flatMap((row) => row.assessment?.unresolved_gates ?? []))].sort();

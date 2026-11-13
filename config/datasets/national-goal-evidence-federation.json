@@ -6,9 +6,9 @@
   "production_enrollment": false,
   "application_integration": "bounded-authenticated-read-only-national-status@1.0.0",
   "retained_release": {
-    "release_id": "national-goal-evidence-federation-9f920fc21f7b3d4248f94a416e9f7bb0f4951cf4916e591ea3deaf474861c0ce",
-    "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-9f920fc21f7b3d4248f94a416e9f7bb0f4951cf4916e591ea3deaf474861c0ce/manifest.json",
-    "manifest_sha256": "0e55529b2819e469bcc0b2c9260bbb3e3bdad38541980fe4f5af72ac29f79e17",
+    "release_id": "national-goal-evidence-federation-130435e19f4f760de68664d7c98f499d5e9a3a644d6ec6411955a02fedab811b",
+    "manifest": "data/national-goal-evidence-federation/releases/national-goal-evidence-federation-130435e19f4f760de68664d7c98f499d5e9a3a644d6ec6411955a02fedab811b/manifest.json",
+    "manifest_sha256": "fe11bb70c722e2527e0628a8bdec00f7a1c085043ed41a850a3f1fb4c19d26a1",
     "zip5_rows": 48194,
     "source_dimensions": 51,
     "state_industry_rows": 459,
