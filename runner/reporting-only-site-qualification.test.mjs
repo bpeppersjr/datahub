@@ -41,7 +41,7 @@ test('reporting-only qualification conserves 13,182 source sites outside matchin
     'assigned-single-county': 8942, unmatched: 0, ambiguous: 0, 'missing-geocode': 3, 'invalid-coordinate': 0,
     'assignment-ineligible-by-source-policy': 4237,
   });
-  assert.deepEqual(result.summary.physical_site_denominator, { matching_profiles: 8011835, reporting_only_sites: 13182, combined_retained_site_evidence: 8025017 });
+  assert.deepEqual(result.summary.physical_site_denominator, { matching_profiles: 8011213, reporting_only_sites: 13182, combined_retained_site_evidence: 8024395 });
   assert.deepEqual(result.summary.source_status_counts.MA, { Current: 2561, 'Renewal in progress': 431, Expired: 13, 'Regional Enrollment Freeze': 2 });
   assert.deepEqual(result.summary.source_status_counts.NJ, { null: 4075 });
   assert.deepEqual(result.summary.source_status_counts.TN, { Active: 1863 });

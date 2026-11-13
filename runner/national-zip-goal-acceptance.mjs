@@ -23,10 +23,10 @@ import { readNonZctaSourceGeographyContextSummary } from './non-zcta-source-geog
 
 export const NATIONAL_ZIP_GOAL_ACCEPTANCE_VERSION = 'national-zip-goal-acceptance@1.7.0';
 const REPORTING_SITES = Object.freeze({ registration_path: 'config/datasets/reporting-only-site-qualification.json',
-  registration_sha256: '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba',
-  release_id: 'reporting-only-site-qualification-a125bbeb43928016c7d0abf7259572f9e248f85f22f997bf8572b503ff3e4fce',
-  manifest_sha256: 'e3e62ff1ad7d05c9fdfaf51e93783effb07d738a1f2236128183229c08b95e83',
-  artifact_sha256: 'c4d882b146cdd06f0817744ffa92ce8c9d9bf6b36dd5326aa1c10286953144ab', record_count: 13182 });
+  registration_sha256: '60bc11e9e3ce5a1a1f1355c82285f8bd8b5ce6fbb664d9e99a6db5f212178d49',
+  release_id: 'reporting-only-site-qualification-9d47b489eeeb1d42db7d670281bf5d5e4efa09f9870abff6e36759d6444b21db',
+  manifest_sha256: 'fdc0e72c25febd08d301144ddf475213b9a38fc1f556245c6bc9ba65175e5072',
+  artifact_sha256: 'ab6d4069fb4fe53bd24a877294d6c01857b7093c15027648c888d48dd9e5ecbe', record_count: 13182 });
 const REPORTING_SOURCE_PINS = Object.freeze({
   MA: { source_id: 'ma-licensed-center-based-childcare', release_id: 'ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6',
     source_release_id: 'ma-childcare-c6b4990deeedb98fb2bc384c420b2fe3c0d37892398f1596d11ca077ed2e80b5', manifest_path: 'data/industry-segments/runs/ma-app-acquisition-20260907-02/state-ma-childcare-MA/releases/ma-childcare-2fd11c60-e9e8-488f-8693-f44bd03582d6/manifest.json', manifest_sha256: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc',
@@ -164,8 +164,8 @@ function validateReportingOnlySiteBinding(value) {
     && value.release_id === REPORTING_SITES.release_id && value.manifest_sha256 === REPORTING_SITES.manifest_sha256
     && value.artifact_sha256 === REPORTING_SITES.artifact_sha256 && value.record_count === REPORTING_SITES.record_count
     && value.matching_profile_count === 0 && value.cohort_kind === 'reporting-only'
-    && value.registry_release_id === 'national-business-registry-20260911-022652067Z-1ec656c3'
-    && value.registry_manifest_sha256 === 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76'
+    && value.registry_release_id === 'national-business-registry-20261112-005851952Z-44f0a338'
+    && value.registry_manifest_sha256 === '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048'
     && value.reporting_artifact_inventory_sha256 === 'e060dd4979babd4ce4824edbf7e3469cd6447e2513c368615111da16259cf1c5'
     && value.temporal_release_id === 'national-business-temporal-claim-matrix-534d123499d07ec1beace832268a741fd2228897f222354905c43c2fb09d2090'
     && value.temporal_manifest_sha256 === '342691d68f76cc38bc8ce480266fd5d36be3c7f892d258b8bfde5be94417ed05'
@@ -188,9 +188,9 @@ function validateReportingOnlySiteBinding(value) {
     && value.summary.point_assignment?.['assignment-ineligible-by-source-policy'] === 4237
     && value.summary.point_assignment?.['missing-geocode'] === 3
     && value.summary.temporal_review_unmeasured === 13182
-    && value.summary.physical_site_denominator?.matching_profiles === 8011835
+    && value.summary.physical_site_denominator?.matching_profiles === 8011213
     && value.summary.physical_site_denominator?.reporting_only_sites === 13182
-    && value.summary.physical_site_denominator?.combined_retained_site_evidence === 8025017
+    && value.summary.physical_site_denominator?.combined_retained_site_evidence === 8024395
     && value.active_business_eligible_count === 0 && value.active_business_verified_count === 0
     && value.current_operation_verified_count === 0 && value.identity_matching_eligible_count === 0
     && value.usps_unverified_count === 13182 && value.usps_operational_assignment_verified === false
@@ -381,8 +381,8 @@ function validateGoalReadinessBindings(value) {
     && ledger.find(row => row.requirement === 'entity-geography-relationship')?.usps_unverified_profile_count === 8011213
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.site_count === 13182
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_count === 0
-    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011835
-    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8025017
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011213
+    && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8024395
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_absent_count === 172
     && ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.active_business_eligible_count === 0
     && ledger.find(row => row.requirement === 'business-entity-source-policy-provenance')?.source_count === 15
@@ -535,8 +535,8 @@ export function projectNationalZipObjectiveReadiness(report) {
     'closed twelve-row objective readiness ledger');
   check(requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.site_count === 13182
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_count === 0
-    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011835
-    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8025017
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.matching_profile_denominator === 8011213
+    && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.combined_retained_site_evidence_count === 8024395
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.active_business_eligible_count === 0
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.current_operation_verified_count === 0
     && requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification')?.zip_present_count === 13010
@@ -1023,10 +1023,10 @@ async function readObjectiveReadiness({ signal }) {
       { requirement: 'reconciliation-and-benchmark', status: 'blocked', benchmark_gate_passed: false, entity_resolution_applied: false, evidence: 'ZIP linkage evidence is aggregate and unapplied; benchmark gate is not passed.' },
       { requirement: 'all-business-completeness-denominator', status: 'unmeasured', all_business_completion_percent: null, active_business_count: null, evidence: 'No verified national all-business denominator exists.' },
       { requirement: 'reporting-only-site-qualification', status: 'partial', site_count: 13182, matching_profile_count: 0,
-        matching_profile_denominator: 8011835, combined_retained_site_evidence_count: 8025017,
+        matching_profile_denominator: 8011213, combined_retained_site_evidence_count: 8024395,
         active_business_eligible_count: 0, current_operation_verified_count: 0, zip_present_count: 13010, zip_absent_count: 172,
         usps_unverified_count: 13182, point_assigned_count: 8942, point_assignment_ineligible_count: 4237,
-        evidence: 'The historical reporting-only release retains its own registry denominator. Its site evidence carries zero active-eligible, independently verified operation, or USPS-verified ZIP assignments.' },
+        evidence: 'The selected reporting-only release binds the current registry denominator. Its site evidence carries zero active-eligible, independently verified operation, or USPS-verified ZIP assignments.' },
       { requirement: 'business-entity-source-policy-provenance', status: 'achieved', source_count: sourcePolicyBinding.source_count,
         profile_count: sourcePolicyBinding.profile_count, policy_files_verified: sourcePolicyBinding.policy_files_verified,
         profile_policy_rows_verified: sourcePolicyBinding.profile_policy_rows_verified, authorization_granted: false,

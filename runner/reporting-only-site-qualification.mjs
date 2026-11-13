@@ -9,8 +9,15 @@ import { assignPointToCounty } from './national-business-coverage-views.mjs';
 
 export const REPORTING_ONLY_SITE_QUALIFICATION_VERSION = 'reporting-only-site-qualification@1.1.0';
 const DATASET = 'reporting-only-site-qualification';
-const REGISTRY_RELEASE = 'national-business-registry-20260911-022652067Z-1ec656c3';
-const REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
+const REGISTRY_RELEASE = 'national-business-registry-20261112-005851952Z-44f0a338';
+const REGISTRY_SHA = '657af52b4fb0cf0d7d00d775f6137acd98499e774937ad5d3d7ab1d82f493048';
+const REGISTRY_REGISTRATION_SHA = 'a728f9296a91a989c8157bf29c96625fed50e86b97ffd2d5bbe15f92c9363c00';
+const HISTORICAL_REGISTRY_RELEASE = 'national-business-registry-20260911-022652067Z-1ec656c3';
+const HISTORICAL_REGISTRY_SHA = 'd8ab131697b1df63ed53fdfa9832d6973fd152ddf23565219ee9bb39b25fbb76';
+export const SELECTED_REPORTING_RELEASE = 'reporting-only-site-qualification-9d47b489eeeb1d42db7d670281bf5d5e4efa09f9870abff6e36759d6444b21db';
+export const SELECTED_REPORTING_MANIFEST_SHA = 'fdc0e72c25febd08d301144ddf475213b9a38fc1f556245c6bc9ba65175e5072';
+export const SELECTED_REPORTING_ARTIFACT_SHA = 'ab6d4069fb4fe53bd24a877294d6c01857b7093c15027648c888d48dd9e5ecbe';
+export const SELECTED_REPORTING_REGISTRATION_SHA = '60bc11e9e3ce5a1a1f1355c82285f8bd8b5ce6fbb664d9e99a6db5f212178d49';
 const AS_OF = '2026-10-02T16:30:00.000Z';
 const HISTORICAL_INPUTS_PATH = 'config/datasets/reporting-only-site-qualification-historical-inputs.json';
 const HISTORICAL_INPUTS_SHA = '42a800718a7c588cc167447ea536545639687f23d24957bc6d0a7f6f08f2272e';
@@ -73,7 +80,7 @@ export async function verifyReportingOnlyHistoricalInputSelections({ root = APP_
 async function historicalTemporal(root, selection) {
   const manifestRead = await boundedJson(path.join(root, selection.manifest_path), 128_000), manifest = manifestRead.value;
   check(manifestRead.sha256 === selection.manifest_sha256 && manifest.release_id === selection.release_id
-    && manifest.inputs?.registry_release_id === REGISTRY_RELEASE && manifest.inputs?.registry_manifest_sha256 === REGISTRY_SHA
+    && manifest.inputs?.registry_release_id === HISTORICAL_REGISTRY_RELEASE && manifest.inputs?.registry_manifest_sha256 === HISTORICAL_REGISTRY_SHA
     && manifest.artifacts?.length === 1 && manifest.artifacts[0].sha256 === selection.artifact_sha256
     && manifest.artifacts[0].record_count === 30 && safeRelative(manifest.artifacts[0].path), 'historical temporal manifest changed');
   const artifactPath = path.join(path.dirname(path.join(root, selection.manifest_path)), manifest.artifacts[0].path);
@@ -189,14 +196,29 @@ function classifyGeography(row, source, context) {
 }
 
 async function loadInputs(root, signal) {
-  const historical = await historicalInputs(root), r = { release_id: historical.registry.release_id,
-    manifest: historical.registry.manifest_path, manifest_sha256: historical.registry.manifest_sha256 };
+  const historical = await historicalInputs(root), r = { release_id: REGISTRY_RELEASE,
+    manifest: `data/business-registry/releases/${REGISTRY_RELEASE}/manifest.json`, manifest_sha256: REGISTRY_SHA };
   const registry = await boundedJson(path.join(root, r.manifest), 8_000_000);
   check(registry.sha256 === REGISTRY_SHA && registry.value.release_id === REGISTRY_RELEASE && registry.value.coverage.reporting_location_evidence === EXPECTED.total
-    && registry.value.coverage.resolution_location_profiles === 8011835 && registry.value.coverage.physical_sites === 8025017);
+    && registry.value.coverage.resolution_location_profiles === 8011213 && registry.value.coverage.physical_sites === 8024395);
   const selectedArtifacts = registry.value.artifacts.filter(a => a.artifact_type === 'business-reporting-location-evidence-jsonl-gzip');
   check(selectedArtifacts.length === 10 && stable(selectedArtifacts.map(a => a.path).sort()) === stable([...ARTIFACT_PATHS].sort())
     && selectedArtifacts.reduce((n, a) => n + a.record_count, 0) === EXPECTED.total);
+  const historicalRegistry = await boundedJson(path.join(root, historical.registry.manifest_path), 8_000_000);
+  const historicalArtifacts = historicalRegistry.value.artifacts.filter(a => a.artifact_type === 'business-reporting-location-evidence-jsonl-gzip');
+  const projectArtifacts = rows => rows.map(({ path, bytes, sha256, record_count, artifact_type, export_policy }) => ({ path, bytes, sha256, record_count, artifact_type, export_policy }));
+  check(historicalRegistry.sha256 === HISTORICAL_REGISTRY_SHA && historicalRegistry.value.release_id === HISTORICAL_REGISTRY_RELEASE
+    && stable(projectArtifacts(selectedArtifacts)) === stable(projectArtifacts(historicalArtifacts)), 'current reporting artifacts differ from historical retained bytes');
+  for (const artifact of selectedArtifacts) {
+    const currentBytes = await readFile(path.join(root, path.dirname(r.manifest), artifact.path));
+    const historicalBytes = await readFile(path.join(root, path.dirname(historical.registry.manifest_path), artifact.path));
+    check(currentBytes.length === artifact.bytes && historicalBytes.length === artifact.bytes
+      && sha(currentBytes) === artifact.sha256 && sha(historicalBytes) === artifact.sha256, 'reporting artifact byte identity');
+  }
+  const registryRegistration = await boundedJson(path.join(root, 'config/datasets/national-business-registry.json'), 512_000);
+  check(registryRegistration.sha256 === REGISTRY_REGISTRATION_SHA
+    && registryRegistration.value.current_release?.release_id === REGISTRY_RELEASE
+    && registryRegistration.value.current_release?.manifest_sha256 === REGISTRY_SHA, 'current registry registration selection');
   const dependencies = new Map((registry.value.dependencies ?? []).map(x => [x.dataset_id, x]));
   const sources = {};
   for (const [state, expected] of Object.entries(SOURCE)) {
@@ -223,8 +245,8 @@ async function loadInputs(root, signal) {
   }
   const temporal = await historicalTemporal(root, historical.temporal);
   check(temporal.provenance.release_id === historical.temporal.release_id
-    && temporal.provenance.manifest_sha256 === historical.temporal.manifest_sha256 && temporal.provenance.registry_release_id === REGISTRY_RELEASE
-    && temporal.provenance.registry_manifest_sha256 === REGISTRY_SHA);
+    && temporal.provenance.manifest_sha256 === historical.temporal.manifest_sha256 && temporal.provenance.registry_release_id === HISTORICAL_REGISTRY_RELEASE
+    && temporal.provenance.registry_manifest_sha256 === HISTORICAL_REGISTRY_SHA);
   const temporalRows = new Map(temporal.rows.map(row => [row.source_key, row]));
   const zipTemporal = await historicalZipTemporal(root, historical.zip_temporal);
   const qualRows = new Map(zipTemporal.rows.map(row => [row.dimension_id, row]));
@@ -240,12 +262,12 @@ async function loadInputs(root, signal) {
   }
   const geographyContext = await loadReportingSiteGeographyContext({ root, signal,
     registryCatalogPath: historical.registry.selection_path, registryCatalogSha256: historical.registry.selection_sha256,
-    registryReleaseId: REGISTRY_RELEASE, registryManifestSha256: REGISTRY_SHA, registryProfileCount: 8011835,
+    registryReleaseId: HISTORICAL_REGISTRY_RELEASE, registryManifestSha256: HISTORICAL_REGISTRY_SHA, registryProfileCount: 8011835,
     coverageReleaseId: 'national-business-coverage-views-20260911-040908332Z-f01c882a',
     coverageManifestSha256: 'f15d43dda3acfb2e81fe2cd0360ec8dfba9f3061597c62c2eb8d1953bdc706b6' });
-  check(geographyContext.pins.registry.release_id === REGISTRY_RELEASE && geographyContext.pins.registry.manifest_sha256 === REGISTRY_SHA);
+  check(geographyContext.pins.registry.release_id === HISTORICAL_REGISTRY_RELEASE && geographyContext.pins.registry.manifest_sha256 === HISTORICAL_REGISTRY_SHA);
   return { registry: registry.value, registryManifestSha: registry.sha256,
-    registryRegistrationSha: historical.registry.source_registration_sha256, selectedArtifacts, sources, semanticByState, qualRows,
+    registryRegistrationSha: registryRegistration.sha256, selectedArtifacts, sources, semanticByState, qualRows,
     temporal, temporalRegistrationSha: historical.temporal.source_registration_sha256, zipTemporal, geographyContext,
     historicalInputsReceiptSha: historical.receipt_sha256 };
 }
@@ -334,7 +356,7 @@ export async function buildReportingOnlySiteQualification({ root = APP_ROOT, sig
     zip: produced.counts.zip, point_assignment: produced.counts.point,
     current_operation_verified: 0, active_business_verified: 0, active_business_eligible: 0, identity_matching_eligible: 0,
     temporal_review_unmeasured: produced.rows.length, source_status_counts: produced.counts.status,
-    physical_site_denominator: { matching_profiles: 8011835, reporting_only_sites: 13182, combined_retained_site_evidence: 8025017 } };
+    physical_site_denominator: { matching_profiles: 8011213, reporting_only_sites: 13182, combined_retained_site_evidence: 8024395 } };
   const claims = { current_operation_verified: false, active_business_verified: false, active_business_eligible: false, identity_matching_eligible: false,
     usps_operational_assignment_verified: false, usps_deliverability_verified: false, zcta_membership_inferred: false, entity_polygons_present: false,
     network_requests: 0, source_acquisition_performed: false, current_pointer_written: false, production_enrollment: false, production_execution: false, export_policy: 'local-review-only' };
@@ -344,9 +366,11 @@ export async function buildReportingOnlySiteQualification({ root = APP_ROOT, sig
   const manifest = { dataset_id: DATASET, release_id, status: 'immutable-pointer-free-local-review-only', publication_mode: 'pointer-free', ...body };
   const manifestBytes = Buffer.from(`${JSON.stringify(manifest, null, 2)}\n`), manifest_sha256 = sha(manifestBytes);
   const relative = `data/${DATASET}/releases/${release_id}`, releaseDir = path.join(root, relative);
-  await mkdir(releaseDir, { recursive: true });
-  await writeFile(path.join(releaseDir, artifact.path), artifactBytes, { flag: 'wx' }).catch(async error => { if (error.code !== 'EEXIST') throw error; check(sha(await readFile(path.join(releaseDir, artifact.path))) === artifact.sha256, 'existing immutable site shard mismatch'); });
-  await writeFile(path.join(releaseDir, 'manifest.json'), manifestBytes, { flag: 'wx' }).catch(async error => { if (error.code !== 'EEXIST') throw error; check(sha(await readFile(path.join(releaseDir, 'manifest.json'))) === manifest_sha256, 'existing immutable reporting manifest mismatch'); });
+  const existing = await lstat(releaseDir).catch(error => error.code === 'ENOENT' ? null : Promise.reject(error));
+  check(existing === null, 'immutable reporting-only release already exists');
+  await mkdir(releaseDir, { recursive: false });
+  await writeFile(path.join(releaseDir, artifact.path), artifactBytes, { flag: 'wx' });
+  await writeFile(path.join(releaseDir, 'manifest.json'), manifestBytes, { flag: 'wx' });
   const configPath = path.join(root, 'config/datasets', `${DATASET}.json`);
   const old = await readFile(configPath, 'utf8').then(JSON.parse).catch(error => error.code === 'ENOENT' ? null : Promise.reject(error));
   const prior = old?.retained_releases ?? (old?.selected_release ? [{ ...old.selected_release, selected: true }] : []);
@@ -367,6 +391,9 @@ export async function readReportingOnlySiteQualification({ root = APP_ROOT, sign
     && Array.isArray(reg.value.retained_releases));
   const selectedRows = reg.value.retained_releases.filter(row => row.selected === true); check(selectedRows.length === 1);
   const selected = selectedRows[0]; check(reg.value.selected_release_id === selected.release_id && selected?.release_id && selected.record_count === EXPECTED.total);
+  if (root === path.resolve(APP_ROOT)) check(reg.sha256 === SELECTED_REPORTING_REGISTRATION_SHA
+    && selected.release_id === SELECTED_REPORTING_RELEASE && selected.manifest_sha256 === SELECTED_REPORTING_MANIFEST_SHA
+    && selected.artifact_sha256 === SELECTED_REPORTING_ARTIFACT_SHA, 'selected reporting-only runtime pins');
   const manifestPath = path.join(root, selected.manifest), manifestRead = await boundedJson(manifestPath, 3_000_000), manifest = manifestRead.value;
   check(manifestRead.sha256 === selected.manifest_sha256 && manifest.dataset_id === DATASET && manifest.release_id === selected.release_id
     && manifest.status === 'immutable-pointer-free-local-review-only' && manifest.publication_mode === 'pointer-free'

@@ -29,8 +29,8 @@ test('strict projection exposes twelve ordered requirements, blockers, forty gap
   const reporting = value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification');
   assert.deepEqual([reporting.site_count, reporting.matching_profile_count, reporting.zip_present_count, reporting.zip_absent_count,
     reporting.active_business_eligible_count, reporting.current_operation_verified_count, reporting.usps_unverified_count], [13182, 0, 13010, 172, 0, 0, 13182]);
-  assert.equal(reporting.matching_profile_denominator, 8011835);
-  assert.equal(reporting.combined_retained_site_evidence_count, 8025017);
+  assert.equal(reporting.matching_profile_denominator, 8011213);
+  assert.equal(reporting.combined_retained_site_evidence_count, 8024395);
   const geoRow = value.requirements_ledger.find(row => row.requirement === 'entity-geography-relationship');
   assert.equal(geoRow.status, 'partial'); assert.equal(geoRow.profile_count, 8011213); assert.equal(geoRow.registry_profile_count, 8011213);
   assert.equal(geoRow.postal_counts['same-code-zcta-candidate'], 7962776); assert.equal(geoRow.postal_counts['outside-zcta'], 48436);
@@ -73,7 +73,7 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
   assert.equal(value.lineage.business_entity_source_policy_provenance.registration_sha256, '619e3768bd89717d228caeaf1821de9438cde5a8899a35da13bf064123704564');
   assert.equal(value.lineage.business_entity_source_policy_provenance.source_count, 15);
   assert.equal(value.requirements_ledger.find(row => row.requirement === 'business-entity-source-policy-provenance').profile_policy_rows_verified, 8011213);
-  assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '0eb4e02a94d3618362b2d9fbc0f58c34a826481befbafbc0655a8a0a69b049ba');
+  assert.equal(value.lineage.reporting_only_site_qualification.registration_sha256, '60bc11e9e3ce5a1a1f1355c82285f8bd8b5ce6fbb664d9e99a6db5f212178d49');
   assert.deepEqual(value.lineage.reporting_only_site_qualification.source_manifest_hashes, { MA: 'c6d811e5743a03d7126d1e34b3763f4c1acbd495a5b4cf68f82c716c50fba1fc', NJ: 'b873a912c61e1cc13b53bac9ad6265380625344e3d9bb7795217913b8632049e', TN: '98234ee44e52e9fcf8cdecfb1812b49029a2444316832df95f90b18518ffa55d', OH: 'e4de0ed529da81c09522c52b9990b41a1edad1adf906f9eea2b95363ff241171' });
   assert.equal(value.lineage.reporting_only_site_qualification.source_bindings.MA.transformation_version, 'ma-childcare-normalization@1.0.0');
   assert.equal(value.lineage.reporting_only_site_qualification.zip_temporal_qualification_artifact_sha256, '958cb73f61dc27bf8bbbcb3f3e666917f8c885a59bf1470129ccadb5e2a862ed');
@@ -87,7 +87,7 @@ assert.equal(value.lineage.zip_industry_matrix.release_id,'national-exact-zip-in
     value => { value.bindings.lifecycle_eligibility.taxonomy_sha256 = '7c7dcc49afdae859d20de95e785c2efe3e40b43e395091de934ee76a1f99f6cc'; },
     value => { value.bindings.business_entity_source_policy_provenance.source_profile_counts_sha256 = 'f'.repeat(64); },
     value => { value.requirements_ledger.find(row => row.requirement === 'lifecycle-eligibility').unmeasured_count = 24230; },
-    value => { value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification').matching_profile_denominator = 8011213; },
+    value => { value.requirements_ledger.find(row => row.requirement === 'reporting-only-site-qualification').matching_profile_denominator = 8011835; },
     value => { delete value.bindings.business_entity_geography_relationship; },
     value => { value.bindings.business_entity_geography_relationship.registration_sha256 = '0'.repeat(64); },
     value => { value.bindings.business_entity_geography_relationship.manifest_sha256 = '0'.repeat(64); },
